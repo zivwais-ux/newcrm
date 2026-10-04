@@ -295,3 +295,31 @@ export async function getCustomerRevenue(supabase: SupabaseClient, org: string, 
   );
   return new Map((rows ?? []).map((r) => [r.customer_id, { revenue: num(r.revenue), purchases: num(r.purchases), last_purchase: r.last_purchase }]));
 }
+
+export interface LapsedCustomer {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  previous_revenue: number;
+  last_purchase: string | null;
+  lifetime_revenue: number;
+}
+
+export async function getLapsedCustomers(
+  supabase: SupabaseClient,
+  org: string,
+  cur: { from: string; to: string },
+  prev: { from: string; to: string },
+  limit = 50,
+): Promise<LapsedCustomer[]> {
+  const rows = await rpc<LapsedCustomer[]>(supabase, "lapsed_customers", {
+    org,
+    cur_from: cur.from,
+    cur_to: cur.to,
+    prev_from: prev.from,
+    prev_to: prev.to,
+    p_limit: limit,
+  });
+  return (rows ?? []).map((r) => ({ ...r, previous_revenue: num(r.previous_revenue), lifetime_revenue: num(r.lifetime_revenue) }));
+}

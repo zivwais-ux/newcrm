@@ -432,6 +432,32 @@ as $$
   group by t.customer_id;
 $$;
 
+-- Customers who bought in the previous period but not in the current one.
+create or replace function public.lapsed_customers(
+  org uuid, cur_from date, cur_to date, prev_from date, prev_to date, p_limit integer default 50
+)
+returns table (id uuid, name text, email text, phone text, previous_revenue numeric, last_purchase date, lifetime_revenue numeric)
+language sql
+stable
+set search_path = ''
+as $$
+  with per as (
+    select t.customer_id,
+           coalesce(sum(public.revenue_value(t)) filter (where t.date between prev_from and prev_to), 0) as prev,
+           coalesce(sum(public.revenue_value(t)) filter (where t.date between cur_from and cur_to), 0) as cur,
+           max(t.date) filter (where t.date <= cur_to) as last_purchase,
+           sum(public.revenue_value(t)) as lifetime
+    from public.transactions t
+    where t.organization_id = org and t.customer_id is not null
+    group by t.customer_id
+  )
+  select c.id, c.name, c.email, c.phone, per.prev, per.last_purchase, per.lifetime
+  from per join public.customers c on c.id = per.customer_id
+  where per.prev > 0 and per.cur <= 0
+  order by per.prev desc, per.lifetime desc
+  limit p_limit;
+$$;
+
 do $$
 declare
   f text;
@@ -450,7 +476,8 @@ begin
     'customers_at_risk(uuid, integer, numeric, integer)',
     'deals_at_risk(uuid, integer, integer)',
     'pipeline_summary(uuid)',
-    'customer_revenue(uuid, uuid[])'
+    'customer_revenue(uuid, uuid[])',
+    'lapsed_customers(uuid, date, date, date, date, integer)'
   ] loop
     execute format('revoke execute on function public.%s from public, anon', f);
     execute format('grant execute on function public.%s to authenticated', f);
