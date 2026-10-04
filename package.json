@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "seed:demo": "tsx scripts/seed-demo.ts",
+    "seed:demo": "tsx --env-file=.env.local scripts/seed-demo.ts",
     "generate:sample": "tsx scripts/generate-sample.ts",
     "test:e2e": "playwright test"
   },
