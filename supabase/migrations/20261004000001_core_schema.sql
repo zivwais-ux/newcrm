@@ -352,8 +352,25 @@ create policy "owners delete their organization" on public.organizations
   for delete to authenticated using (public.has_org_role(id, array['owner']::public.member_role[]));
 -- organizations are created only through create_organization()
 
-create policy "users read own profile" on public.profiles
-  for select to authenticated using (id = (select auth.uid()));
+-- True when the caller and `other` belong to at least one common organization.
+create or replace function public.shares_org_with(other uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.organization_members mine
+    join public.organization_members theirs on theirs.organization_id = mine.organization_id
+    where mine.user_id = (select auth.uid()) and theirs.user_id = other
+  );
+$$;
+
+create policy "users read own and teammates' profiles" on public.profiles
+  for select to authenticated
+  using (id = (select auth.uid()) or public.shares_org_with(id));
 create policy "users update own profile" on public.profiles
   for update to authenticated
   using (id = (select auth.uid()))

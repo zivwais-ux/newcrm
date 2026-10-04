@@ -78,3 +78,17 @@ export async function requireOrg(): Promise<OrgContext> {
 export function canManage(role: MemberRole) {
   return role === "owner" || role === "admin";
 }
+
+/** Members of the organization with display names (for assignment pickers). */
+export async function getMembers(supabase: SupabaseClient, orgId: string) {
+  const { data: members } = await supabase
+    .from("organization_members")
+    .select("user_id, role")
+    .eq("organization_id", orgId);
+  const ids = (members ?? []).map((m) => m.user_id);
+  const { data: profiles } = ids.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", ids)
+    : { data: [] as { id: string; full_name: string | null }[] };
+  const names = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  return (members ?? []).map((m) => ({ user_id: m.user_id, role: m.role as MemberRole, full_name: names.get(m.user_id) ?? null }));
+}
