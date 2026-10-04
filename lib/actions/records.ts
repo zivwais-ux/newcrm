@@ -197,20 +197,31 @@ export async function createFollowupTasks(input: z.input<typeof followupSchema>)
   if (!customerIds.length && !dealIds.length) return fail("Select at least one record.");
   const { supabase, org, user } = await requireOrg();
 
-  const [customers, deals] = await Promise.all([
-    customerIds.length
-      ? supabase.from("customers").select("id, name").eq("organization_id", org.id).in("id", customerIds)
-      : Promise.resolve({ data: [] as { id: string; name: string }[], error: null }),
-    dealIds.length
-      ? supabase.from("deals").select("id, name, customer_id").eq("organization_id", org.id).in("id", dealIds)
-      : Promise.resolve({ data: [] as { id: string; name: string; customer_id: string | null }[], error: null }),
-  ]);
-  if (customers.error || deals.error) return fail(friendlyError(customers.error ?? deals.error));
+  // Fetch in chunks so long selections never produce oversized request URLs.
+  async function fetchIn<T>(table: "customers" | "deals", columns: string, ids: string[]) {
+    const out: T[] = [];
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data, error } = await supabase.from(table).select(columns).eq("organization_id", org.id).in("id", ids.slice(i, i + 100));
+      if (error) throw error;
+      out.push(...((data ?? []) as T[]));
+    }
+    return out;
+  }
+  let customers: { id: string; name: string }[];
+  let deals: { id: string; name: string; customer_id: string | null }[];
+  try {
+    [customers, deals] = await Promise.all([
+      fetchIn<{ id: string; name: string }>("customers", "id, name", customerIds),
+      fetchIn<{ id: string; name: string; customer_id: string | null }>("deals", "id, name, customer_id", dealIds),
+    ]);
+  } catch (error) {
+    return fail(friendlyError(error as Error));
+  }
 
   const base = { organization_id: org.id, assigned_to: assignedTo ?? user.id, due_date: dueDate, status: "open", description: note };
   const rows = [
-    ...(customers.data ?? []).map((c) => ({ ...base, title: `${title} — ${c.name}`, customer_id: c.id })),
-    ...(deals.data ?? []).map((d) => ({ ...base, title: `${title} — ${d.name}`, deal_id: d.id, customer_id: d.customer_id })),
+    ...customers.map((c) => ({ ...base, title: `${title} — ${c.name}`, customer_id: c.id })),
+    ...deals.map((d) => ({ ...base, title: `${title} — ${d.name}`, deal_id: d.id, customer_id: d.customer_id })),
   ];
   if (!rows.length) return fail("We couldn't find the selected records.");
   const { error } = await supabase.from("tasks").insert(rows);
@@ -218,6 +229,6 @@ export async function createFollowupTasks(input: z.input<typeof followupSchema>)
   revalidatePath("/tasks");
   revalidatePath("/home");
   revalidatePath("/customers");
-  for (const c of customers.data ?? []) revalidatePath(`/customers/${c.id}`);
+  for (const c of customers) revalidatePath(`/customers/${c.id}`);
   return ok({ created: rows.length });
 }

@@ -279,6 +279,7 @@ export async function finalizeImport(importId: string, stats: z.infer<typeof sta
   if (error) return fail(friendlyError(error));
   if (data?.data_source_id) await supabase.from("data_sources").update({ status: "active" }).eq("id", data.data_source_id);
   await supabase.from("organizations").update({ onboarding_completed: true }).eq("id", org.id);
+  await supabase.from("ai_briefs").delete().eq("organization_id", org.id);
   revalidatePath("/", "layout");
   return ok(null);
 }

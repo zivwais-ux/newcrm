@@ -47,6 +47,9 @@ async function main() {
   const headers = Object.keys(rows[0]);
   const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => esc((r as Record<string, unknown>)[h])).join(","))].join("\n");
   writeFileSync("samples/customers_and_sales.csv", csv);
+  mkdirSync("public/samples", { recursive: true });
+  await wb.xlsx.writeFile("public/samples/customers_and_sales.xlsx");
+  writeFileSync("public/samples/customers_and_sales.csv", csv);
   console.log(`Wrote ${rows.length} rows to samples/customers_and_sales.xlsx and .csv`);
 }
 

@@ -14,7 +14,8 @@ export const SUGGESTED_PROMPTS = [
   "Which deals are at risk?",
 ];
 
-export function AIAnalystView(_: ViewProps<unknown>) {
+export function AIAnalystView(props: ViewProps<unknown>) {
+  void props;
   const router = useRouter();
   const [q, setQ] = useState("");
   const ask = (question: string) => router.push(`/ai?q=${encodeURIComponent(question)}`);
