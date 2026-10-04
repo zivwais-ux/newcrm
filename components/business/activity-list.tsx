@@ -8,16 +8,12 @@ import { CalendarClock, Mail, MapPin, MoreHorizontal, NotebookPen, Pencil, Phone
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RecordFormDialog } from "./record-form";
+import { LocalDateTime } from "@/components/ui/local-time";
 import { deleteRecord } from "@/lib/actions/records";
 import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
 const ICON = { appointment: CalendarClock, call: Phone, meeting: Users, email: Mail, note: NotebookPen, visit: MapPin } as const;
-
-function when(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-}
 
 export function ActivityItem({ activity, showCustomer = true }: { activity: Activity; showCustomer?: boolean }) {
   const router = useRouter();
@@ -43,7 +39,9 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
             </>
           )}
         </p>
-        <p className="text-xs text-muted-foreground">{when(activity.date)}</p>
+        <p className="text-xs text-muted-foreground">
+          <LocalDateTime value={activity.date} />
+        </p>
         {activity.notes && <p className="mt-1 line-clamp-2 text-[13px] text-zinc-600">{activity.notes}</p>}
       </div>
       <DropdownMenu>

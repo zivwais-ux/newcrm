@@ -161,7 +161,7 @@ export function ComponentStore({
             We detected{" "}
             {(["customers", "transactions", "services", "leads", "deals", "activities"] as const)
               .filter((k) => counts[k])
-              .map((k) => `${counts[k].toLocaleString()} ${k}`)
+              .map((k) => `${counts[k].toLocaleString("en-US")} ${k}`)
               .join(", ")}
             . Based on your business and your data, we recommend these Components.
           </p>

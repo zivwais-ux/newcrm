@@ -52,7 +52,7 @@ export default async function DataPage() {
       <div className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4 lg:grid-cols-7">
         {ENTITY_LINKS.map((e) => (
           <Link key={e.key} href={e.href} className="bg-surface p-4 transition-colors hover:bg-muted/40">
-            <p className="text-xl font-semibold tabular">{counts[e.key].toLocaleString()}</p>
+            <p className="text-xl font-semibold tabular">{counts[e.key].toLocaleString("en-US")}</p>
             <p className="text-xs text-muted-foreground">{e.label}</p>
           </Link>
         ))}
@@ -87,10 +87,10 @@ export default async function DataPage() {
                         {f.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden tabular sm:table-cell">{f.row_count?.toLocaleString() ?? "—"}</TableCell>
+                    <TableCell className="hidden tabular sm:table-cell">{f.row_count?.toLocaleString("en-US") ?? "—"}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">
                       {stats.imported !== undefined
-                        ? `${stats.imported.toLocaleString()} records · ${stats.customersCreated ?? 0} new customers · ${stats.transactions ?? 0} transactions`
+                        ? `${stats.imported.toLocaleString("en-US")} records · ${stats.customersCreated ?? 0} new customers · ${stats.transactions ?? 0} transactions`
                         : "—"}
                     </TableCell>
                     <TableCell className="pr-4 text-right text-muted-foreground">{formatDate(f.created_at)}</TableCell>

@@ -223,7 +223,7 @@ export function WorkspaceGrid({ items: initial, bodies, canManage }: { items: Gr
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+    <DndContext id="workspace-grid" sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
         <div className="grid grid-cols-12 gap-4">
           {items.map((item) => (

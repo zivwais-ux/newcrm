@@ -113,7 +113,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{title ?? "Selected customers"}</p>
                 <p className="text-xs text-muted-foreground">
-                  {count.toLocaleString()} customers in this view. Select customers to create follow-up tasks.
+                  {count.toLocaleString("en-US")} customers in this view. Select customers to create follow-up tasks.
                 </p>
               </div>
               <Button asChild size="xs" variant="ghost">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -120,6 +120,7 @@ export function PipelineBoard({ deals: initial, limitPerColumn, focusDealId }: {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Deal | null>(null);
   const [adding, setAdding] = useState<DealStage | null>(null);
+  const boardId = useId();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor));
 
   useEffect(() => setDeals(initial), [initial]);
@@ -155,7 +156,7 @@ export function PipelineBoard({ deals: initial, limitPerColumn, focusDealId }: {
 
   return (
     <>
-      <DndContext sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
+      <DndContext id={boardId} sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
           {DEAL_STAGES.map((stage) => {
             const list = byStage.get(stage) ?? [];

@@ -54,7 +54,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   for (const l of leads.data ?? [])
     results.push({ type: "lead", id: l.id, title: l.name, subtitle: [l.status, l.source].filter(Boolean).join(" · "), href: `/leads?q=${encodeURIComponent(l.name)}` });
   for (const d of deals.data ?? [])
-    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${d.stage} · ${org.currency} ${Number(d.value).toLocaleString()}`, href: `/deals?deal=${d.id}` });
+    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${d.stage} · ${org.currency} ${Number(d.value).toLocaleString("en-US")}`, href: `/deals?deal=${d.id}` });
   for (const t of (transactions.data ?? []) as unknown as {
     id: string;
     amount: number;
@@ -66,7 +66,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     results.push({
       type: "transaction",
       id: t.id,
-      title: `${t.product_or_service ?? "Transaction"} — ${org.currency} ${Number(t.amount).toLocaleString()}`,
+      title: `${t.product_or_service ?? "Transaction"} — ${org.currency} ${Number(t.amount).toLocaleString("en-US")}`,
       subtitle: `${t.customers?.name ?? "No customer"} · ${t.date}`,
       href: t.customer_id ? `/customers/${t.customer_id}?tab=transactions` : `/transactions?q=${encodeURIComponent(q)}`,
     });

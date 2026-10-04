@@ -6,7 +6,7 @@ import { RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Brief } from "@/lib/analytics/brief";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 export function BriefCard({ initial }: { initial: Brief }) {
   const [brief, setBrief] = useState(initial);
@@ -34,7 +34,7 @@ export function BriefCard({ initial }: { initial: Brief }) {
         <Sparkles className="size-4 text-brand" />
         <h2 className="text-sm font-semibold">AI Business Brief</h2>
         <span className="text-xs text-muted-foreground">
-          · {new Date(brief.generatedAt).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+          · {formatDate(brief.generatedAt)}
         </span>
         <Button variant="ghost" size="icon-sm" className="ml-auto text-muted-foreground" onClick={refresh} disabled={loading} aria-label="Refresh brief">
           <RefreshCw className={cn(loading && "animate-spin")} />
@@ -53,7 +53,7 @@ export function BriefCard({ initial }: { initial: Brief }) {
           {highValueIds.length > 0 && (
             <Button asChild size="sm" variant="ghost">
               <Link href={`/customers?ids=${highValueIds.join(",")}&title=${encodeURIComponent("High-value customers who need attention")}`}>
-                See {highValueIds.length} high-value customers
+                See {highValueIds.length} high-value customer{highValueIds.length === 1 ? "" : "s"}
               </Link>
             </Button>
           )}

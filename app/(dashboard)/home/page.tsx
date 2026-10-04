@@ -79,8 +79,8 @@ export default async function HomePage() {
               href="/components"
               className="mt-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              We found {counts.customers.toLocaleString()} customers
-              {counts.transactions ? ` and ${counts.transactions.toLocaleString()} transactions` : ""} — {recs.length} Components are
+              We found {counts.customers.toLocaleString("en-US")} customers
+              {counts.transactions ? ` and ${counts.transactions.toLocaleString("en-US")} transactions` : ""} — {recs.length} Components are
               recommended for you
               <ArrowRight className="size-3.5" />
             </Link>

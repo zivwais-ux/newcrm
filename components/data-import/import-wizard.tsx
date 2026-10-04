@@ -113,15 +113,18 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
         setParsed(p);
         setStep("analyze");
 
-        // Keep the original file in private, org-scoped storage (best effort).
-        const supabase = createClient();
-        const safe = f.name.replace(/[^\w.\-]+/g, "_").slice(-80);
-        const path = `${org.id}/${crypto.randomUUID()}-${safe}`;
-        supabase.storage
-          .from("imports")
-          .upload(path, f, { upsert: false, contentType: f.type || undefined })
-          .then(({ error }) => setStoragePath(error ? null : path))
-          .catch(() => setStoragePath(null));
+        // Keep the original file in private, org-scoped storage. Best effort: never blocks the import.
+        try {
+          const safe = f.name.replace(/[^\w.\-]+/g, "_").slice(-80);
+          const path = `${org.id}/${crypto.randomUUID()}-${safe}`;
+          createClient()
+            .storage.from("imports")
+            .upload(path, f, { upsert: false, contentType: f.type || undefined })
+            .then(({ error }) => setStoragePath(error ? null : path))
+            .catch(() => setStoragePath(null));
+        } catch {
+          setStoragePath(null);
+        }
 
         const res = await fetch("/api/ai/map-columns", {
           method: "POST",
@@ -183,7 +186,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
     for (let i = 0; i < records.length; i += CHUNK) {
       const res = await importChunk(created.data.id, records.slice(i, i + CHUNK));
       if (!res.ok) {
-        toast.error(`${res.error} ${i ? `${i.toLocaleString()} rows were imported before the error.` : ""}`);
+        toast.error(`${res.error} ${i ? `${i.toLocaleString("en-US")} rows were imported before the error.` : ""}`);
         setStep("validate");
         return;
       }
@@ -269,7 +272,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
           <Loader2 className="size-6 animate-spin text-brand" />
           <p className="mt-4 text-sm font-medium">Analyzing {file?.name}…</p>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            {parsed ? `${parsed.rows.length.toLocaleString()} rows · ${parsed.headers.length} columns. ` : ""}Understanding what each column means.
+            {parsed ? `${parsed.rows.length.toLocaleString("en-US")} rows · ${parsed.headers.length} columns. ` : ""}Understanding what each column means.
           </p>
         </div>
       )}
@@ -282,7 +285,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
               <div>
                 <p className="text-sm font-medium">{file?.name}</p>
                 <p className="text-[13px] text-muted-foreground">
-                  {parsed.rows.length.toLocaleString()} rows · {parsed.headers.length} columns{parsed.sheetName ? ` · sheet “${parsed.sheetName}”` : ""}
+                  {parsed.rows.length.toLocaleString("en-US")} rows · {parsed.headers.length} columns{parsed.sheetName ? ` · sheet “${parsed.sheetName}”` : ""}
                 </p>
               </div>
             </div>
@@ -395,16 +398,16 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
       {step === "validate" && validation && (
         <div className="space-y-6">
           <div className="rounded-lg border bg-surface p-6">
-            <p className="text-2xl font-semibold tracking-tight tabular">{validation.total.toLocaleString()} rows detected</p>
+            <p className="text-2xl font-semibold tracking-tight tabular">{validation.total.toLocaleString("en-US")} rows detected</p>
             <ul className="mt-4 space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="size-4 text-positive" />
-                <span className="font-medium tabular">{validation.valid.toLocaleString()}</span> valid
+                <span className="font-medium tabular">{validation.valid.toLocaleString("en-US")}</span> valid
               </li>
               {validation.duplicates > 0 && (
                 <li className="flex items-center gap-2">
                   <AlertTriangle className="size-4 text-warning" />
-                  <span className="font-medium tabular">{validation.duplicates.toLocaleString()}</span> duplicates (will be skipped)
+                  <span className="font-medium tabular">{validation.duplicates.toLocaleString("en-US")}</span> duplicates (will be skipped)
                 </li>
               )}
               {(Object.entries(validation.issueCounts) as [IssueType, number][])
@@ -412,7 +415,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
                 .map(([k, n]) => (
                   <li key={k} className="flex items-center gap-2">
                     <AlertTriangle className="size-4 text-warning" />
-                    <span className="font-medium tabular">{n.toLocaleString()}</span> {ISSUE_LABELS[k].toLowerCase()}
+                    <span className="font-medium tabular">{n.toLocaleString("en-US")}</span> {ISSUE_LABELS[k].toLowerCase()}
                   </li>
                 ))}
             </ul>
@@ -469,7 +472,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
                 </TableBody>
               </Table>
               {validation.rowIssues.length > 150 && (
-                <p className="px-4 py-2 text-xs text-muted-foreground">Showing the first 150 of {validation.rowIssues.length.toLocaleString()} rows with issues.</p>
+                <p className="px-4 py-2 text-xs text-muted-foreground">Showing the first 150 of {validation.rowIssues.length.toLocaleString("en-US")} rows with issues.</p>
               )}
             </div>
           )}
@@ -486,7 +489,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
                 </Button>
               )}
               <Button onClick={runImport} disabled={!validation.valid || validation.blockers.length > 0}>
-                Import {validation.valid.toLocaleString()} valid records
+                Import {validation.valid.toLocaleString("en-US")} valid records
               </Button>
             </div>
           </div>
@@ -506,7 +509,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
         <div className="mx-auto max-w-lg py-8 text-center">
           <CheckCircle2 className="mx-auto size-9 text-positive" />
           <h2 className="mt-4 text-xl font-semibold tracking-tight">Your data is ready</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{result.imported.toLocaleString()} records imported into your business model.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{result.imported.toLocaleString("en-US")} records imported into your business model.</p>
           <div className="mt-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border text-left sm:grid-cols-3">
             {[
               { label: "New customers", value: result.customersCreated },
@@ -520,7 +523,7 @@ export function ImportWizard({ welcome }: { welcome: boolean }) {
               .filter((s) => s.value > 0)
               .map((s) => (
                 <div key={s.label} className="bg-surface p-4">
-                  <p className="text-lg font-semibold tabular">{s.value.toLocaleString()}</p>
+                  <p className="text-lg font-semibold tabular">{s.value.toLocaleString("en-US")}</p>
                   <p className="text-xs text-muted-foreground">{s.label}</p>
                 </div>
               ))}

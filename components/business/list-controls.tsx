@@ -76,13 +76,13 @@ export function Pagination({ page, pageSize, total }: { page: number; pageSize: 
     const qs = next.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   };
-  if (total <= pageSize) return <p className="px-1 pt-3 text-xs text-muted-foreground tabular">{total.toLocaleString()} total</p>;
+  if (total <= pageSize) return <p className="px-1 pt-3 text-xs text-muted-foreground tabular">{total.toLocaleString("en-US")} total</p>;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   return (
     <div className="flex items-center justify-between px-1 pt-3 text-xs text-muted-foreground">
       <span className="tabular">
-        {from.toLocaleString()}–{to.toLocaleString()} of {total.toLocaleString()}
+        {from.toLocaleString("en-US")}–{to.toLocaleString("en-US")} of {total.toLocaleString("en-US")}
       </span>
       <div className="flex gap-1">
         <Button asChild={page > 1} size="icon-sm" variant="outline" disabled={page <= 1} aria-label="Previous page">

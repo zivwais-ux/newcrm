@@ -12,8 +12,9 @@ import { useConfigUpdater, type ViewProps } from "../shared";
 
 const RANGE_CHOICES = ["90d", "6m", "12m", "ytd", "all"] as const;
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function monthLabel(iso: string) {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en", { month: "short", year: "2-digit" });
+  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(2, 4)}`;
 }
 
 export function RevenueView({ data, config, instanceId, currency }: ViewProps<RevenueData>) {
@@ -22,6 +23,9 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
   const change = pctChange(summary.total, summary.compare_total);
   const mtdChange = pctChange(summary.this_month, summary.last_month_to_date);
   const maxService = Math.max(1, ...byService.map((s) => s.revenue));
+  // The current month is incomplete — plotting it would look like a collapse. KPIs cover month-to-date.
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const trend = monthly.length > 2 ? monthly.filter((m) => m.month.slice(0, 7) !== currentMonth) : monthly;
   const compareLabel = COMPARE_OPTIONS[(config.compare as keyof typeof COMPARE_OPTIONS) ?? "previous_year"]?.toLowerCase();
 
   return (
@@ -61,7 +65,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
         <Stat
           label="Avg. transaction"
           value={formatCurrency(summary.tx_count ? summary.total / summary.tx_count : 0, currency)}
-          hint={`${summary.tx_count.toLocaleString()} transactions`}
+          hint={`${summary.tx_count.toLocaleString("en-US")} transactions`}
         />
       </div>
 
@@ -70,10 +74,10 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
       ) : (
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">Revenue trend</p>
+            <p className="mb-3 text-xs font-medium text-muted-foreground">Revenue trend · complete months</p>
             <div className="h-56" role="img" aria-label="Monthly revenue trend">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthly} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <AreaChart data={trend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="rev-fill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />

@@ -11,9 +11,10 @@ export function formatCurrency(value: number | null | undefined, currency = "ILS
   const key = `${currency}-${compact}`;
   let f = currencyFormatters.get(key);
   if (!f) {
-    f = new Intl.NumberFormat("en-IL", {
+    f = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
+      minimumFractionDigits: 0,
       maximumFractionDigits: compact ? 1 : 0,
       notation: compact ? "compact" : "standard",
     });
@@ -37,16 +38,36 @@ export function pctChange(current: number, previous: number): number | null {
   return ((current - previous) / Math.abs(previous)) * 100;
 }
 
-export function formatDate(value: string | Date | null | undefined, opts?: Intl.DateTimeFormatOptions) {
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** Parses "yyyy-mm-dd" as a local calendar date (no timezone shift); other strings as instants. */
+export function parseDateValue(value: string | Date): Date {
+  if (value instanceof Date) return value;
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+}
+
+/** "4 Oct 2026". Formatted by hand so server and browser render identical text. */
+export function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", opts ?? { day: "numeric", month: "short", year: "numeric" });
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** "Sun 4 Oct, 15:00" in the viewer's local time. Use from client components after mount. */
+export function formatDateTime(value: string | Date) {
+  const d = parseDateValue(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}, ${hh}:${mm}`;
 }
 
 export function daysAgo(value: string | Date | null | undefined) {
   if (!value) return null;
-  const d = typeof value === "string" ? new Date(value) : value;
+  const d = parseDateValue(value);
   return Math.floor((Date.now() - d.getTime()) / 86_400_000);
 }
 
