@@ -16,12 +16,20 @@ import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 export function DealRiskView({ data, config, currency }: ViewProps<DealRiskData>) {
   const [bulk, setBulk] = useState(false);
   if (!data.deals.length)
-    return <EmptyState compact icon={ShieldCheck} title="No deals at risk" description={`Every open deal had activity in the last ${config.idleDays} days.`} />;
+    return (
+      <EmptyState
+        compact
+        icon={ShieldCheck}
+        title="No deals at risk"
+        description={`Every open deal${data.stage ? ` in ${STAGE_LABELS[data.stage]}` : ""} had activity in the last ${config.idleDays} days.`}
+      />
+    );
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           <span className="font-medium text-foreground tabular">{data.total}</span> deals · {formatCurrency(data.totalValue, currency)} at risk
+          {data.stage && <span className="font-medium text-brand"> · {STAGE_LABELS[data.stage]}</span>}
         </p>
         <Button size="xs" variant="outline" onClick={() => setBulk(true)}>
           Create tasks for all

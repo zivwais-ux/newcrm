@@ -9,8 +9,10 @@ import { Stat } from "@/components/business/stat";
 import { formatCurrency } from "@/lib/utils";
 import type { PipelineData } from "@/lib/components/loaders";
 import type { ViewProps } from "../shared";
+import { useWorkspaceFilters } from "../workspace-filters";
 
 export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
+  const { toggle } = useWorkspaceFilters();
   if (!data.deals.length)
     return (
       <EmptyState
@@ -33,7 +35,7 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
         <Stat label="Won" value={formatCurrency(won?.value ?? 0, currency)} hint={`${won?.deals ?? 0} deals`} />
         <Stat label="Win rate" value={winRate === null ? "—" : `${winRate}%`} />
       </div>
-      <PipelineBoard deals={data.deals} limitPerColumn={3} />
+      <PipelineBoard deals={data.deals} limitPerColumn={3} selectedStage={data.stage} onStageClick={(stage) => toggle("stage", stage)} />
       <Link href="/deals" className="inline-block text-xs font-medium text-muted-foreground hover:text-foreground">
         Open full pipeline →
       </Link>

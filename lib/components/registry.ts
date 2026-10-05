@@ -1,5 +1,5 @@
 import type { BusinessType, DataCounts, EntityName } from "@/types/domain";
-import type { ComponentConfig, ComponentDefinition } from "./types";
+import { SIZE_TO_WIDTH, WIDTHS, type ComponentConfig, type ComponentDefinition, type ComponentWidth } from "./types";
 
 const MANAGERS = { manage: ["owner", "admin"] } as ComponentDefinition["permissions"];
 
@@ -37,6 +37,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "add-customer", label: "Add customer" },
     ],
     permissions: MANAGERS,
+    consumes: ["service"],
+    emits: ["customer"],
     emptyState: { title: "No customers yet", description: "Import your customer list or add your first customer to unlock Customer Hub." },
     href: "/customers",
   },
@@ -78,6 +80,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     ],
     actions: [{ id: "change-range", label: "Change date range" }],
     permissions: MANAGERS,
+    consumes: ["range", "service"],
+    emits: ["service"],
     emptyState: { title: "No transaction data yet", description: "Import your existing sales data to unlock Revenue Intelligence." },
   },
   {
@@ -92,6 +96,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     configFields: [],
     actions: [{ id: "ask", label: "Ask a question" }],
     permissions: MANAGERS,
+    consumes: ["range", "service", "stage"],
+    emits: [],
     emptyState: { title: "Nothing to analyze yet", description: "Import your business data and the analyst will answer from it." },
     href: "/ai",
   },
@@ -122,6 +128,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "create-task", label: "Create task" },
     ],
     permissions: MANAGERS,
+    consumes: ["service"],
+    emits: ["customer"],
     emptyState: { title: "No purchase history yet", description: "Import transactions to see repeat behaviour." },
   },
   {
@@ -162,6 +170,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "create-task", label: "Create task" },
     ],
     permissions: MANAGERS,
+    consumes: ["service"],
+    emits: ["customer"],
     emptyState: { title: "No transaction data yet", description: "Import purchase history to detect customers at risk." },
   },
   {
@@ -190,6 +200,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "edit-activity", label: "Edit activity" },
     ],
     permissions: MANAGERS,
+    consumes: [],
+    emits: ["customer"],
     emptyState: { title: "No activities yet", description: "Log appointments, calls and visits to build a timeline." },
     href: "/activities",
   },
@@ -208,6 +220,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "move-deal", label: "Move deal" },
     ],
     permissions: MANAGERS,
+    consumes: ["stage"],
+    emits: ["stage"],
     emptyState: { title: "No deals yet", description: "Create your first deal or import your pipeline." },
     href: "/deals",
   },
@@ -238,6 +252,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
       { id: "create-task", label: "Create task" },
     ],
     permissions: MANAGERS,
+    consumes: ["stage"],
+    emits: [],
     emptyState: { title: "No open deals", description: "Add deals to your pipeline to monitor risk." },
   },
   {
@@ -264,7 +280,40 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     ],
     actions: [{ id: "create-task", label: "Create task" }],
     permissions: MANAGERS,
+    consumes: ["stage"],
+    emits: [],
     emptyState: { title: "Nothing to follow up", description: "Tasks, deals and leads that need attention will show up here." },
+  },
+  {
+    id: "tasks",
+    name: "Tasks",
+    description: "Follow-ups your team needs to do — overdue first",
+    category: "operations",
+    requiredEntities: [],
+    recommendedFor: ["service", "sales", "both"],
+    defaultSize: "md",
+    visualization: "Checklist of open and overdue tasks",
+    configFields: [
+      {
+        key: "scope",
+        label: "Show",
+        type: "select",
+        options: [
+          { value: "all", label: "All open tasks" },
+          { value: "mine", label: "Assigned to me" },
+        ],
+        default: "all",
+      },
+    ],
+    actions: [
+      { id: "add-task", label: "Add task" },
+      { id: "complete-task", label: "Complete task" },
+    ],
+    permissions: MANAGERS,
+    consumes: [],
+    emits: ["customer"],
+    emptyState: { title: "No open tasks", description: "Tasks you create from other Components show up here." },
+    href: "/tasks",
   },
 ];
 
@@ -283,6 +332,8 @@ export function resolveConfig(def: ComponentDefinition, saved: Record<string, un
   }
   const size = saved?.size;
   config.size = size === "sm" || size === "md" || size === "lg" ? size : def.defaultSize;
+  const w = saved?.w;
+  config.w = typeof w === "string" && (WIDTHS as readonly string[]).includes(w) ? (w as ComponentWidth) : SIZE_TO_WIDTH[config.size];
   return config;
 }
 

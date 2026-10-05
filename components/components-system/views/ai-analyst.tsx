@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ViewProps } from "../shared";
+import type { AIAnalystData } from "@/lib/components/loaders";
+import { activeFilterKeys, describeFilters, filterLabel } from "@/lib/components/filters";
 
 export const SUGGESTED_PROMPTS = [
   "Why are sales down?",
@@ -14,11 +16,13 @@ export const SUGGESTED_PROMPTS = [
   "Which deals are at risk?",
 ];
 
-export function AIAnalystView(props: ViewProps<unknown>) {
-  void props;
+export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const ask = (question: string) => router.push(`/ai?q=${encodeURIComponent(question)}`);
+  const context = data?.filters ? describeFilters(data.filters) : null;
+  // Questions asked from the canvas carry the filters the user is looking at.
+  const ask = (question: string) => router.push(`/ai?q=${encodeURIComponent(context ? `${question} (${context})` : question)}`);
+  const chips = data?.filters ? activeFilterKeys(data.filters) : [];
 
   return (
     <div className="space-y-4">
@@ -51,6 +55,9 @@ export function AIAnalystView(props: ViewProps<unknown>) {
           </button>
         ))}
       </div>
+      {chips.length > 0 && (
+        <p className="text-xs text-brand">Asks within: {chips.map((k) => filterLabel(k, data.filters[k] as string)).join(" · ")}</p>
+      )}
       <p className="text-xs text-muted-foreground">Answers are computed from your own data. The AI can read and recommend — it never changes data without you.</p>
     </div>
   );

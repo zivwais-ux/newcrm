@@ -35,6 +35,6 @@ describe("component registry", () => {
 
   it("fills config defaults and rejects invalid values", () => {
     const def = getDefinition("customer-risk")!;
-    expect(resolveConfig(def, { threshold: "90", drop: "nope" })).toEqual({ threshold: "90", drop: "30", size: "md" });
+    expect(resolveConfig(def, { threshold: "90", drop: "nope" })).toEqual({ threshold: "90", drop: "30", size: "md", w: "6" });
   });
 });

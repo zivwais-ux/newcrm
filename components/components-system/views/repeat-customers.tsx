@@ -1,17 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { Stat } from "@/components/business/stat";
 import { EmptyState } from "@/components/business/empty-state";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import type { RepeatData } from "@/lib/components/loaders";
 import { CreateTaskButton, ListRow, SectionLabel, type ViewProps } from "../shared";
+import { CustomerLink } from "../workspace-filters";
 
 export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
   const { stats, overdue } = data;
   const repeatShare = stats.buyers ? (stats.repeat / stats.buyers) * 100 : 0;
   return (
     <div className="space-y-5">
+      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">Repeat behaviour for {data.scopedTo}</p>}
       <div className="grid grid-cols-3 gap-4">
         <Stat label="Repeat rate" value={`${stats.repeat_rate}%`} />
         <Stat label="Repeat customers" value={formatNumber(stats.repeat)} />
@@ -38,9 +39,9 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
             {overdue.map((c) => (
               <ListRow key={c.id}>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/customers/${c.id}`} className="block truncate text-sm font-medium hover:underline">
+                  <CustomerLink id={c.id} className="block max-w-full truncate text-left text-sm font-medium hover:underline cursor-pointer">
                     {c.name}
-                  </Link>
+                  </CustomerLink>
                   <p className="truncate text-xs text-muted-foreground">
                     Usually every {c.median_interval_days} days · last seen {c.days_since} days ago · {formatCurrency(c.total_revenue, currency)} lifetime
                   </p>

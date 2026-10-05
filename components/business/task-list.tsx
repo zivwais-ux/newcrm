@@ -1,11 +1,11 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { setTaskStatus } from "@/lib/actions/records";
 import { useWorkspace } from "@/components/layout/workspace-provider";
+import { CustomerLink } from "@/components/components-system/workspace-filters";
 import { cn, formatDate, isoDate } from "@/lib/utils";
 import type { Task } from "@/types/domain";
 
@@ -42,9 +42,9 @@ export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCu
               <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
                 {t.due_date && <span className={cn(overdue && "font-medium text-negative")}>Due {formatDate(t.due_date)}</span>}
                 {showCustomer && t.customers?.name && t.customer_id && (
-                  <Link href={`/customers/${t.customer_id}`} className="hover:underline">
+                  <CustomerLink id={t.customer_id} className="hover:underline cursor-pointer">
                     {t.customers.name}
-                  </Link>
+                  </CustomerLink>
                 )}
                 {t.deals?.name && <span>{t.deals.name}</span>}
                 {assignee && <span>· {assignee}</span>}

@@ -70,6 +70,9 @@ function Column({
   limit,
   onOpen,
   onAdd,
+  selected,
+  dimmed,
+  onHeaderClick,
 }: {
   stage: DealStage;
   deals: Deal[];
@@ -77,18 +80,31 @@ function Column({
   limit?: number;
   onOpen: (d: Deal) => void;
   onAdd: () => void;
+  selected?: boolean;
+  dimmed?: boolean;
+  onHeaderClick?: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const { org } = useWorkspace();
   const visible = limit ? deals.slice(0, limit) : deals;
   return (
-    <div className="flex w-60 shrink-0 flex-col">
-      <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
-        <p className="text-[13px] font-medium">
+    <div className={cn("flex w-60 shrink-0 flex-col transition-opacity", dimmed && "opacity-45")}>
+      <button
+        type="button"
+        onClick={onHeaderClick}
+        disabled={!onHeaderClick}
+        aria-pressed={selected}
+        title={onHeaderClick ? "Click to filter linked Components by this stage" : undefined}
+        className={cn(
+          "mb-2 flex items-baseline justify-between gap-2 rounded-md px-1.5 py-0.5 text-left enabled:cursor-pointer enabled:hover:bg-muted/70",
+          selected && "bg-brand-soft text-brand enabled:hover:bg-brand-soft",
+        )}
+      >
+        <span className="text-[13px] font-medium">
           {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground tabular">{deals.length}</span>
-        </p>
-        <p className="text-xs text-muted-foreground tabular">{formatCurrency(total, org.currency, true)}</p>
-      </div>
+        </span>
+        <span className="text-xs text-muted-foreground tabular">{formatCurrency(total, org.currency, true)}</span>
+      </button>
       <div
         ref={setNodeRef}
         className={cn(
@@ -114,7 +130,19 @@ function Column({
   );
 }
 
-export function PipelineBoard({ deals: initial, limitPerColumn, focusDealId }: { deals: Deal[]; limitPerColumn?: number; focusDealId?: string | null }) {
+export function PipelineBoard({
+  deals: initial,
+  limitPerColumn,
+  focusDealId,
+  selectedStage,
+  onStageClick,
+}: {
+  deals: Deal[];
+  limitPerColumn?: number;
+  focusDealId?: string | null;
+  selectedStage?: DealStage | null;
+  onStageClick?: (stage: DealStage) => void;
+}) {
   const router = useRouter();
   const [deals, setDeals] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -169,6 +197,9 @@ export function PipelineBoard({ deals: initial, limitPerColumn, focusDealId }: {
                 limit={limitPerColumn}
                 onOpen={setEditing}
                 onAdd={() => setAdding(stage)}
+                selected={selectedStage === stage}
+                dimmed={Boolean(selectedStage) && selectedStage !== stage}
+                onHeaderClick={onStageClick ? () => onStageClick(stage) : undefined}
               />
             );
           })}

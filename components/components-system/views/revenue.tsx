@@ -9,6 +9,8 @@ import { formatCurrency, pctChange } from "@/lib/utils";
 import { COMPARE_OPTIONS, RANGE_PRESETS } from "@/lib/analytics/dates";
 import type { RevenueData } from "@/lib/components/loaders";
 import { useConfigUpdater, type ViewProps } from "../shared";
+import { useWorkspaceFilters } from "../workspace-filters";
+import { cn } from "@/lib/utils";
 
 const RANGE_CHOICES = ["90d", "6m", "12m", "ytd", "all"] as const;
 
@@ -19,6 +21,7 @@ function monthLabel(iso: string) {
 
 export function RevenueView({ data, config, instanceId, currency }: ViewProps<RevenueData>) {
   const { update, pending } = useConfigUpdater(instanceId);
+  const { toggle } = useWorkspaceFilters();
   const { summary, monthly, byService } = data;
   const change = pctChange(summary.total, summary.compare_total);
   const mtdChange = pctChange(summary.this_month, summary.last_month_to_date);
@@ -31,8 +34,8 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={config.range} onValueChange={(v) => update({ range: v })}>
-          <SelectTrigger size="sm" className="w-auto min-w-36" aria-label="Date range">
+        <Select value={config.range} onValueChange={(v) => update({ range: v })} disabled={data.rangeFromWorkspace}>
+          <SelectTrigger size="sm" className="w-auto min-w-36" aria-label="Date range" title={data.rangeFromWorkspace ? "Using the workspace date range" : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -56,6 +59,8 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
           </SelectContent>
         </Select>
         {pending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+        {data.rangeFromWorkspace && <span className="text-xs text-muted-foreground">Workspace range: {RANGE_PRESETS[data.rangePreset]}</span>}
+        {data.service && <span className="text-xs font-medium text-brand">Showing {data.service} only</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-5 md:grid-cols-4">
@@ -129,22 +134,31 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
             </div>
           </div>
           <div className="lg:col-span-2">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">Revenue by service / product</p>
-            <ul className="space-y-2.5">
-              {byService.map((s) => (
-                <li key={s.name} className="group" title={`${s.name}: ${formatCurrency(s.revenue, currency)} · ${s.tx_count} transactions`}>
-                  <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
-                    <span className="truncate">{s.name}</span>
-                    <span className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-chart-1 transition-opacity group-hover:opacity-80"
-                      style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }}
-                    />
-                  </div>
-                </li>
-              ))}
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Revenue by service / product · click to filter</p>
+            <ul className="-mx-1.5 space-y-1">
+              {byService.map((s) => {
+                const selected = data.service === s.name;
+                const dimmed = data.service && !selected;
+                return (
+                  <li key={s.name}>
+                    <button
+                      type="button"
+                      onClick={() => toggle("service", s.name)}
+                      className={cn("group w-full rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted/60 cursor-pointer", selected && "bg-brand-soft hover:bg-brand-soft", dimmed && "opacity-50")}
+                      title={`${s.name}: ${formatCurrency(s.revenue, currency)} · ${s.tx_count} transactions — click to filter linked Components`}
+                      aria-pressed={selected}
+                    >
+                      <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
+                        <span className={cn("truncate", selected && "font-medium text-brand")}>{s.name}</span>
+                        <span className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted">
+                        <div className="h-full rounded-full bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

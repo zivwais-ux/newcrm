@@ -1,0 +1,267 @@
+"use client";
+
+import { useRef, useState } from "react";
+import Link from "next/link";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Expand, GripVertical, Link2Off, Maximize2, MoreHorizontal, Settings2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { WIDTHS, WIDTH_LABELS, type ComponentWidth, type ConfigField, type FilterKey } from "@/lib/components/types";
+import { cn } from "@/lib/utils";
+import { ComponentConfigSheet } from "./component-config-sheet";
+import { COMPONENT_ICONS } from "./component-store";
+
+export interface CanvasItem {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  w: ComponentWidth;
+  config: Record<string, string>;
+  configFields: ConfigField[];
+  consumes: FilterKey[];
+  pending?: boolean;
+}
+
+// Static class names so Tailwind generates them.
+export const SPAN: Record<ComponentWidth, string> = {
+  "3": "lg:col-span-3",
+  "4": "lg:col-span-4",
+  "6": "lg:col-span-6",
+  "8": "lg:col-span-8",
+  "12": "lg:col-span-12",
+};
+
+function nearestWidth(cols: number): ComponentWidth {
+  return WIDTHS.reduce((best, w) => (Math.abs(Number(w) - cols) < Math.abs(Number(best) - cols) ? w : best), WIDTHS[0]);
+}
+
+export function CanvasFrame({
+  item,
+  body,
+  editable,
+  activeFilters,
+  onResize,
+  onRemove,
+}: {
+  item: CanvasItem;
+  body: React.ReactNode;
+  editable: boolean;
+  activeFilters: FilterKey[];
+  onResize: (w: ComponentWidth) => void;
+  onRemove: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    data: { kind: "item" },
+    disabled: !editable || item.pending,
+  });
+  const frameRef = useRef<HTMLElement | null>(null);
+  const [liveW, setLiveW] = useState<ComponentWidth | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
+  const w = liveW ?? item.w;
+  const Icon = COMPONENT_ICONS[item.type];
+  // Filters that are active on the canvas but that this Component doesn't react to.
+  const unlinked = activeFilters.filter((f) => !item.consumes.includes(f));
+
+  function startResize(e: React.PointerEvent) {
+    const frame = frameRef.current;
+    const grid = frame?.parentElement;
+    if (!frame || !grid) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = frame.getBoundingClientRect().width;
+    const colWidth = grid.getBoundingClientRect().width / 12;
+    let next: ComponentWidth = item.w;
+    const move = (ev: PointerEvent) => {
+      next = nearestWidth((startWidth + ev.clientX - startX) / colWidth);
+      setLiveW(next);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setLiveW(null);
+      if (next !== item.w) onResize(next);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
+  return (
+    <section
+      ref={(el) => {
+        setNodeRef(el);
+        frameRef.current = el;
+      }}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={cn(
+        "group/frame relative col-span-12 flex min-w-0 flex-col rounded-lg border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-shadow",
+        SPAN[w],
+        isDragging && "z-10 opacity-60 ring-2 ring-brand/30",
+        liveW && "ring-2 ring-brand/40",
+      )}
+      aria-label={item.name}
+    >
+      <header className="flex items-center gap-2 border-b px-3.5 py-2.5">
+        {editable && !item.pending && (
+          <button
+            ref={setActivatorNodeRef}
+            {...listeners}
+            {...attributes}
+            className="-ml-1 cursor-grab rounded p-0.5 text-zinc-300 transition-colors hover:text-zinc-500 active:cursor-grabbing"
+            aria-label={`Drag ${item.name}`}
+          >
+            <GripVertical className="size-4" />
+          </button>
+        )}
+        {Icon && <Icon className="size-4 text-muted-foreground" />}
+        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name}</h2>
+        {unlinked.length > 0 && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                <Link2Off className="size-3" />
+                Not filtered
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>This Component doesn&apos;t react to the {unlinked.join(" / ")} filter</TooltipContent>
+          </Tooltip>
+        )}
+        {!item.pending && (
+          <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label="Open full view">
+            <Link href={`/components/${item.id}`}>
+              <Expand />
+            </Link>
+          </Button>
+        )}
+        {editable && !item.pending && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label={`${item.name} options`}>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onSelect={() => setConfigOpen(true)}>
+                <Settings2 />
+                Configure
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Maximize2 className="size-4 text-muted-foreground" />
+                  Width
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuRadioGroup value={item.w} onValueChange={(v) => onResize(v as ComponentWidth)}>
+                    {WIDTHS.map((k) => (
+                      <DropdownMenuRadioItem key={k} value={k}>
+                        {WIDTH_LABELS[k]}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onSelect={() => setConfirmRemove(true)}>
+                <Trash2 />
+                Remove from canvas
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </header>
+      <div className="min-w-0 flex-1 p-4">
+        {item.pending ? (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-4">
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+              <Skeleton className="h-12" />
+            </div>
+            <Skeleton className="h-24" />
+          </div>
+        ) : (
+          body
+        )}
+      </div>
+
+      {editable && !item.pending && (
+        <div
+          onPointerDown={startResize}
+          className="absolute inset-y-3 -right-1.5 hidden w-3 cursor-ew-resize items-center justify-center opacity-0 transition-opacity group-hover/frame:opacity-100 lg:flex"
+          role="separator"
+          aria-label={`Resize ${item.name}`}
+          title="Drag to resize"
+        >
+          <span className="h-10 w-1 rounded-full bg-brand/50" />
+        </div>
+      )}
+      {liveW && (
+        <span className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 rounded bg-brand px-1.5 py-0.5 text-[11px] font-medium text-white">
+          {WIDTH_LABELS[liveW]}
+        </span>
+      )}
+
+      {configOpen && (
+        <ComponentConfigSheet open onOpenChange={setConfigOpen} instanceId={item.id} name={item.name} fields={item.configFields} config={item.config} />
+      )}
+      <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove {item.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The Component is removed from your canvas. Your business data is not affected, and you can drag it back any time.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={onRemove}>
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </section>
+  );
+}
+
+/** Dashed drop indicator shown where a dragged Component will land. */
+export function DropPlaceholder({ w, name, innerRef }: { w: ComponentWidth; name: string; innerRef?: (el: HTMLElement | null) => void }) {
+  return (
+    <div
+      ref={innerRef}
+      className={cn(
+        "col-span-12 flex min-h-36 items-center justify-center rounded-lg border-2 border-dashed border-brand/50 bg-brand-soft/60 text-sm font-medium text-brand animate-in fade-in-0",
+        SPAN[w],
+      )}
+    >
+      Drop to add {name}
+    </div>
+  );
+}

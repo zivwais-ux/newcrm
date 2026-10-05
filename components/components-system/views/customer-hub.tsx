@@ -10,6 +10,7 @@ import { Stat } from "@/components/business/stat";
 import { formatCurrency, formatNumber, pctChange, relativeDays } from "@/lib/utils";
 import type { CustomerHubData } from "@/lib/components/loaders";
 import type { ViewProps } from "../shared";
+import { CustomerLink } from "../workspace-filters";
 
 const FILTERS = [
   { value: "", label: "All" },
@@ -25,8 +26,9 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
 
   return (
     <div className="space-y-6">
+      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">Customers who bought {data.scopedTo}</p>}
       <div className="grid grid-cols-3 gap-4">
-        <Stat label="Total customers" value={formatNumber(stats.total)} />
+        <Stat label={data.scopedTo ? "Buyers" : "Total customers"} value={formatNumber(stats.total)} />
         <Stat
           label="New (30 days)"
           value={formatNumber(stats.new_30d)}
@@ -78,9 +80,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
             {customers.map((c) => (
               <tr key={c.id} className="border-t transition-colors hover:bg-muted/40">
                 <td className="max-w-0 px-1 py-2">
-                  <Link href={`/customers/${c.id}`} className="block truncate font-medium hover:underline">
-                    {c.name}
-                  </Link>
+                  <CustomerLink id={c.id}>{c.name}</CustomerLink>
                   <span className="block truncate text-xs text-muted-foreground">{c.company ?? c.email ?? "—"}</span>
                 </td>
                 <td className="hidden px-1 py-2 sm:table-cell">

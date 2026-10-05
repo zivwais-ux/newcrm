@@ -323,3 +323,60 @@ export async function getLapsedCustomers(
   });
   return (rows ?? []).map((r) => ({ ...r, previous_revenue: num(r.previous_revenue), lifetime_revenue: num(r.lifetime_revenue) }));
 }
+
+export interface ServiceCustomer {
+  customer_id: string;
+  purchases: number;
+  revenue: number;
+  first_purchase: string;
+  last_purchase: string;
+}
+
+/** Customers who bought a service, with their stats for that service. */
+export async function getServiceCustomers(supabase: SupabaseClient, org: string, service: string): Promise<ServiceCustomer[]> {
+  const rows = await rpc<ServiceCustomer[]>(supabase, "service_customers", { org, p_service: service });
+  return (rows ?? []).map((r) => ({ ...r, purchases: num(r.purchases), revenue: num(r.revenue) }));
+}
+
+export async function getRevenueSummaryFiltered(
+  supabase: SupabaseClient,
+  org: string,
+  from: string,
+  to: string,
+  compare: string,
+  service: string | null,
+): Promise<RevenueSummary> {
+  if (!service) return getRevenueSummary(supabase, org, from, to, compare);
+  const d = await rpc<Record<string, unknown>>(supabase, "revenue_summary_filtered", {
+    org,
+    p_from: from,
+    p_to: to,
+    p_compare: compare,
+    p_service: service,
+  });
+  return {
+    ...(d as unknown as RevenueSummary),
+    total: num(d.total),
+    compare_total: num(d.compare_total),
+    tx_count: num(d.tx_count),
+    compare_tx_count: num(d.compare_tx_count),
+    customers: num(d.customers),
+    compare_customers: num(d.compare_customers),
+    this_month: num(d.this_month),
+    last_month: num(d.last_month),
+    last_month_to_date: num(d.last_month_to_date),
+    all_time: num(d.all_time),
+  };
+}
+
+export async function getRevenueByMonthFiltered(
+  supabase: SupabaseClient,
+  org: string,
+  from: string,
+  to: string,
+  service: string | null,
+): Promise<MonthPoint[]> {
+  if (!service) return getRevenueByMonth(supabase, org, from, to);
+  const rows = await rpc<MonthPoint[]>(supabase, "revenue_by_month_filtered", { org, p_from: from, p_to: to, p_service: service });
+  return (rows ?? []).map((r) => ({ month: r.month, revenue: num(r.revenue), tx_count: num(r.tx_count), customers: num(r.customers) }));
+}

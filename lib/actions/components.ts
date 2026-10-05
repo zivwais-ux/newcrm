@@ -26,8 +26,11 @@ async function nextPosition(supabase: Awaited<ReturnType<typeof requireOrg>>["su
   return (data?.position ?? -1) + 1;
 }
 
-/** Verifies required data, then saves the Component to the workspace. */
-export async function addComponent(componentType: string): Promise<AddResult> {
+/**
+ * Verifies required data, then saves the Component to the workspace — at `position`
+ * when it was dropped between other Components on the canvas, otherwise at the end.
+ */
+export async function addComponent(componentType: string, position?: number): Promise<AddResult> {
   const def = getDefinition(componentType);
   if (!def) return fail("This Component doesn't exist.");
   const { supabase, org, role } = await requireOrg();
@@ -58,6 +61,13 @@ export async function addComponent(componentType: string): Promise<AddResult> {
     })
     .select("id")
     .single();
+  if (!error && position !== undefined && Number.isInteger(position) && position >= 0) {
+    // Dropped between Components: rewrite the order so it lands exactly there.
+    const { data: rows } = await supabase.from("components").select("id").eq("organization_id", org.id).order("position");
+    const ids = (rows ?? []).map((r) => r.id).filter((id) => id !== data.id);
+    ids.splice(Math.min(position, ids.length), 0, data.id);
+    await Promise.all(ids.map((id, i) => supabase.from("components").update({ position: i }).eq("id", id).eq("organization_id", org.id)));
+  }
   if (error) return fail(friendlyError(error));
   revalidateWorkspace();
   return ok({ id: data.id });

@@ -50,7 +50,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
       {data.quietDeals.length > 0 && (
         <div>
           <div className="mb-1 flex items-center justify-between">
-            <SectionLabel>Deals without recent activity</SectionLabel>
+            <SectionLabel>Deals without recent activity{data.stage ? ` · ${data.stage}` : ""}</SectionLabel>
             <Button size="xs" variant="ghost" onClick={() => setBulk(true)}>
               Create tasks ({data.quietDealCount})
             </Button>

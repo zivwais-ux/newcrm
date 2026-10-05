@@ -81,6 +81,11 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
     setInput("");
     setLoading(true);
     try {
+      localStorage.setItem("bos.askedAI", "1");
+    } catch {
+      /* ignore */
+    }
+    try {
       const res = await fetch("/api/ai/analyst", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

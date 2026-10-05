@@ -18,6 +18,7 @@ import {
   TrendingDown,
   Upload,
   Users,
+  ListChecks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -37,6 +38,7 @@ export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "sales-pipeline": Handshake,
   "deal-risk": ShieldAlert,
   "followup-radar": Radar,
+  tasks: ListChecks,
 };
 
 export interface StoreEntry {

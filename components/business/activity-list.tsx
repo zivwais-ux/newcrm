@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CalendarClock, Mail, MapPin, MoreHorizontal, NotebookPen, Pencil, Phone, Trash2, Users } from "lucide-react";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RecordFormDialog } from "./record-form";
 import { LocalDateTime } from "@/components/ui/local-time";
+import { CustomerLink } from "@/components/components-system/workspace-filters";
 import { deleteRecord } from "@/lib/actions/records";
 import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
@@ -33,9 +33,9 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
           {showCustomer && activity.customers?.name && activity.customer_id && (
             <>
               {" · "}
-              <Link href={`/customers/${activity.customer_id}`} className="hover:underline">
+              <CustomerLink id={activity.customer_id} className="hover:underline cursor-pointer">
                 {activity.customers.name}
-              </Link>
+              </CustomerLink>
             </>
           )}
         </p>
