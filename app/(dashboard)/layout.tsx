@@ -4,6 +4,9 @@ import { WorkspaceProvider } from "@/components/layout/workspace-provider";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
+// Server actions on these pages (sample-data load, import chunks) can take longer than the default.
+export const maxDuration = 60;
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { supabase, user, profile, org, role } = await requireOrg();
   if (!org.onboarding_completed) redirect("/onboarding");

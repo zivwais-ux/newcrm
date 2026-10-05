@@ -4,6 +4,7 @@ import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { Logo } from "@/components/layout/logo";
 
 export const metadata = { title: "Welcome" };
+export const maxDuration = 60;
 
 export default async function OnboardingPage() {
   const { user, profile, org } = await getSession();
