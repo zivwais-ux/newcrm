@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { WhatsAppButton } from "./whatsapp-button";
 import { BulkTaskDialog } from "./bulk-task-dialog";
 import { useMoney } from "@/components/layout/workspace-provider";
 import { formatCurrency, formatNumber, plural, relativeDays } from "@/lib/utils";
@@ -106,10 +107,15 @@ export function CustomersTable({
                   <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggle(r.id)} aria-label={`בחר את ${r.name}`} />
                 </TableCell>
                 <TableCell className="max-w-[260px]">
-                  <Link href={`/customers/${r.id}`} className="block truncate font-medium hover:text-brand">
-                    {r.name}
-                  </Link>
-                  <span className="block truncate text-xs text-muted-foreground">{r.note ?? r.company ?? ""}</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/customers/${r.id}`} className="block truncate font-medium hover:text-brand">
+                        {r.name}
+                      </Link>
+                      <span className="block truncate text-xs text-muted-foreground">{r.note ?? r.company ?? ""}</span>
+                    </div>
+                    {r.phone && <WhatsAppButton phone={r.phone} name={r.name} customerId={r.id} />}
+                  </div>
                 </TableCell>
                 <TableCell className="hidden max-w-[220px] md:table-cell">
                   <span className="block truncate text-[13px]">{r.email ? <Ltr>{r.email}</Ltr> : "—"}</span>

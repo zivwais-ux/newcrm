@@ -12,6 +12,7 @@ import { SalesPipelineView } from "./views/sales-pipeline";
 import { DealRiskView } from "./views/deal-risk";
 import { FollowupRadarView } from "./views/followup-radar";
 import { TasksView } from "./views/tasks";
+import { TodayView } from "./views/today";
 
 /** View registry — keyed by Component id (see lib/components/registry.ts). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +27,7 @@ export const COMPONENT_VIEWS: Record<string, ComponentType<ViewProps<any>>> = {
   "deal-risk": DealRiskView,
   "followup-radar": FollowupRadarView,
   tasks: TasksView,
+  today: TodayView,
 };
 
 export function ComponentView({ type, ...props }: ViewProps<unknown> & { type: string }) {

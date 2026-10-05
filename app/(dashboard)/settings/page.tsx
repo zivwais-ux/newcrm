@@ -1,4 +1,4 @@
-import { Building2, Sparkles, UserRound, Users } from "lucide-react";
+import { Building2, MessageCircle, Sparkles, UserRound, Users } from "lucide-react";
 import { getMembers, requireOrg, canManage } from "@/lib/supabase/server";
 import { isAIConfigured } from "@/lib/ai/openai";
 import { PageContainer, PageHeader } from "@/components/layout/page";
@@ -7,13 +7,15 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Ltr } from "@/components/ui/ltr";
 import { ProfileForm, WorkspaceSettingsForm } from "@/components/business/settings-forms";
 import { ROLE_LABELS, label } from "@/components/business/labels";
+import { TemplatesForm } from "@/components/business/templates-form";
+import { loadTemplates } from "@/lib/whatsapp-server";
 import { initials } from "@/lib/utils";
 
 export const metadata = { title: "הגדרות" };
 
 export default async function SettingsPage() {
   const { supabase, org, role, profile, user } = await requireOrg();
-  const members = await getMembers(supabase, org.id);
+  const [members, templates] = await Promise.all([getMembers(supabase, org.id), loadTemplates(supabase, org.id)]);
   const aiReady = isAIConfigured();
 
   return (
@@ -34,6 +36,13 @@ export default async function SettingsPage() {
           <CardHeader icon={<UserRound />} title="הפרופיל שלי" description={user.email ? <Ltr>{user.email}</Ltr> : undefined} />
           <CardBody>
             <ProfileForm name={profile.full_name ?? ""} />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader icon={<MessageCircle />} title="הודעות WhatsApp מוכנות" description="ההודעות שמופיעות בכל כפתור WhatsApp במערכת." />
+          <CardBody>
+            <TemplatesForm initial={templates} canManage={canManage(role)} />
           </CardBody>
         </Card>
 

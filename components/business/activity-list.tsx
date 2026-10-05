@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, Mail, MapPin, MoreHorizontal, NotebookPen, Pencil, Phone, Trash2, Users } from "lucide-react";
+import { CalendarClock, Mail, MapPin, MessageCircle, MoreHorizontal, NotebookPen, Pencil, Phone, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RecordFormDialog } from "./record-form";
@@ -14,7 +14,7 @@ import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "./labels";
 
-const ICON = { appointment: CalendarClock, call: Phone, meeting: Users, email: Mail, note: NotebookPen, visit: MapPin } as const;
+const ICON = { appointment: CalendarClock, call: Phone, meeting: Users, email: Mail, note: NotebookPen, visit: MapPin, whatsapp: MessageCircle } as const;
 
 export function ActivityItem({ activity, showCustomer = true }: { activity: Activity; showCustomer?: boolean }) {
   const router = useRouter();

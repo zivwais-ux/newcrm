@@ -233,6 +233,64 @@ async function tasks(ctx: LoaderContext, config: ComponentConfig) {
 }
 export type TasksData = Awaited<ReturnType<typeof tasks>>;
 
+/** Calendar day bounds in Israel time (the server runs in UTC). */
+export function israelDay(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit", timeZoneName: "longOffset" }).formatToParts(now);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  const ymd = `${get("year")}-${get("month")}-${get("day")}`;
+  const offset = get("timeZoneName").replace("GMT", "") || "+00:00";
+  const start = new Date(`${ymd}T00:00:00${offset === "" ? "Z" : offset}`);
+  return { ymd, start: start.toISOString(), end: new Date(start.getTime() + 86_400_000).toISOString() };
+}
+
+type PersonRef = { name: string; phone: string | null } | null;
+
+async function today(ctx: LoaderContext, config: ComponentConfig) {
+  const { supabase, org } = ctx;
+  const day = israelDay();
+  const scope = await serviceScope(ctx);
+  const [appointments, tasks, overdue, deals] = await Promise.all([
+    supabase
+      .from("activities")
+      .select("id, type, date, notes, customer_id, customers(name, phone)")
+      .eq("organization_id", org.id)
+      .gte("date", day.start)
+      .lt("date", day.end)
+      .neq("type", "whatsapp")
+      .order("date")
+      .limit(12),
+    supabase
+      .from("tasks")
+      .select("id, title, due_date, status, customer_id, deal_id, assigned_to, customers(name, phone)", { count: "exact" })
+      .eq("organization_id", org.id)
+      .eq("status", "open")
+      .lte("due_date", day.ymd)
+      .order("due_date")
+      .limit(8),
+    getOverdueCustomers(supabase, org.id, Number(config.factor ?? 1.5), scope ? 200 : 20),
+    getDealsAtRisk(supabase, org.id, 14, 20),
+  ]);
+  const comeBack = (scope ? overdue.filter((c) => scope.has(c.id)) : overdue).slice(0, 5);
+  const stuck = deals.filter((d) => d.reason === "no_recent_activity").slice(0, 4);
+  const dealCustomerIds = [...new Set(stuck.map((d) => d.customer_id).filter((id): id is string => !!id))];
+  const { data: phones } = dealCustomerIds.length
+    ? await supabase.from("customers").select("id, phone").in("id", dealCustomerIds)
+    : { data: [] as { id: string; phone: string | null }[] };
+  const phoneById = new Map((phones ?? []).map((c) => [c.id, c.phone]));
+  const one = (v: unknown) => (Array.isArray(v) ? v[0] : v) as PersonRef;
+
+  return {
+    today: day.ymd,
+    appointments: (appointments.data ?? []).map((a) => ({ id: a.id, type: a.type as string, date: a.date as string, notes: a.notes as string | null, customer_id: a.customer_id as string | null, customer: one(a.customers) })),
+    tasks: (tasks.data ?? []).map((t) => ({ id: t.id, title: t.title as string, due_date: t.due_date as string | null, customer_id: t.customer_id as string | null, customer: one(t.customers) })),
+    taskCount: tasks.count ?? 0,
+    comeBack,
+    stuck: stuck.map((d) => ({ ...d, phone: d.customer_id ? phoneById.get(d.customer_id) ?? null : null })),
+    scopedTo: filtersOf(ctx).service,
+  };
+}
+export type TodayData = Awaited<ReturnType<typeof today>>;
+
 async function aiAnalyst(ctx: LoaderContext) {
   return { filters: filtersOf(ctx) };
 }
@@ -250,4 +308,5 @@ export const COMPONENT_LOADERS: Record<string, Loader> = {
   "deal-risk": dealRisk,
   "followup-radar": followupRadar,
   tasks,
+  today,
 };

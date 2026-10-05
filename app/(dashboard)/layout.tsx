@@ -3,14 +3,15 @@ import { getMembers, requireOrg } from "@/lib/supabase/server";
 import { WorkspaceProvider } from "@/components/layout/workspace-provider";
 import { SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { loadTemplates } from "@/lib/whatsapp-server";
 
-// Server actions on these pages (sample-data load, import chunks) can take longer than the default.
+// Server actions on these pages (import chunks) can take longer than the default.
 export const maxDuration = 60;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { supabase, user, profile, org, role } = await requireOrg();
   if (!org.onboarding_completed) redirect("/onboarding");
-  const members = await getMembers(supabase, org.id);
+  const [members, templates] = await Promise.all([getMembers(supabase, org.id), loadTemplates(supabase, org.id)]);
   const name = profile.full_name || user.email?.split("@")[0] || "חבר צוות";
 
   return (
@@ -20,6 +21,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         user: { id: user.id, name, email: user.email ?? "" },
         role,
         members,
+        templates,
       }}
     >
       <div className="flex min-h-screen">

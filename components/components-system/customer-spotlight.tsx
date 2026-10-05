@@ -7,6 +7,7 @@ import { ArrowUpRight, CalendarPlus, ListPlus, Mail, Phone } from "lucide-react"
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { TaskList } from "@/components/business/task-list";
 import { ActivityItem } from "@/components/business/activity-list";
 import { RecordFormDialog } from "@/components/business/record-form";
@@ -62,6 +63,7 @@ export function CustomerSpotlight({ data, currency }: { data: SpotlightData; cur
             )}
           </SheetDescription>
           <div className="flex flex-wrap gap-2 pt-3">
+            <WhatsAppButton phone={c.phone} name={c.name} customerId={c.id} variant="button" />
             <Button size="sm" onClick={() => setDialog("tasks")}>
               <ListPlus />
               צור משימה

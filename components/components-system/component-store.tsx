@@ -19,6 +19,7 @@ import {
   Upload,
   Users,
   ListChecks,
+  Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -39,6 +40,7 @@ export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "deal-risk": ShieldAlert,
   "followup-radar": Radar,
   tasks: ListChecks,
+  today: Sun,
 };
 
 const ENTITY_COUNT_LABELS: Record<string, string> = {

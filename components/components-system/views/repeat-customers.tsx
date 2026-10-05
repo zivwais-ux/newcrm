@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import type { RepeatData } from "@/lib/components/loaders";
+import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { CreateTaskButton, ListRow, SectionLabel, type ViewProps } from "../shared";
 import { CustomerLink } from "../workspace-filters";
 
@@ -48,6 +49,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
                     בדרך כלל כל {plural(c.median_interval_days, "יום", "ימים")} · לא הגיע {plural(c.days_since, "יום", "ימים")} · סה״כ <Ltr>{formatCurrency(c.total_revenue, currency)}</Ltr>
                   </p>
                 </div>
+                <WhatsAppButton phone={c.phone} name={c.name} customerId={c.id} template="לא ראינו אותך מזמן" />
                 <CreateTaskButton customerId={c.id} customerName={c.name} title={`להזמין את ${c.name} לחזור`} label="משימה" />
               </ListRow>
             ))}

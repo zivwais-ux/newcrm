@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import type { RiskData } from "@/lib/components/loaders";
+import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 import { CustomerLink, useOpenCustomer } from "../workspace-filters";
 
@@ -53,6 +54,7 @@ export function CustomerRiskView({ data, config, currency }: ViewProps<RiskData>
             <Button size="xs" variant="ghost" onClick={() => open(c.id)}>
               צפה בלקוח
             </Button>
+            <WhatsAppButton phone={c.phone} name={c.name} customerId={c.id} template="לא ראינו אותך מזמן" />
             <CreateTaskButton customerId={c.id} customerName={c.name} title={`לבדוק מה שלום ${c.name}`} />
           </div>
         </ListRow>

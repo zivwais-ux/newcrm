@@ -10,6 +10,37 @@ const MANAGERS = { manage: ["owner", "admin"] } as ComponentDefinition["permissi
  */
 export const COMPONENT_REGISTRY: ComponentDefinition[] = [
   {
+    id: "today",
+    name: "היום",
+    description: "מה מחכה לך היום: תורים, משימות, ולמי כדאי לשלוח WhatsApp",
+    category: "operations",
+    requiredEntities: [],
+    recommendedFor: ["service", "sales", "both"],
+    defaultSize: "lg",
+    visualization: "רשימת פעולות להיום, כל שורה עם כפתור אחד",
+    configFields: [
+      {
+        key: "factor",
+        label: "לקוח 'הגיע הזמן לחזור' כשעבר",
+        type: "select",
+        options: [
+          { value: "1.25", label: "קצת יותר מהרגיל" },
+          { value: "1.5", label: "פי 1.5 מהזמן הרגיל בין קניות" },
+          { value: "2", label: "פי 2 מהזמן הרגיל" },
+        ],
+        default: "1.5",
+      },
+    ],
+    actions: [
+      { id: "whatsapp", label: "שלח WhatsApp" },
+      { id: "complete-task", label: "סמן כבוצעה" },
+    ],
+    permissions: MANAGERS,
+    consumes: ["service"],
+    emits: ["customer"],
+    emptyState: { title: "אין שום דבר דחוף היום", description: "תורים, משימות ולקוחות שכדאי לחזור אליהם יופיעו כאן כל בוקר." },
+  },
+  {
     id: "customer-hub",
     name: "הלקוחות שלי",
     description: "מי הלקוחות שלך, מי חדש ומי פעיל",

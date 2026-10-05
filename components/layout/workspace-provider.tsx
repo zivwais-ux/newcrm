@@ -2,12 +2,15 @@
 
 import { createContext, useContext } from "react";
 import type { BusinessType, Member, MemberRole } from "@/types/domain";
+import type { MessageTemplate } from "@/lib/whatsapp";
 
 export interface WorkspaceContextValue {
   org: { id: string; name: string; business_type: BusinessType; currency: string };
   user: { id: string; name: string; email: string };
   role: MemberRole;
   members: Member[];
+  /** WhatsApp message templates (the business's own, or the built-in defaults). */
+  templates?: MessageTemplate[];
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);

@@ -79,7 +79,7 @@ export interface Transaction {
   customers?: { name: string } | null;
 }
 
-export const ACTIVITY_TYPES = ["appointment", "call", "meeting", "email", "note", "visit"] as const;
+export const ACTIVITY_TYPES = ["appointment", "call", "meeting", "email", "note", "visit", "whatsapp"] as const;
 export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export interface Activity {

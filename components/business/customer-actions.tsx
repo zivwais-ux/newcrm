@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { CalendarPlus, Handshake, ListPlus, MoreHorizontal, Pencil, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { WhatsAppButton } from "./whatsapp-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -31,6 +32,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
 
   return (
     <div className="flex flex-wrap gap-2">
+      <WhatsAppButton phone={customer.phone} name={customer.name} customerId={customer.id} variant="button" />
       <Button size="sm" variant="outline" onClick={() => setDialog("activities")}>
         <CalendarPlus />
         רשום פעילות

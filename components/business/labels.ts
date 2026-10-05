@@ -44,6 +44,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   email: "אימייל",
   note: "הערה",
   visit: "ביקור",
+  whatsapp: "WhatsApp",
 };
 
 export const TASK_STATUS_LABELS: Record<string, string> = {
