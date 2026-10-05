@@ -81,11 +81,11 @@ export type IssueType =
   | "duplicate";
 
 export const ISSUE_LABELS: Record<IssueType, string> = {
-  missing_customer_name: "Missing customer name",
-  invalid_amount: "Missing or invalid amount",
-  invalid_date: "Missing or invalid date",
-  missing_deal_name: "Missing deal name",
-  duplicate: "Duplicate row",
+  missing_customer_name: "חסר שם לקוח",
+  invalid_amount: "סכום חסר או לא תקין",
+  invalid_date: "תאריך חסר או לא תקין",
+  missing_deal_name: "חסר שם עסקה",
+  duplicate: "שורה כפולה",
 };
 
 export interface MappingContext {

@@ -14,7 +14,7 @@ export async function loadDemoData(): Promise<ActionResult<{ customers: number; 
     .from("customers")
     .select("id", { count: "exact", head: true })
     .eq("organization_id", org.id);
-  if (count) return fail("Your workspace already has customers. Sample data can only be loaded into an empty workspace.");
+  if (count) return fail("כבר יש לקוחות בחשבון. אפשר לטעון נתוני דוגמה רק לחשבון ריק.");
 
   const ds = generateDemoDataset(org.business_type);
   try {

@@ -3,7 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, Upload, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Ltr } from "@/components/ui/ltr";
+import { CUSTOMER_STATUS_LABELS, label } from "@/components/business/labels";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Stat } from "@/components/business/stat";
@@ -13,32 +17,49 @@ import type { ViewProps } from "../shared";
 import { CustomerLink } from "../workspace-filters";
 
 const FILTERS = [
-  { value: "", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-  { value: "churned", label: "Churned" },
+  { value: "", label: "הכל" },
+  { value: "active", label: "פעיל" },
+  { value: "inactive", label: "לא פעיל" },
+  { value: "churned", label: "עזב" },
 ];
 
 export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const { stats, customers } = data;
+  if (!stats.total && !data.scopedTo)
+    return (
+      <EmptyState
+        compact
+        icon={<Users />}
+        title="עדיין אין לקוחות"
+        description="כאן תראה את כל הלקוחות שלך: מי חדש, מי פעיל וכמה כל אחד הכניס. העלה את רשימת הלקוחות מקובץ אקסל."
+        action={
+          <Button asChild size="sm">
+            <Link href="/data/import">
+              <Upload />
+              העלה קובץ
+            </Link>
+          </Button>
+        }
+      />
+    );
 
   return (
     <div className="space-y-6">
-      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">Customers who bought {data.scopedTo}</p>}
+      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">לקוחות שקנו: {data.scopedTo}</p>}
       <div className="grid grid-cols-3 gap-4">
-        <Stat label={data.scopedTo ? "Buyers" : "Total customers"} value={formatNumber(stats.total)} />
+        <Stat label={data.scopedTo ? "קונים" : "סה״כ לקוחות"} value={formatNumber(stats.total)} />
         <Stat
-          label="New (30 days)"
+          label="חדשים (30 יום)"
           value={formatNumber(stats.new_30d)}
           delta={pctChange(stats.new_30d, stats.new_prev_30d)}
-          hint="vs prior 30 days"
+          hint="לעומת 30 הימים שלפני"
         />
         <Stat
-          label="Active"
+          label="פעילים"
           value={formatNumber(stats.active)}
-          hint={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% · seen in ${stats.active_days}d`}
+          hint={`${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}% · קנו ב-${stats.active_days} הימים האחרונים`}
         />
       </div>
 
@@ -50,8 +71,8 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
             router.push(`/customers${q ? `?q=${encodeURIComponent(q)}` : ""}`);
           }}
         >
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customers…" className="h-8 pl-8 text-[13px]" />
+          <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="חיפוש לקוח…" dir="auto" className="h-8 ps-8 text-[13px]" />
         </form>
         <div className="flex gap-1">
           {FILTERS.map((f) => (
@@ -69,11 +90,11 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
       <div className="-mx-1">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs text-muted-foreground">
-              <th className="px-1 pb-2 font-medium">Customer</th>
-              <th className="hidden px-1 pb-2 font-medium sm:table-cell">Status</th>
-              <th className="hidden px-1 pb-2 font-medium md:table-cell">Last purchase</th>
-              <th className="px-1 pb-2 text-right font-medium">Revenue</th>
+            <tr className="text-start text-xs text-muted-foreground">
+              <th className="px-1 pb-2 text-start font-medium">לקוח</th>
+              <th className="hidden px-1 pb-2 text-start font-medium sm:table-cell">סטטוס</th>
+              <th className="hidden px-1 pb-2 text-start font-medium md:table-cell">קנייה אחרונה</th>
+              <th className="px-1 pb-2 text-end font-medium">הכנסות</th>
             </tr>
           </thead>
           <tbody>
@@ -81,21 +102,21 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
               <tr key={c.id} className="border-t transition-colors hover:bg-muted/40">
                 <td className="max-w-0 px-1 py-2">
                   <CustomerLink id={c.id}>{c.name}</CustomerLink>
-                  <span className="block truncate text-xs text-muted-foreground">{c.company ?? c.email ?? "—"}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{c.company ?? (c.email ? <Ltr>{c.email}</Ltr> : "—")}</span>
                 </td>
                 <td className="hidden px-1 py-2 sm:table-cell">
-                  <Badge variant={c.status === "active" ? "positive" : "default"} className="capitalize">
-                    {c.status}
-                  </Badge>
+                  <Badge variant={c.status === "active" ? "positive" : "default"}>{label(CUSTOMER_STATUS_LABELS, c.status)}</Badge>
                 </td>
                 <td className="hidden px-1 py-2 text-muted-foreground md:table-cell">{relativeDays(c.last_purchase)}</td>
-                <td className="px-1 py-2 text-right tabular">{formatCurrency(c.revenue, currency)}</td>
+                <td className="px-1 py-2 text-end tabular">
+                  <Ltr>{formatCurrency(c.revenue, currency)}</Ltr>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
         <Link href="/customers" className="mt-2 inline-block px-1 text-xs font-medium text-muted-foreground hover:text-foreground">
-          View all {formatNumber(stats.total)} customers →
+          לכל {formatNumber(stats.total)} הלקוחות ←
         </Link>
       </div>
     </div>

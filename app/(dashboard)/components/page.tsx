@@ -4,7 +4,7 @@ import { COMPONENT_REGISTRY, recommend, topRecommendations } from "@/lib/compone
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { ComponentStore, type StoreEntry } from "@/components/components-system/component-store";
 
-export const metadata = { title: "Components" };
+export const metadata = { title: "ספריית הכלים" };
 
 export default async function ComponentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams;
@@ -32,8 +32,8 @@ export default async function ComponentsPage({ searchParams }: { searchParams: P
   return (
     <PageContainer>
       <PageHeader
-        title="Components"
-        description="Modular business tools that run on your own data. Add only what your business needs."
+        title="ספריית הכלים"
+        description="כלים קטנים לעסק שעובדים על הנתונים שלך. הוסף רק את מה שהעסק שלך צריך."
       />
       <ComponentStore
         entries={entries}

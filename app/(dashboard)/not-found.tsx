@@ -1,16 +1,21 @@
 import Link from "next/link";
+import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-      <h1 className="text-base font-semibold">We couldn&apos;t find that</h1>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-        It may have been deleted, or it belongs to a workspace you don&apos;t have access to.
-      </p>
-      <Button asChild className="mt-6" size="sm">
-        <Link href="/home">Back to Home</Link>
-      </Button>
+    <div className="flex min-h-[60vh] items-center justify-center px-4">
+      <EmptyState
+        icon={<SearchX />}
+        title="לא מצאנו את מה שחיפשת"
+        description="ייתכן שזה נמחק, או שזה שייך לחשבון שאין לך גישה אליו."
+        action={
+          <Button asChild size="sm">
+            <Link href="/home">חזרה לבית</Link>
+          </Button>
+        }
+      />
     </div>
   );
 }

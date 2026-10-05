@@ -12,6 +12,7 @@ import { CustomerLink } from "@/components/components-system/workspace-filters";
 import { deleteRecord } from "@/lib/actions/records";
 import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
+import { ACTIVITY_TYPE_LABELS } from "./labels";
 
 const ICON = { appointment: CalendarClock, call: Phone, meeting: Users, email: Mail, note: NotebookPen, visit: MapPin } as const;
 
@@ -23,13 +24,13 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
   const future = new Date(activity.date) > new Date();
 
   return (
-    <div className={cn("group flex items-start gap-3 border-t py-2.5 first:border-t-0", pending && "opacity-50")}>
-      <span className={cn("mt-0.5 grid size-7 shrink-0 place-items-center rounded-md border", future ? "bg-brand-soft text-brand border-transparent" : "bg-surface text-muted-foreground")}>
+    <div className={cn("group flex items-start gap-3 border-t py-3 first:border-t-0", pending && "opacity-50")}>
+      <span className={cn("mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg border", future ? "bg-brand-soft text-brand border-transparent" : "bg-surface text-muted-foreground")}>
         <Icon className="size-3.5" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm">
-          <span className="font-medium capitalize">{activity.type}</span>
+          <span className="font-medium">{ACTIVITY_TYPE_LABELS[activity.type] ?? activity.type}</span>
           {showCustomer && activity.customers?.name && activity.customer_id && (
             <>
               {" · "}
@@ -42,18 +43,22 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
         <p className="text-xs text-muted-foreground">
           <LocalDateTime value={activity.date} />
         </p>
-        {activity.notes && <p className="mt-1 line-clamp-2 text-[13px] text-zinc-600">{activity.notes}</p>}
+        {activity.notes && (
+          <p dir="auto" className="mt-1 line-clamp-2 text-start text-[13px] text-zinc-600">
+            {activity.notes}
+          </p>
+        )}
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon-sm" variant="ghost" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" aria-label="Activity actions">
+          <Button size="icon-sm" variant="ghost" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" aria-label="פעולות על הפעילות">
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setEditing(true)}>
             <Pencil />
-            Edit
+            ערוך
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -61,13 +66,13 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
               startTransition(async () => {
                 const res = await deleteRecord("activities", activity.id);
                 if (!res.ok) toast.error(res.error);
-                else toast.success("Activity deleted");
+                else toast.success("הפעילות נמחקה");
                 router.refresh();
               })
             }
           >
             <Trash2 />
-            Delete
+            מחק
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

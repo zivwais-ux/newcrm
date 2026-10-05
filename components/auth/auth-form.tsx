@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, MailCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,12 @@ import { Label } from "@/components/ui/label";
 
 function authMessage(message: string) {
   const m = message.toLowerCase();
-  if (m.includes("invalid login")) return "That email and password don't match. Please try again.";
-  if (m.includes("already registered") || m.includes("already been registered")) return "An account with this email already exists. Try signing in.";
-  if (m.includes("password")) return "Your password needs at least 8 characters.";
-  if (m.includes("email not confirmed")) return "Please confirm your email first — check your inbox.";
-  if (m.includes("rate limit")) return "Too many attempts. Please wait a minute and try again.";
-  return "We couldn't complete that. Please try again.";
+  if (m.includes("invalid login")) return "האימייל או הסיסמה לא נכונים. נסה שוב.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "כבר יש חשבון עם האימייל הזה. נסה להיכנס.";
+  if (m.includes("password")) return "הסיסמה צריכה להכיל לפחות 8 תווים.";
+  if (m.includes("email not confirmed")) return "צריך לאשר קודם את האימייל — בדוק את תיבת הדואר.";
+  if (m.includes("rate limit")) return "יותר מדי ניסיונות. חכה דקה ונסה שוב.";
+  return "משהו השתבש. נסה שוב.";
 }
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -34,7 +34,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const password = String(form.get("password") ?? "");
     const fullName = String(form.get("fullName") ?? "").trim();
     if (mode === "signup" && password.length < 8) {
-      setError("Your password needs at least 8 characters.");
+      setError("הסיסמה צריכה להכיל לפחות 8 תווים.");
       return;
     }
     setLoading(true);
@@ -68,34 +68,37 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   if (checkEmail) {
     return (
-      <div className="space-y-2">
-        <h1 className="text-xl font-semibold tracking-tight">Check your email</h1>
-        <p className="text-sm text-muted-foreground">We sent you a confirmation link. Open it to finish creating your workspace.</p>
+      <div className="space-y-3">
+        <span className="grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand">
+          <MailCheck className="size-5" />
+        </span>
+        <h1 className="text-2xl font-bold tracking-tight">בדוק את האימייל שלך</h1>
+        <p className="text-[15px] leading-relaxed text-muted-foreground">שלחנו לך קישור לאישור. לחץ עליו כדי לסיים לפתוח את החשבון.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-8">
       <div className="space-y-1.5">
-        <h1 className="text-xl font-semibold tracking-tight">{mode === "signup" ? "Create your Business OS" : "Welcome back"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {mode === "signup" ? "Start with an empty workspace built around your business." : "Sign in to your workspace."}
+        <h1 className="text-2xl font-bold tracking-tight">{mode === "signup" ? "פתיחת חשבון חדש" : "שמחים לראות אותך שוב"}</h1>
+        <p className="text-[15px] text-muted-foreground">
+          {mode === "signup" ? "מתחילים ממסך נקי, שנבנה סביב העסק שלך. בלי כרטיס אשראי." : "היכנס כדי להמשיך מאיפה שעצרת."}
         </p>
       </div>
       <form onSubmit={onSubmit} className="space-y-4">
         {mode === "signup" && (
           <div className="space-y-1.5">
-            <Label htmlFor="fullName">Your name</Label>
-            <Input id="fullName" name="fullName" autoComplete="name" required placeholder="Ziv Cohen" />
+            <Label htmlFor="fullName">השם שלך</Label>
+            <Input id="fullName" name="fullName" autoComplete="name" required dir="auto" placeholder="ישראל ישראלי" className="h-10" />
           </div>
         )}
         <div className="space-y-1.5">
-          <Label htmlFor="email">Work email</Label>
-          <Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@business.com" />
+          <Label htmlFor="email">אימייל</Label>
+          <Input id="email" name="email" type="email" dir="ltr" autoComplete="email" required placeholder="you@business.com" className="h-10 text-end" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">סיסמה</Label>
           <Input
             id="password"
             name="password"
@@ -103,32 +106,34 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
             required
             minLength={mode === "signup" ? 8 : undefined}
-            placeholder={mode === "signup" ? "At least 8 characters" : undefined}
+            dir="ltr"
+            className="h-10 text-end"
+            placeholder={mode === "signup" ? "לפחות 8 תווים" : undefined}
           />
         </div>
         {error && (
-          <p role="alert" className="rounded-md bg-negative-soft px-3 py-2 text-sm text-negative">
+          <p role="alert" className="rounded-lg bg-negative-soft px-3 py-2.5 text-sm text-negative">
             {error}
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button type="submit" size="lg" className="w-full" disabled={loading}>
           {loading && <Loader2 className="animate-spin" />}
-          {mode === "signup" ? "Create account" : "Sign in"}
+          {mode === "signup" ? "פתח חשבון" : "כניסה"}
         </Button>
       </form>
       <p className="text-sm text-muted-foreground">
         {mode === "signup" ? (
           <>
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-foreground hover:underline">
-              Sign in
+            כבר יש לך חשבון?{" "}
+            <Link href="/login" className="font-medium text-brand hover:underline">
+              כניסה
             </Link>
           </>
         ) : (
           <>
-            New here?{" "}
-            <Link href="/signup" className="font-medium text-foreground hover:underline">
-              Create an account
+            עדיין אין לך חשבון?{" "}
+            <Link href="/signup" className="font-medium text-brand hover:underline">
+              הרשמה
             </Link>
           </>
         )}

@@ -25,7 +25,7 @@ export function CreateTaskButton({
   title,
   size = "xs",
   variant = "ghost",
-  label = "Create Task",
+  label = "צור משימה",
 }: {
   customerId?: string | null;
   customerName?: string | null;

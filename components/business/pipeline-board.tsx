@@ -18,18 +18,12 @@ import { Plus } from "lucide-react";
 import { RecordFormDialog } from "./record-form";
 import { useWorkspace } from "@/components/layout/workspace-provider";
 import { moveDeal } from "@/lib/actions/records";
-import { cn, daysAgo, formatCurrency } from "@/lib/utils";
+import { cn, daysAgo, formatCurrency, formatNumber } from "@/lib/utils";
+import { Ltr } from "@/components/ui/ltr";
 import { DEAL_STAGES, type Deal, type DealStage } from "@/types/domain";
+import { STAGE_LABELS } from "./labels";
 
-export const STAGE_LABELS: Record<DealStage, string> = {
-  new: "New",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  proposal: "Proposal",
-  negotiation: "Negotiation",
-  won: "Won",
-  lost: "Lost",
-};
+export { STAGE_LABELS };
 
 function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () => void; overlay?: boolean }) {
   const { members, org } = useWorkspace();
@@ -45,7 +39,7 @@ function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () =
       {...(overlay ? {} : attributes)}
       onClick={onOpen}
       className={cn(
-        "cursor-grab rounded-md border bg-surface p-2.5 text-left shadow-[0_1px_0_rgba(0,0,0,0.03)] transition-shadow hover:border-zinc-300 active:cursor-grabbing",
+        "cursor-grab rounded-lg border bg-surface p-3 text-start shadow-xs transition-all hover:-translate-y-px hover:shadow-sm active:cursor-grabbing",
         isDragging && !overlay && "opacity-40",
         overlay && "rotate-1 shadow-lg",
       )}
@@ -53,9 +47,9 @@ function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () =
       <p className="line-clamp-2 text-[13px] leading-snug font-medium">{deal.name}</p>
       {deal.customers?.name && <p className="mt-0.5 truncate text-xs text-muted-foreground">{deal.customers.name}</p>}
       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-        <span className="font-medium tabular">{formatCurrency(deal.value, org.currency)}</span>
+        <Ltr className="font-semibold tabular">{formatCurrency(deal.value, org.currency)}</Ltr>
         <span className={cn("truncate text-muted-foreground", open && idle >= 14 && "text-warning")}>
-          {open ? (idle <= 0 ? "today" : `${idle}d idle`) : owner ?? ""}
+          {open ? (idle <= 0 ? "עודכנה היום" : `${formatNumber(idle)} ימים בלי תזוזה`) : owner ?? ""}
         </span>
       </div>
       {open && owner && <p className="mt-1 truncate text-[11px] text-muted-foreground">{owner}</p>}
@@ -94,21 +88,21 @@ function Column({
         onClick={onHeaderClick}
         disabled={!onHeaderClick}
         aria-pressed={selected}
-        title={onHeaderClick ? "Click to filter linked Components by this stage" : undefined}
+        title={onHeaderClick ? "לחץ כדי לסנן את הכלים המקושרים לפי השלב הזה" : undefined}
         className={cn(
-          "mb-2 flex items-baseline justify-between gap-2 rounded-md px-1.5 py-0.5 text-left enabled:cursor-pointer enabled:hover:bg-muted/70",
+          "mb-2 flex items-baseline justify-between gap-2 rounded-md px-1.5 py-0.5 text-start enabled:cursor-pointer enabled:hover:bg-muted/70",
           selected && "bg-brand-soft text-brand enabled:hover:bg-brand-soft",
         )}
       >
         <span className="text-[13px] font-medium">
-          {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground tabular">{deals.length}</span>
+          {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground tabular">{formatNumber(deals.length)}</span>
         </span>
-        <span className="text-xs text-muted-foreground tabular">{formatCurrency(total, org.currency, true)}</span>
+        <Ltr className="text-xs text-muted-foreground tabular">{formatCurrency(total, org.currency, true)}</Ltr>
       </button>
       <div
         ref={setNodeRef}
         className={cn(
-          "flex min-h-24 flex-1 flex-col gap-2 rounded-md bg-muted/60 p-1.5 transition-colors",
+          "flex min-h-24 flex-1 flex-col gap-2 rounded-xl bg-muted/60 p-2 transition-colors",
           isOver && "bg-brand-soft ring-1 ring-brand/30",
         )}
       >
@@ -116,14 +110,14 @@ function Column({
           <DealCard key={d.id} deal={d} onOpen={() => onOpen(d)} />
         ))}
         {limit && deals.length > limit && (
-          <p className="px-1 py-0.5 text-xs text-muted-foreground">+{deals.length - limit} more</p>
+          <p className="px-1 py-0.5 text-xs text-muted-foreground">ועוד {formatNumber(deals.length - limit)}</p>
         )}
         <button
           onClick={onAdd}
           className="flex items-center gap-1 rounded px-1.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-black/[0.04] hover:text-foreground cursor-pointer"
         >
           <Plus className="size-3.5" />
-          Add deal
+          הוסף עסקה
         </button>
       </div>
     </div>
@@ -175,7 +169,7 @@ export function PipelineBoard({
       toast.error(res.error);
       setDeals((ds) => ds.map((d) => (d.id === id ? { ...d, stage: from } : d)));
     } else {
-      toast.success(`Moved to ${STAGE_LABELS[to]}`);
+      toast.success(`הועברה לשלב "${STAGE_LABELS[to]}"`);
       router.refresh();
     }
   }

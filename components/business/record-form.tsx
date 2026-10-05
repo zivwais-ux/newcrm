@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,14 @@ import { useWorkspace } from "@/components/layout/workspace-provider";
 import { createRecord, updateRecord, type RecordEntity } from "@/lib/actions/records";
 import { ACTIVITY_TYPES, DEAL_STAGES } from "@/types/domain";
 import { isoDate } from "@/lib/utils";
+import {
+  STAGE_LABELS,
+  ACTIVITY_TYPE_LABELS,
+  CUSTOMER_STATUS_LABELS,
+  LEAD_STATUS_LABELS,
+  TRANSACTION_STATUS_LABELS,
+  TRANSACTION_TYPE_LABELS,
+} from "./labels";
 
 type FieldType = "text" | "email" | "tel" | "money" | "date" | "datetime" | "select" | "textarea" | "customer" | "deal" | "member";
 
@@ -25,79 +33,117 @@ interface Field {
   required?: boolean;
   options?: readonly string[];
   placeholder?: string;
+  optionLabels?: Record<string, string>;
   half?: boolean;
 }
 
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+interface FormSpec {
+  /** Hebrew noun, e.g. "לקוח". */
+  singular: string;
+  /** "לקוח חדש" — dialog title and menu label. */
+  newLabel: string;
+  /** "עריכת לקוח" */
+  editLabel: string;
+  /** Submit button on create, e.g. "הוסף לקוח". */
+  createLabel: string;
+  /** Toast after create. */
+  createdToast: string;
+  description: string;
+  fields: Field[];
+}
 
-export const RECORD_FORMS: Record<RecordEntity, { singular: string; description: string; fields: Field[] }> = {
+export const RECORD_FORMS: Record<RecordEntity, FormSpec> = {
   customers: {
-    singular: "customer",
-    description: "Add someone you do business with.",
+    singular: "לקוח",
+    newLabel: "לקוח חדש",
+    editLabel: "עריכת לקוח",
+    createLabel: "הוסף לקוח",
+    createdToast: "הלקוח נוסף",
+    description: "מישהו שאתה עובד איתו או מוכר לו.",
     fields: [
-      { name: "name", label: "Name", type: "text", required: true, placeholder: "David Cohen" },
-      { name: "email", label: "Email", type: "email", half: true },
-      { name: "phone", label: "Phone", type: "tel", half: true },
-      { name: "company", label: "Company", type: "text", half: true },
-      { name: "status", label: "Status", type: "select", options: ["active", "inactive", "churned"], half: true },
+      { name: "name", label: "שם", type: "text", required: true, placeholder: "דוד כהן" },
+      { name: "email", label: "אימייל", type: "email", half: true },
+      { name: "phone", label: "טלפון", type: "tel", half: true },
+      { name: "company", label: "חברה", type: "text", half: true },
+      { name: "status", label: "סטטוס", type: "select", options: ["active", "inactive", "churned"], optionLabels: CUSTOMER_STATUS_LABELS, half: true },
     ],
   },
   leads: {
-    singular: "lead",
-    description: "A potential customer you're talking to.",
+    singular: "פנייה",
+    newLabel: "פנייה חדשה",
+    editLabel: "עריכת פנייה",
+    createLabel: "הוסף פנייה",
+    createdToast: "הפנייה נוספה",
+    description: "מישהו שהתעניין ועוד לא הפך ללקוח.",
     fields: [
-      { name: "name", label: "Name", type: "text", required: true },
-      { name: "email", label: "Email", type: "email", half: true },
-      { name: "phone", label: "Phone", type: "tel", half: true },
-      { name: "source", label: "Source", type: "text", placeholder: "Website, referral…", half: true },
-      { name: "value", label: "Estimated value", type: "money", half: true },
-      { name: "status", label: "Status", type: "select", options: ["new", "contacted", "qualified", "converted", "lost"], half: true },
-      { name: "owner_id", label: "Owner", type: "member", half: true },
+      { name: "name", label: "שם", type: "text", required: true },
+      { name: "email", label: "אימייל", type: "email", half: true },
+      { name: "phone", label: "טלפון", type: "tel", half: true },
+      { name: "source", label: "מקור", type: "text", placeholder: "אתר, המלצה, פייסבוק…", half: true },
+      { name: "value", label: "שווי משוער", type: "money", half: true },
+      { name: "status", label: "סטטוס", type: "select", options: ["new", "contacted", "qualified", "converted", "lost"], optionLabels: LEAD_STATUS_LABELS, half: true },
+      { name: "owner_id", label: "באחריות", type: "member", half: true },
     ],
   },
   deals: {
-    singular: "deal",
-    description: "An opportunity in your pipeline.",
+    singular: "עסקה",
+    newLabel: "עסקה חדשה",
+    editLabel: "עריכת עסקה",
+    createLabel: "הוסף עסקה",
+    createdToast: "העסקה נוספה",
+    description: "הזדמנות למכירה שאתה עובד עליה.",
     fields: [
-      { name: "name", label: "Deal name", type: "text", required: true, placeholder: "Acme — website redesign" },
-      { name: "customer_id", label: "Customer", type: "customer" },
-      { name: "value", label: "Value", type: "money", half: true },
-      { name: "stage", label: "Stage", type: "select", options: DEAL_STAGES, half: true },
-      { name: "expected_close", label: "Expected close", type: "date", half: true },
-      { name: "owner_id", label: "Owner", type: "member", half: true },
+      { name: "name", label: "שם העסקה", type: "text", required: true, placeholder: "למשל: חבילת טיפולים לחברת אקמה" },
+      { name: "customer_id", label: "לקוח", type: "customer" },
+      { name: "value", label: "שווי", type: "money", half: true },
+      { name: "stage", label: "שלב", type: "select", options: DEAL_STAGES, optionLabels: STAGE_LABELS, half: true },
+      { name: "expected_close", label: "צפי לסגירה", type: "date", half: true },
+      { name: "owner_id", label: "באחריות", type: "member", half: true },
     ],
   },
   transactions: {
-    singular: "transaction",
-    description: "A sale, payment or refund.",
+    singular: "מכירה",
+    newLabel: "מכירה חדשה",
+    editLabel: "עריכת מכירה",
+    createLabel: "הוסף מכירה",
+    createdToast: "המכירה נוספה",
+    description: "מכירה, תשלום או החזר כספי.",
     fields: [
-      { name: "customer_id", label: "Customer", type: "customer" },
-      { name: "amount", label: "Amount", type: "money", required: true, half: true },
-      { name: "date", label: "Date", type: "date", required: true, half: true },
-      { name: "product_or_service", label: "Product / service", type: "text" },
-      { name: "type", label: "Type", type: "select", options: ["sale", "refund", "subscription"], half: true },
-      { name: "status", label: "Status", type: "select", options: ["paid", "pending", "cancelled"], half: true },
+      { name: "customer_id", label: "לקוח", type: "customer" },
+      { name: "amount", label: "סכום", type: "money", required: true, half: true },
+      { name: "date", label: "תאריך", type: "date", required: true, half: true },
+      { name: "product_or_service", label: "מוצר / שירות", type: "text" },
+      { name: "type", label: "סוג", type: "select", options: ["sale", "refund", "subscription"], optionLabels: TRANSACTION_TYPE_LABELS, half: true },
+      { name: "status", label: "סטטוס", type: "select", options: ["paid", "pending", "cancelled"], optionLabels: TRANSACTION_STATUS_LABELS, half: true },
     ],
   },
   activities: {
-    singular: "activity",
-    description: "An appointment, call, meeting or note.",
+    singular: "פעילות",
+    newLabel: "פעילות חדשה",
+    editLabel: "עריכת פעילות",
+    createLabel: "הוסף פעילות",
+    createdToast: "הפעילות נרשמה",
+    description: "תור, שיחה, פגישה או הערה.",
     fields: [
-      { name: "type", label: "Type", type: "select", options: ACTIVITY_TYPES, half: true },
-      { name: "date", label: "Date & time", type: "datetime", required: true, half: true },
-      { name: "customer_id", label: "Customer", type: "customer" },
-      { name: "notes", label: "Notes", type: "textarea" },
+      { name: "type", label: "סוג", type: "select", options: ACTIVITY_TYPES, optionLabels: ACTIVITY_TYPE_LABELS, half: true },
+      { name: "date", label: "תאריך ושעה", type: "datetime", required: true, half: true },
+      { name: "customer_id", label: "לקוח", type: "customer" },
+      { name: "notes", label: "הערות", type: "textarea" },
     ],
   },
   tasks: {
-    singular: "task",
-    description: "Something that needs to get done.",
+    singular: "משימה",
+    newLabel: "משימה חדשה",
+    editLabel: "עריכת משימה",
+    createLabel: "הוסף משימה",
+    createdToast: "המשימה נוספה",
+    description: "משהו שצריך לעשות.",
     fields: [
-      { name: "title", label: "Title", type: "text", required: true, placeholder: "Call to schedule next visit" },
-      { name: "customer_id", label: "Customer", type: "customer" },
-      { name: "due_date", label: "Due date", type: "date", half: true },
-      { name: "assigned_to", label: "Assigned to", type: "member", half: true },
-      { name: "description", label: "Notes", type: "textarea" },
+      { name: "title", label: "מה צריך לעשות?", type: "text", required: true, placeholder: "להתקשר ולקבוע ביקור הבא" },
+      { name: "customer_id", label: "לקוח", type: "customer" },
+      { name: "due_date", label: "תאריך יעד", type: "date", half: true },
+      { name: "assigned_to", label: "באחריות", type: "member", half: true },
+      { name: "description", label: "הערות", type: "textarea" },
     ],
   },
 };
@@ -162,7 +208,7 @@ export function RecordFormDialog({
         ? await updateRecord(entity, recordId, payload as never)
         : await createRecord(entity, payload as never);
       if (!res.ok) return void toast.error(res.error);
-      toast.success(recordId ? `${cap(form.singular)} updated` : `${cap(form.singular)} created`);
+      toast.success(recordId ? "השינויים נשמרו" : form.createdToast);
       onOpenChange(false);
       onSaved?.(recordId ?? (res.data as { id: string }).id);
       router.refresh();
@@ -171,9 +217,9 @@ export function RecordFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{recordId ? `Edit ${form.singular}` : `New ${form.singular}`}</DialogTitle>
+          <DialogTitle>{recordId ? form.editLabel : form.newLabel}</DialogTitle>
           <DialogDescription>{form.description}</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid grid-cols-2 gap-x-3 gap-y-4">
@@ -186,12 +232,12 @@ export function RecordFormDialog({
               {f.type === "select" ? (
                 <Select value={values[f.name] ?? ""} onValueChange={(v) => set(f.name, v)}>
                   <SelectTrigger id={`f-${f.name}`}>
-                    <SelectValue placeholder="Select" />
+                    <SelectValue placeholder="בחר" />
                   </SelectTrigger>
                   <SelectContent>
                     {f.options!.map((o) => (
                       <SelectItem key={o} value={o}>
-                        {cap(o)}
+                        {f.optionLabels?.[o] ?? o}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -204,8 +250,8 @@ export function RecordFormDialog({
                   <SelectContent>
                     {members.map((m) => (
                       <SelectItem key={m.user_id} value={m.user_id}>
-                        {m.full_name ?? "Teammate"}
-                        {m.user_id === user.id ? " (you)" : ""}
+                        {m.full_name ?? "חבר צוות"}
+                        {m.user_id === user.id ? " (אני)" : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -218,11 +264,13 @@ export function RecordFormDialog({
                   onChange={(id) => set(f.name, id)}
                 />
               ) : f.type === "textarea" ? (
-                <Textarea id={`f-${f.name}`} value={values[f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} />
+                <Textarea id={`f-${f.name}`} dir="auto" rows={3} value={values[f.name] ?? ""} onChange={(e) => set(f.name, e.target.value)} />
               ) : (
                 <Input
                   id={`f-${f.name}`}
                   type={f.type === "money" ? "number" : f.type === "datetime" ? "datetime-local" : f.type}
+                  dir={f.type === "text" ? "auto" : "ltr"}
+                  className={f.type === "text" ? undefined : "text-end"}
                   step={f.type === "money" ? "0.01" : undefined}
                   min={f.type === "money" ? 0 : undefined}
                   inputMode={f.type === "money" ? "decimal" : undefined}
@@ -236,11 +284,11 @@ export function RecordFormDialog({
           ))}
           <DialogFooter className="col-span-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              ביטול
             </Button>
             <Button type="submit" disabled={pending}>
               {pending && <Loader2 className="animate-spin" />}
-              {recordId ? "Save changes" : `Create ${form.singular}`}
+              {recordId ? "שמור שינויים" : form.createLabel}
             </Button>
           </DialogFooter>
         </form>
@@ -269,7 +317,12 @@ export function NewRecordButton({
   return (
     <>
       <Button variant={variant} size={size} onClick={() => setOpen(true)}>
-        {children ?? `New ${RECORD_FORMS[entity].singular}`}
+        {children ?? (
+          <>
+            <Plus />
+            {RECORD_FORMS[entity].newLabel}
+          </>
+        )}
       </Button>
       {open && <RecordFormDialog entity={entity} open={open} onOpenChange={setOpen} initial={initial} labels={labels} />}
     </>

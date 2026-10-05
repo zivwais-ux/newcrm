@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeFilterKeys, describeFilters, parseFilters } from "./filters";
+import { activeFilterKeys, describeFilters, filterLabel, parseFilters } from "./filters";
 import { getDefinition, resolveConfig } from "./registry";
 
 describe("workspace filters", () => {
@@ -16,7 +16,12 @@ describe("workspace filters", () => {
     const f = parseFilters({ service: "Deep Clean", range: "90d" });
     expect(activeFilterKeys(f)).toEqual(["range", "service"]);
     expect(describeFilters(f)).toContain('"Deep Clean"');
+    expect(describeFilters(f)).toContain("התמקד ב");
+    expect(describeFilters(f)).toContain("90 הימים האחרונים");
+    expect(describeFilters(parseFilters({ stage: "proposal" }))).toContain('"הצעת מחיר"');
     expect(describeFilters(parseFilters({}))).toBeNull();
+    expect(filterLabel("service", "Deep Clean")).toBe("שירות: Deep Clean");
+    expect(filterLabel("stage", "won")).toBe("שלב: נסגרה בהצלחה");
   });
 });
 

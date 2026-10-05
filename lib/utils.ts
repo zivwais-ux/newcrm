@@ -23,8 +23,24 @@ export function formatCurrency(value: number | null | undefined, currency = "ILS
   return f.format(Number(value ?? 0));
 }
 
+// Numbers and currency use en-US grouping ("₪1,250") on purpose: it's what Israeli
+// businesses read, and it renders identically on server and browser (no ICU drift).
+const numberFormatter = new Intl.NumberFormat("en-US");
 export function formatNumber(value: number | null | undefined) {
-  return new Intl.NumberFormat("en-US").format(Number(value ?? 0));
+  return numberFormatter.format(Number(value ?? 0));
+}
+
+/** "Oct 2026"-style label in Hebrew: "אוק׳ 2026" (short) or "אוקטובר 2026" (long). */
+export function formatMonth(value: string | Date, long = false) {
+  const d = parseDateValue(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return `${(long ? MONTHS_LONG : MONTHS)[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+/** Hebrew plural helper: plural(3, "לקוח", "לקוחות") → "3 לקוחות", plural(1, …) → "לקוח אחד". */
+export function plural(n: number, one: string, many: string, oneLabel?: string) {
+  if (n === 1) return oneLabel ?? `${one} אחד`;
+  return `${formatNumber(n)} ${many}`;
 }
 
 export function formatPercent(value: number | null | undefined, digits = 0) {
@@ -38,8 +54,9 @@ export function pctChange(current: number, previous: number): number | null {
   return ((current - previous) / Math.abs(previous)) * 100;
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export const MONTHS = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"];
+export const MONTHS_LONG = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"];
+const WEEKDAYS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
 
 /** Parses "yyyy-mm-dd" as a local calendar date (no timezone shift); other strings as instants. */
 export function parseDateValue(value: string | Date): Date {
@@ -48,21 +65,21 @@ export function parseDateValue(value: string | Date): Date {
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
 }
 
-/** "4 Oct 2026". Formatted by hand so server and browser render identical text. */
+/** "4 באוק׳ 2026". Formatted by hand so server and browser render identical text. */
 export function formatDate(value: string | Date | null | undefined) {
   if (!value) return "—";
   const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return `${d.getDate()} ב${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** "Sun 4 Oct, 15:00" in the viewer's local time. Use from client components after mount. */
+/** "יום א׳, 4 באוק׳ · 15:00" in the viewer's local time. Use from client components after mount. */
 export function formatDateTime(value: string | Date) {
   const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return "—";
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}, ${hh}:${mm}`;
+  return `יום ${WEEKDAYS[d.getDay()]}, ${d.getDate()} ב${MONTHS[d.getMonth()]} · ${hh}:${mm}`;
 }
 
 export function daysAgo(value: string | Date | null | undefined) {
@@ -74,9 +91,10 @@ export function daysAgo(value: string | Date | null | undefined) {
 export function relativeDays(value: string | Date | null | undefined) {
   const n = daysAgo(value);
   if (n === null) return "—";
-  if (n <= 0) return "today";
-  if (n === 1) return "yesterday";
-  return `${n} days ago`;
+  if (n <= 0) return "היום";
+  if (n === 1) return "אתמול";
+  if (n === 2) return "שלשום";
+  return `לפני ${formatNumber(n)} ימים`;
 }
 
 export function initials(name: string) {

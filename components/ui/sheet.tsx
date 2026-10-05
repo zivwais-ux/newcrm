@@ -22,16 +22,16 @@ function SheetContent({
         className={cn(
           "fixed inset-y-0 z-50 flex h-full w-full flex-col gap-0 border-border bg-surface shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:max-w-md",
           side === "right"
-            ? "right-0 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right"
-            : "left-0 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
+            ? "end-0 border-s ltr:data-[state=closed]:slide-out-to-right ltr:data-[state=open]:slide-in-from-right rtl:data-[state=closed]:slide-out-to-left rtl:data-[state=open]:slide-in-from-left"
+            : "start-0 border-e ltr:data-[state=closed]:slide-out-to-left ltr:data-[state=open]:slide-in-from-left rtl:data-[state=closed]:slide-out-to-right rtl:data-[state=open]:slide-in-from-right",
           className,
         )}
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="absolute top-4 right-4 rounded p-1 text-muted-foreground opacity-70 transition hover:bg-accent hover:opacity-100 focus:outline-none">
+        <SheetPrimitive.Close className="absolute top-4 end-4 rounded p-1 text-muted-foreground opacity-70 transition hover:bg-accent hover:opacity-100 focus:outline-none">
           <XIcon className="size-4" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">סגור</span>
         </SheetPrimitive.Close>
       </SheetPrimitive.Content>
     </SheetPrimitive.Portal>

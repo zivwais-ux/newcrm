@@ -1,12 +1,21 @@
 import Link from "next/link";
+import { SearchX } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
-      <h1 className="text-base font-semibold">Page not found</h1>
-      <Link href="/home" className="mt-4 text-sm underline">
-        Go to your workspace
-      </Link>
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <EmptyState
+        icon={<SearchX />}
+        title="העמוד לא נמצא"
+        description="ייתכן שהקישור שגוי או שהעמוד הועבר."
+        action={
+          <Button asChild size="sm">
+            <Link href="/home">חזרה למסך העבודה</Link>
+          </Button>
+        }
+      />
     </div>
   );
 }

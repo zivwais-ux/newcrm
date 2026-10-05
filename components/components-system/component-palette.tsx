@@ -28,14 +28,38 @@ export interface Checklist {
 }
 
 const LINK_LABELS: Record<EmitKey, string> = {
-  range: "date range",
-  service: "service",
-  stage: "pipeline stage",
-  customer: "customer spotlight",
+  range: "טווח תאריכים",
+  service: "שירות",
+  stage: "שלב עסקה",
+  customer: "לקוח",
 };
 
+/** Names of the other Components this one talks to (it filters them, or they filter it). */
+export function linkedPartners(entry: PaletteEntry, entries: PaletteEntry[]): string[] {
+  const emits = entry.emits.filter((k): k is FilterKey => k !== "customer");
+  return entries
+    .filter(
+      (o) =>
+        o.id !== entry.id &&
+        (o.consumes.some((k) => emits.includes(k)) || o.emits.some((k) => k !== "customer" && entry.consumes.includes(k as FilterKey))),
+    )
+    .map((o) => o.name);
+}
+
 /** The draggable card for one Component in the library. */
-export function PaletteCard({ entry, onAdd, overlay = false, canManage }: { entry: PaletteEntry; onAdd?: () => void; overlay?: boolean; canManage: boolean }) {
+export function PaletteCard({
+  entry,
+  onAdd,
+  overlay = false,
+  canManage,
+  partners = [],
+}: {
+  entry: PaletteEntry;
+  onAdd?: () => void;
+  overlay?: boolean;
+  canManage: boolean;
+  partners?: string[];
+}) {
   const disabled = !canManage || Boolean(entry.installedId);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette:${entry.id}`,
@@ -50,24 +74,33 @@ export function PaletteCard({ entry, onAdd, overlay = false, canManage }: { entr
       {...(overlay ? {} : listeners)}
       {...(overlay ? {} : attributes)}
       className={cn(
-        "group flex items-start gap-3 rounded-md border bg-surface p-3 text-left transition-[box-shadow,border-color]",
-        !disabled && "cursor-grab hover:border-zinc-300 hover:shadow-sm active:cursor-grabbing",
-        entry.installedId && "bg-muted/40",
+        "group flex items-start gap-3 rounded-lg border bg-surface p-3 text-start shadow-xs transition-[box-shadow,border-color,transform] duration-150",
+        !disabled && "cursor-grab hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md active:cursor-grabbing",
+        entry.installedId && "bg-muted/40 shadow-none",
         isDragging && "opacity-40",
-        overlay && "w-72 rotate-1 cursor-grabbing border-brand/40 shadow-xl",
+        overlay && "w-72 -rotate-1 cursor-grabbing border-brand/40 shadow-xl ring-2 ring-brand/20",
       )}
-      title={disabled ? undefined : "Drag onto the canvas"}
+      title={disabled ? undefined : "גרור למסך העבודה"}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-brand-soft text-brand">
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
         <Icon className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-medium leading-tight">{entry.name}</span>
-        <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{entry.description}</span>
+        <span className="block text-[14px] font-semibold leading-tight">{entry.name}</span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{entry.description}</span>
+        {partners.length > 0 && (
+          <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+            <Link2 className="size-3 shrink-0 text-brand" />
+            <span className="truncate">
+              עובד יחד עם: {partners.slice(0, 2).join(", ")}
+              {partners.length > 2 && ` ועוד ${partners.length - 2}`}
+            </span>
+          </span>
+        )}
         {entry.installedId ? (
-          <span className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-positive">
+          <span className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-positive">
             <Check className="size-3" />
-            On canvas
+            כבר במסך
           </span>
         ) : (
           !entry.ready && <span className="mt-1.5 block text-[11px] text-warning">{entry.reason}</span>
@@ -80,7 +113,8 @@ export function PaletteCard({ entry, onAdd, overlay = false, canManage }: { entr
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onAdd}
             className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
-            aria-label={`Add ${entry.name}`}
+            aria-label={`הוסף את ${entry.name} למסך`}
+            title="הוסף למסך"
           >
             <Plus className="size-3.5" />
           </button>
@@ -102,7 +136,7 @@ function Section({ title, icon, children, defaultOpen = true }: { title: string;
         aria-expanded={open}
       >
         {icon}
-        <span className="flex-1 text-left">{title}</span>
+        <span className="flex-1 text-start">{title}</span>
         <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", !open && "-rotate-90")} />
       </button>
       {open && <div className="mt-1.5 space-y-2">{children}</div>}
@@ -122,10 +156,10 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
   const [flags, setFlags] = useState({ linked: false, askedAI: false });
   useEffect(() => setFlags({ linked: readFlag("bos.linked"), askedAI: readFlag("bos.askedAI") }), []);
   const steps = [
-    { done: checklist.hasData, label: "Import your business data", href: "/data/import" },
-    { done: checklist.componentCount >= 3, label: "Drag 3 Components onto the canvas" },
-    { done: flags.linked, label: "Click a service or stage to link Components" },
-    { done: flags.askedAI, label: "Ask the AI Business Analyst a question", href: "/ai" },
+    { done: checklist.hasData, label: "העלה את נתוני העסק (קובץ אקסל)", href: "/data/import" },
+    { done: checklist.componentCount >= 3, label: "גרור 3 כלים למסך העבודה" },
+    { done: flags.linked, label: "לחץ על שירות או שלב עסקה כדי לסנן את כל הכלים" },
+    { done: flags.askedAI, label: "שאל את היועץ החכם שאלה", href: "/ai" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const emitters = entries.filter((e) => e.emits.some((k) => k !== "customer"));
@@ -134,12 +168,12 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
     <div className="space-y-6 text-[13px]">
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="font-medium">Getting started</h3>
-          <span className="text-xs text-muted-foreground tabular">
+          <h3 className="font-semibold">צעדים ראשונים</h3>
+          <span className="text-xs text-muted-foreground tabular" dir="ltr">
             {doneCount}/{steps.length}
           </span>
         </div>
-        <div className="mb-3 h-1 rounded-full bg-muted">
+        <div className="mb-3 h-1.5 rounded-full bg-muted">
           <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
         </div>
         <ul className="space-y-2">
@@ -166,49 +200,49 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
       </section>
 
       <section className="space-y-2">
-        <h3 className="font-medium">Building your workspace</h3>
+        <h3 className="font-semibold">איך בונים את המסך</h3>
         <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">Drag</strong> a Component from the library onto the canvas, or hover it and press +.
+          <strong className="font-medium text-foreground">גרור</strong> כלי מהספרייה אל מסך העבודה, או עמוד עליו ולחץ על +.
         </p>
         <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">Rearrange</strong> with the ⋮⋮ handle, and{" "}
-          <strong className="font-medium text-foreground">resize</strong> by dragging a card&apos;s right edge.
+          <strong className="font-medium text-foreground">סדר מחדש</strong> בעזרת הידית ⋮⋮ שליד שם הכלי.
         </p>
-        <p className="text-muted-foreground">Every change is saved automatically for your whole team.</p>
+        <p className="text-muted-foreground">
+          <strong className="font-medium text-foreground">שנה גודל</strong> בגרירת הקצה השמאלי של הכלי.
+        </p>
+        <p className="text-muted-foreground">כל שינוי נשמר לבד, וכל הצוות רואה אותו.</p>
       </section>
 
       <section className="space-y-2">
-        <h3 className="flex items-center gap-1.5 font-medium">
+        <h3 className="flex items-center gap-1.5 font-semibold">
           <Link2 className="size-3.5 text-brand" />
-          Components work together
+          הכלים עובדים יחד
         </h3>
         <ul className="space-y-1.5 text-muted-foreground">
-          {emitters.map((e) => (
-            <li key={e.id}>
-              <span className="font-medium text-foreground">{e.name}</span> → click a{" "}
-              {e.emits
-                .filter((k) => k !== "customer")
-                .map((k) => LINK_LABELS[k])
-                .join(" or ")}{" "}
-              to filter{" "}
-              {entries
-                .filter((o) => o.id !== e.id && o.consumes.some((k) => e.emits.includes(k)))
-                .map((o) => o.name)
-                .join(", ") || "other Components"}
-              .
-            </li>
-          ))}
-          <li>Click any customer name to open their spotlight without leaving Home.</li>
-          <li>Tasks you create anywhere appear in Tasks and Follow-up Radar instantly.</li>
+          {emitters.map((e) => {
+            const targets = entries.filter((o) => o.id !== e.id && o.consumes.some((k) => e.emits.includes(k))).map((o) => o.name);
+            return (
+              <li key={e.id}>
+                ב<span className="font-medium text-foreground">{e.name}</span>: לחיצה על{" "}
+                {e.emits
+                  .filter((k) => k !== "customer")
+                  .map((k) => LINK_LABELS[k])
+                  .join(" או ")}{" "}
+                מסננת את {targets.length ? targets.join(", ") : "שאר הכלים"}.
+              </li>
+            );
+          })}
+          <li>לחיצה על שם של לקוח פותחת את כרטיס הלקוח, בלי לצאת מהמסך.</li>
+          <li>משימה שתיצור בכל מקום תופיע מיד ב&quot;משימות&quot; וב&quot;למי לחזור&quot;.</li>
         </ul>
       </section>
 
       <Link
         href="/data/import"
-        className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2.5 text-muted-foreground transition-colors hover:border-zinc-300 hover:text-foreground"
+        className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand"
       >
         <Upload className="size-4" />
-        Import more data
+        העלה עוד נתונים
       </Link>
     </div>
   );
@@ -234,14 +268,15 @@ export function ComponentPalette({
   );
   const recommended = filtered.filter((e) => e.recommended && !e.installedId);
   const categories = Object.keys(CATEGORY_LABELS) as ComponentCategory[];
+  const partners = useMemo(() => new Map(entries.map((e) => [e.id, linkedPartners(e, entries)])), [entries]);
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-1 border-b px-3 pt-3">
         {(
           [
-            ["library", "Components", LayoutGrid],
-            ["help", "Help", CircleHelp],
+            ["library", "ספריית הכלים", LayoutGrid],
+            ["help", "עזרה", CircleHelp],
           ] as const
         ).map(([id, label, Icon]) => (
           <button
@@ -264,14 +299,15 @@ export function ComponentPalette({
         ) : (
           <div className="space-y-4">
             <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search components…" className="h-8 pl-8 text-[13px]" />
+              <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input dir="auto" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חיפוש…" className="h-8 ps-8 text-[13px]" />
             </div>
-            {!canManage && <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">Only owners and admins can change the canvas.</p>}
+            {canManage && <p className="-mt-1 text-xs text-muted-foreground">גרור כלי אל מסך העבודה, או לחץ על + שליד הכלי.</p>}
+            {!canManage && <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את מסך העבודה.</p>}
             {recommended.length > 0 && (
-              <Section title="Recommended" icon={<Sparkles className="size-3.5 text-brand" />}>
+              <Section title="מומלץ לעסק שלך" icon={<Sparkles className="size-3.5 text-brand" />}>
                 {recommended.map((e) => (
-                  <PaletteCard key={`rec-${e.id}`} entry={e} canManage={canManage} onAdd={() => onAdd(e.id)} />
+                  <PaletteCard key={`rec-${e.id}`} entry={e} canManage={canManage} partners={partners.get(e.id)} onAdd={() => onAdd(e.id)} />
                 ))}
               </Section>
             )}
@@ -281,12 +317,12 @@ export function ComponentPalette({
               return (
                 <Section key={cat} title={CATEGORY_LABELS[cat]} defaultOpen>
                   {list.map((e) => (
-                    <PaletteCard key={e.id} entry={e} canManage={canManage} onAdd={() => onAdd(e.id)} />
+                    <PaletteCard key={e.id} entry={e} canManage={canManage} partners={partners.get(e.id)} onAdd={() => onAdd(e.id)} />
                   ))}
                 </Section>
               );
             })}
-            {!filtered.length && <p className="py-6 text-center text-xs text-muted-foreground">No Components match “{query}”.</p>}
+            {!filtered.length && <p className="py-6 text-center text-xs text-muted-foreground">לא נמצאו כלים עבור &quot;{query}&quot;.</p>}
           </div>
         )}
       </div>

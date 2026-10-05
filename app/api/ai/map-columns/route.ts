@@ -12,9 +12,9 @@ const bodySchema = z.object({
 
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session.user || !session.org) return NextResponse.json({ error: "Please sign in." }, { status: 401 });
+  if (!session.user || !session.org) return NextResponse.json({ error: "יש להתחבר כדי להמשיך." }, { status: 401 });
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "We couldn't read the columns in this file." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "לא הצלחנו לקרוא את העמודות בקובץ הזה." }, { status: 400 });
   const result = await suggestColumnMappings(parsed.data.headers, parsed.data.sample);
   return NextResponse.json(result);
 }

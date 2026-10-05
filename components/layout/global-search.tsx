@@ -2,18 +2,25 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Blocks, Handshake, Receipt, Search, UserPlus, Users } from "lucide-react";
+import { Blocks, CheckSquare, Handshake, Receipt, Search, Sparkles, Upload, UserPlus, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { globalSearch, type SearchResult } from "@/lib/actions/search";
 
 const ICONS = { customer: Users, lead: UserPlus, deal: Handshake, transaction: Receipt, component: Blocks } as const;
 const GROUPS: { type: SearchResult["type"]; label: string }[] = [
-  { type: "customer", label: "Customers" },
-  { type: "lead", label: "Leads" },
-  { type: "deal", label: "Deals" },
-  { type: "transaction", label: "Transactions" },
-  { type: "component", label: "Components" },
+  { type: "customer", label: "לקוחות" },
+  { type: "lead", label: "פניות" },
+  { type: "deal", label: "עסקאות" },
+  { type: "transaction", label: "מכירות" },
+  { type: "component", label: "כלים" },
+];
+
+const QUICK = [
+  { href: "/customers", label: "מעבר ללקוחות", icon: Users },
+  { href: "/tasks", label: "מעבר למשימות", icon: CheckSquare },
+  { href: "/ai", label: "שאל את היועץ", icon: Sparkles },
+  { href: "/data/import", label: "העלאת נתונים", icon: Upload },
 ];
 
 export function GlobalSearch() {
@@ -47,23 +54,44 @@ export function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex h-8 w-full max-w-sm items-center gap-2 rounded-md border bg-surface px-2.5 text-[13px] text-muted-foreground transition-colors hover:border-zinc-300 cursor-pointer"
+        type="button"
+        aria-label="חיפוש או פעולה"
+        className="group flex h-10 w-full max-w-md items-center gap-2.5 rounded-xl border bg-surface px-3 text-[14px] text-muted-foreground shadow-xs transition-all hover:border-zinc-300 hover:shadow-sm cursor-pointer"
       >
-        <Search className="size-3.5" />
-        <span className="flex-1 text-left">Search customers, deals, components…</span>
-        <kbd className="hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline">⌘K</kbd>
+        <Search className="size-4 text-zinc-400 transition-colors group-hover:text-brand" />
+        <span className="flex-1 truncate text-start">חיפוש או פעולה…</span>
+        <kbd dir="ltr" className="hidden rounded-md border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline">
+          ⌘K
+        </kbd>
       </button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[20%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl [&>button]:hidden">
-          <DialogTitle className="sr-only">Search</DialogTitle>
+        <DialogContent className="top-[16%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl [&>button]:hidden">
+          <DialogTitle className="sr-only">חיפוש</DialogTitle>
           <Command shouldFilter={false}>
-            <CommandInput placeholder="Search your business…" value={query} onValueChange={setQuery} autoFocus />
+            <CommandInput placeholder="חפש לקוח, עסקה, מכירה או כלי…"
+              dir="auto" value={query} onValueChange={setQuery} autoFocus />
             <CommandList>
               {query.trim().length >= 2 && (
-                <CommandEmpty>{pending ? "Searching…" : "No results found."}</CommandEmpty>
+                <CommandEmpty>{pending ? "מחפש…" : "לא נמצאו תוצאות."}</CommandEmpty>
               )}
               {query.trim().length < 2 && (
-                <p className="px-3 py-6 text-center text-sm text-muted-foreground">Type at least two characters.</p>
+                <div className="p-1">
+                  <p className="px-2 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">פעולות מהירות</p>
+                  {QUICK.map((a) => (
+                    <CommandItem
+                      key={a.href}
+                      value={a.href}
+                      onSelect={() => {
+                        setOpen(false);
+                        router.push(a.href);
+                      }}
+                    >
+                      <a.icon />
+                      {a.label}
+                    </CommandItem>
+                  ))}
+                  <p className="px-2 pt-3 pb-1 text-xs text-muted-foreground">הקלד לפחות שתי אותיות כדי לחפש.</p>
+                </div>
               )}
               {GROUPS.map((g) => {
                 const items = results.filter((r) => r.type === g.type);

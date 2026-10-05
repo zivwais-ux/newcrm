@@ -9,6 +9,8 @@ import { PageContainer, PageHeader } from "@/components/layout/page";
 import { ComponentBody } from "@/components/components-system/component-body";
 import type { InstalledComponent } from "@/types/domain";
 
+export const metadata = { title: "כלי" };
+
 export default async function ComponentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
@@ -23,11 +25,11 @@ export default async function ComponentPage({ params }: { params: Promise<{ id: 
   return (
     <PageContainer>
       <Link href="/home" className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="size-3.5" />
-        Home
+        <ChevronLeft className="size-3.5 rtl:-scale-x-100" />
+        חזרה למסך הבית
       </Link>
       <PageHeader title={def.name} description={def.description} />
-      <div className="rounded-lg border bg-surface p-5">
+      <div className="rounded-xl border bg-surface p-5 shadow-sm sm:p-6">
         <ComponentBody
           type={def.id}
           instanceId={instance.id}

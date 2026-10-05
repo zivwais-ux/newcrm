@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarPlus, ListPlus, MoreHorizontal, Pencil, Receipt, Trash2 } from "lucide-react";
+import { CalendarPlus, Handshake, ListPlus, MoreHorizontal, Pencil, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
@@ -33,37 +33,37 @@ export function CustomerActions({ customer }: { customer: Customer }) {
     <div className="flex flex-wrap gap-2">
       <Button size="sm" variant="outline" onClick={() => setDialog("activities")}>
         <CalendarPlus />
-        Log activity
+        רשום פעילות
       </Button>
       <Button size="sm" onClick={() => setDialog("tasks")}>
         <ListPlus />
-        Create task
+        צור משימה
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button size="icon-sm" variant="outline" aria-label="More actions">
+          <Button size="icon-sm" variant="outline" aria-label="עוד פעולות">
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setDialog("edit")}>
             <Pencil />
-            Edit customer
+            ערוך לקוח
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("transactions")}>
             <Receipt />
-            Add transaction
+            הוסף מכירה
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("deals")}>
-            <ListPlus />
-            Add deal
+            <Handshake />
+            הוסף עסקה
           </DropdownMenuItem>
           {canManage && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                 <Trash2 />
-                Delete customer
+                מחק לקוח
               </DropdownMenuItem>
             </>
           )}
@@ -84,20 +84,20 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           entity={dialog}
           open
           onOpenChange={(o) => !o && setDialog(null)}
-          initial={{ customer_id: customer.id, ...(dialog === "tasks" ? { title: `Follow up with ${customer.name}` } : {}) }}
+          initial={{ customer_id: customer.id, ...(dialog === "tasks" ? { title: `לחזור ל${customer.name}` } : {}) }}
           labels={labels}
         />
       )}
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {customer.name}?</AlertDialogTitle>
+            <AlertDialogTitle>למחוק את {customer.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              The customer is permanently deleted. Their transactions and activities are kept but no longer linked to a customer.
+              הלקוח יימחק לצמיתות. המכירות והפעילות שלו יישמרו, אבל כבר לא יהיו מקושרות ללקוח.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={pending}
@@ -105,12 +105,12 @@ export function CustomerActions({ customer }: { customer: Customer }) {
                 startTransition(async () => {
                   const res = await deleteRecord("customers", customer.id);
                   if (!res.ok) return void toast.error(res.error);
-                  toast.success("Customer deleted");
+                  toast.success("הלקוח נמחק");
                   router.push("/customers");
                 })
               }
             >
-              Delete
+              מחק
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

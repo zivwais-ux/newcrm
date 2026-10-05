@@ -31,15 +31,15 @@ export interface ValidationResult {
 export function validateRows(rows: RawRow[], mapping: ColumnMapping[]): ValidationResult {
   const ctx = buildMappingContext(mapping, rows);
   const blockers: string[] = [];
-  if (ctx.entities.length === 0) blockers.push("Map at least one column to a business field (for example Customer name).");
+  if (ctx.entities.length === 0) blockers.push("צריך להתאים לפחות עמודה אחת לשדה עסקי (למשל שם לקוח).");
   if (ctx.entities.includes("transaction") && !ctx.byTarget.has("transaction.date"))
-    blockers.push("Transactions need a date column. Map a column to “Transaction date”.");
+    blockers.push("למכירות חסר תאריך. בחר איזו עמודה היא “תאריך מכירה”.");
   if (
     (ctx.entities.includes("customer") || ctx.entities.includes("lead")) &&
     !ctx.byTarget.has("customer.name") &&
     !(ctx.entities.includes("deal") && ctx.byTarget.has("customer.company"))
   )
-    blockers.push("Map a column to “Customer name” so records can be linked to customers.");
+    blockers.push("בחר איזו עמודה היא “שם לקוח”, כדי שנוכל לשייך את הנתונים ללקוחות.");
 
   const seen = new Set<string>();
   const issueCounts: Partial<Record<IssueType, number>> = {};

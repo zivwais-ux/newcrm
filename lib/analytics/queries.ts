@@ -11,7 +11,7 @@ async function rpc<T>(supabase: SupabaseClient, fn: string, args: Record<string,
   const { data, error } = await supabase.rpc(fn, args);
   if (error) {
     console.error(`[analytics] ${fn} failed`, error.message);
-    throw new QueryError("We couldn't load this data right now.");
+    throw new QueryError("לא הצלחנו לטעון את הנתונים כרגע.");
   }
   return data as T;
 }

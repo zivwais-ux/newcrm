@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/business/empty-state";
-import { formatCurrency } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Ltr } from "@/components/ui/ltr";
+import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import type { RiskData } from "@/lib/components/loaders";
 import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 import { CustomerLink, useOpenCustomer } from "../workspace-filters";
@@ -15,40 +16,44 @@ export function CustomerRiskView({ data, config, currency }: ViewProps<RiskData>
     return (
       <EmptyState
         compact
-        icon={TrendingDown}
-        title="No customers at risk"
-        description={`${data.scopedTo ? `Among ${data.scopedTo} customers, nobody` : "Nobody"} has dropped ${config.drop}% in revenue or been inactive for ${config.threshold}+ days.`}
+        icon={<TrendingDown />}
+        title="אין לקוחות בסיכון"
+        description={`${data.scopedTo ? `מבין הלקוחות של ${data.scopedTo}, אף אחד` : "אף לקוח"} לא הוריד את ההוצאה ב-${config.drop}% או נעלם ליותר מ-${config.threshold} ימים. כשזה יקרה, תראה אותו כאן.`}
       />
     );
   return (
     <div>
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground tabular">{data.total}</span> customers need attention{data.scopedTo ? ` · ${data.scopedTo}` : ""}
+          <span className="font-medium text-foreground tabular">{formatNumber(data.total)}</span> לקוחות צריכים תשומת לב{data.scopedTo ? ` · ${data.scopedTo}` : ""}
         </p>
         <Button asChild size="xs" variant="ghost">
-          <Link href={`/customers?segment=at-risk&threshold=${config.threshold}&drop=${config.drop}`}>View all</Link>
+          <Link href={`/customers?segment=at-risk&threshold=${config.threshold}&drop=${config.drop}`}>הצג הכל</Link>
         </Button>
       </div>
       {data.customers.map((c) => (
         <ListRow key={c.id} className="items-start">
           <div className="min-w-0 flex-1 space-y-0.5">
-            <CustomerLink id={c.id} className="block max-w-full truncate text-left text-sm font-medium hover:underline cursor-pointer">
+            <CustomerLink id={c.id} className="block max-w-full truncate text-start text-sm font-medium hover:underline cursor-pointer">
               {c.name}
             </CustomerLink>
             <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
               {c.change_pct !== null && c.change_pct < 0 && (
-                <span className="font-medium text-negative tabular">Revenue ↓ {Math.abs(c.change_pct)}%</span>
+                <span className="font-medium text-negative tabular">
+                  ההוצאה ירדה ב-<Ltr>{Math.abs(c.change_pct)}%</Ltr>
+                </span>
               )}
-              <span>Last activity: {c.days_since} days ago</span>
-              <span>Previous average: {formatCurrency(c.avg_ticket, currency)}</span>
+              <span>לא הגיע {plural(c.days_since, "יום", "ימים")}</span>
+              <span>
+                ממוצע קודם: <Ltr>{formatCurrency(c.avg_ticket, currency)}</Ltr>
+              </span>
             </p>
           </div>
           <div className="flex shrink-0 gap-0.5">
             <Button size="xs" variant="ghost" onClick={() => open(c.id)}>
-              View Customer
+              צפה בלקוח
             </Button>
-            <CreateTaskButton customerId={c.id} customerName={c.name} title={`Check in with ${c.name}`} />
+            <CreateTaskButton customerId={c.id} customerName={c.name} title={`לבדוק מה שלום ${c.name}`} />
           </div>
         </ListRow>
       ))}

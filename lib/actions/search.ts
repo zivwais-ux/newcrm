@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { requireOrg } from "@/lib/supabase/server";
 import { COMPONENT_REGISTRY } from "@/lib/components/registry";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { LEAD_STATUS_LABELS, STAGE_LABELS, label } from "@/components/business/labels";
 
 export interface SearchResult {
   type: "customer" | "lead" | "deal" | "transaction" | "component";
@@ -50,11 +52,11 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
 
   const results: SearchResult[] = [];
   for (const c of customers.data ?? [])
-    results.push({ type: "customer", id: c.id, title: c.name, subtitle: c.company ?? c.email ?? "Customer", href: `/customers/${c.id}` });
+    results.push({ type: "customer", id: c.id, title: c.name, subtitle: c.company ?? c.email ?? "לקוח", href: `/customers/${c.id}` });
   for (const l of leads.data ?? [])
-    results.push({ type: "lead", id: l.id, title: l.name, subtitle: [l.status, l.source].filter(Boolean).join(" · "), href: `/leads?q=${encodeURIComponent(l.name)}` });
+    results.push({ type: "lead", id: l.id, title: l.name, subtitle: [l.status ? label(LEAD_STATUS_LABELS, l.status) : null, l.source].filter(Boolean).join(" · "), href: `/leads?q=${encodeURIComponent(l.name)}` });
   for (const d of deals.data ?? [])
-    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${d.stage} · ${org.currency} ${Number(d.value).toLocaleString("en-US")}`, href: `/deals?deal=${d.id}` });
+    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${label(STAGE_LABELS, d.stage)} · ${formatCurrency(Number(d.value), org.currency)}`, href: `/deals?deal=${d.id}` });
   for (const t of (transactions.data ?? []) as unknown as {
     id: string;
     amount: number;
@@ -66,8 +68,8 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
     results.push({
       type: "transaction",
       id: t.id,
-      title: `${t.product_or_service ?? "Transaction"} — ${org.currency} ${Number(t.amount).toLocaleString("en-US")}`,
-      subtitle: `${t.customers?.name ?? "No customer"} · ${t.date}`,
+      title: `${t.product_or_service ?? "מכירה"} — ${formatCurrency(Number(t.amount), org.currency)}`,
+      subtitle: `${t.customers?.name ?? "ללא לקוח"} · ${formatDate(t.date)}`,
       href: t.customer_id ? `/customers/${t.customer_id}?tab=transactions` : `/transactions?q=${encodeURIComponent(q)}`,
     });
   const lower = q.toLowerCase();
@@ -91,5 +93,5 @@ export async function searchDeals(query: string): Promise<{ id: string; name: st
   let req = supabase.from("deals").select("id, name, stage").eq("organization_id", org.id);
   if (q) req = req.ilike("name", `%${q}%`);
   const { data } = await req.order("updated_at", { ascending: false }).limit(20);
-  return (data ?? []).map((d) => ({ id: d.id, name: d.name, subtitle: d.stage }));
+  return (data ?? []).map((d) => ({ id: d.id, name: d.name, subtitle: label(STAGE_LABELS, d.stage) }));
 }

@@ -30,6 +30,6 @@ export const COMPONENT_VIEWS: Record<string, ComponentType<ViewProps<any>>> = {
 
 export function ComponentView({ type, ...props }: ViewProps<unknown> & { type: string }) {
   const View = COMPONENT_VIEWS[type];
-  if (!View) return <p className="text-sm text-muted-foreground">This Component is no longer available.</p>;
+  if (!View) return <p className="text-sm text-muted-foreground">הכלי הזה כבר לא זמין.</p>;
   return <View {...props} />;
 }

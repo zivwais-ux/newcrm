@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatCurrency, isoDate } from "@/lib/utils";
+import { formatCurrency, isoDate, plural } from "@/lib/utils";
 import { lastTwoFullMonths, monthToDate } from "./dates";
 import { getCustomersAtRisk, getDataCounts, getDealsAtRisk, getOverdueCustomers, getRevenueSummary } from "./queries";
 import { aiModel, getOpenAI } from "@/lib/ai/openai";
@@ -33,9 +33,9 @@ export async function computeBriefFacts(supabase: SupabaseClient, orgId: string)
   const useMtd = now.getDate() >= 10;
   const periods = useMtd ? monthToDate(now) : lastTwoFullMonths(now);
   const labels = useMtd
-    ? { period: "this month so far", comparison: "the same days last month" }
+    ? { period: "מתחילת החודש", comparison: "אותם ימים בחודש שעבר" }
     : {
-        period: `in ${lastTwoFullMonths(now).current.label}`,
+        period: `ב${lastTwoFullMonths(now).current.label}`,
         comparison: lastTwoFullMonths(now).previous.label,
       };
 
@@ -104,26 +104,39 @@ export async function computeBriefFacts(supabase: SupabaseClient, orgId: string)
 }
 
 export function templateBrief(f: BriefFacts, currency: string): string {
-  if (!f.hasData) return "Import your business data and your daily brief will appear here.";
+  if (!f.hasData) return "העלה את נתוני העסק שלך, והסיכום היומי יופיע כאן.";
   const money = (n: number) => formatCurrency(n, currency);
   const parts: string[] = [];
   if (f.revenueChangePct !== null) {
-    const dir = f.revenueChangePct >= 0 ? "up" : "down";
-    parts.push(
-      `Revenue ${f.periodLabel} is ${dir} ${Math.abs(f.revenueChangePct)}% compared with ${f.comparisonLabel} (${money(f.revenue)} vs ${money(f.previousRevenue)}).`,
-    );
+    if (f.revenueChangePct === 0) {
+      parts.push(`ההכנסות ${f.periodLabel} יציבות לעומת ${f.comparisonLabel}: ${money(f.revenue)}.`);
+    } else {
+      const dir = f.revenueChangePct > 0 ? "עלו" : "ירדו";
+      parts.push(
+        `ההכנסות ${f.periodLabel} ${dir} ב-${Math.abs(f.revenueChangePct)}% לעומת ${f.comparisonLabel} (${money(f.revenue)} לעומת ${money(f.previousRevenue)}).`,
+      );
+    }
   } else if (f.revenue) {
-    parts.push(`Revenue ${f.periodLabel} is ${money(f.revenue)}.`);
+    parts.push(`ההכנסות ${f.periodLabel}: ${money(f.revenue)}.`);
   }
   if (f.overdueRegulars) {
+    const one = f.overdueRegulars === 1;
     parts.push(
-      `${parts.length ? "However, " : ""}${f.overdueRegulars} returning customers have not purchased within their normal purchase interval.`,
+      `${parts.length ? "עם זאת, " : ""}${plural(f.overdueRegulars, "לקוח קבוע", "לקוחות קבועים")} עוד לא ${one ? "חזר" : "חזרו"} בזמן שבו ${one ? "הוא חוזר" : "הם חוזרים"} בדרך כלל.`,
     );
   }
-  if (f.highValueAtRisk.length) parts.push(`${f.highValueAtRisk.length} high-value customers require attention.`);
-  if (f.dealsAtRisk) parts.push(`${f.dealsAtRisk} open deals worth ${money(f.dealsAtRiskValue)} have gone quiet.`);
-  if (f.overdueTasks) parts.push(`You have ${f.overdueTasks} overdue tasks.`);
-  if (!parts.length) parts.push("Everything looks steady — no customers or deals currently need attention.");
+  if (f.highValueAtRisk.length) {
+    const one = f.highValueAtRisk.length === 1;
+    parts.push(`${plural(f.highValueAtRisk.length, "לקוח חשוב", "לקוחות חשובים")} ${one ? "צריך" : "צריכים"} תשומת לב.`);
+  }
+  if (f.dealsAtRisk) {
+    const one = f.dealsAtRisk === 1;
+    parts.push(
+      `${plural(f.dealsAtRisk, "עסקה פתוחה", "עסקאות פתוחות", "עסקה פתוחה אחת")} בשווי ${money(f.dealsAtRiskValue)} ${one ? "לא זזה" : "לא זזו"} לאחרונה.`,
+    );
+  }
+  if (f.overdueTasks) parts.push(`יש לך ${plural(f.overdueTasks, "משימה", "משימות", "משימה אחת")} באיחור.`);
+  if (!parts.length) parts.push("הכל נראה יציב — אין כרגע לקוחות או עסקאות שדורשים תשומת לב.");
   return parts.join("\n\n");
 }
 
@@ -139,9 +152,11 @@ async function aiBrief(f: BriefFacts, orgName: string, currency: string): Promis
         {
           role: "system",
           content:
-            "Write a short daily business brief (2–4 short paragraphs, max 70 words total) for a small business owner. " +
+            "Write a short daily business brief IN HEBREW (2–4 short paragraphs, max 70 words total) for an Israeli small-business owner. " +
+            "Use clear, simple, everyday Hebrew with no jargon or English words. " +
             "Use ONLY the facts given; do not add numbers. Plain sentences, no headings, no bullet points, no greetings. " +
-            `Currency is ${currency}. Lead with revenue, then what needs attention.`,
+            `Currency is ${currency}; format money like ₪1,250 and percentages like 12%. Use correct Hebrew singular/plural forms. ` +
+            "Lead with revenue, then what needs attention, and finish with one short concrete suggestion when relevant.",
         },
         { role: "user", content: `Business: ${orgName}\nFacts: ${JSON.stringify(f)}` },
       ],

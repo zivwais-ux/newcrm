@@ -1,12 +1,14 @@
 "use client";
 
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Loader2 } from "lucide-react";
+import { BarChart3, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stat } from "@/components/business/stat";
-import { EmptyState } from "@/components/business/empty-state";
-import { formatCurrency, pctChange } from "@/lib/utils";
-import { COMPARE_OPTIONS, RANGE_PRESETS } from "@/lib/analytics/dates";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Ltr } from "@/components/ui/ltr";
+import { formatCurrency, formatMonth, pctChange, plural } from "@/lib/utils";
+import { RANGE_PRESETS, type CompareOption } from "@/lib/analytics/dates";
 import type { RevenueData } from "@/lib/components/loaders";
 import { useConfigUpdater, type ViewProps } from "../shared";
 import { useWorkspaceFilters } from "../workspace-filters";
@@ -14,9 +16,16 @@ import { cn } from "@/lib/utils";
 
 const RANGE_CHOICES = ["90d", "6m", "12m", "ytd", "all"] as const;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "לעומת …" labels for the comparison select. */
+const COMPARE_LABELS: Record<CompareOption, string> = {
+  previous_period: "התקופה הקודמת",
+  previous_month: "החודש הקודם",
+  previous_quarter: "הרבעון הקודם",
+  previous_year: "השנה שעברה",
+};
+
 function monthLabel(iso: string) {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${iso.slice(2, 4)}`;
+  return formatMonth(iso.slice(0, 7) + "-01");
 }
 
 export function RevenueView({ data, config, instanceId, currency }: ViewProps<RevenueData>) {
@@ -29,13 +38,13 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
   // The current month is incomplete — plotting it would look like a collapse. KPIs cover month-to-date.
   const currentMonth = new Date().toISOString().slice(0, 7);
   const trend = monthly.length > 2 ? monthly.filter((m) => m.month.slice(0, 7) !== currentMonth) : monthly;
-  const compareLabel = COMPARE_OPTIONS[(config.compare as keyof typeof COMPARE_OPTIONS) ?? "previous_year"]?.toLowerCase();
+  const compareLabel = COMPARE_LABELS[(config.compare as CompareOption) ?? "previous_year"] ?? COMPARE_LABELS.previous_year;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2">
         <Select value={config.range} onValueChange={(v) => update({ range: v })} disabled={data.rangeFromWorkspace}>
-          <SelectTrigger size="sm" className="w-auto min-w-36" aria-label="Date range" title={data.rangeFromWorkspace ? "Using the workspace date range" : undefined}>
+          <SelectTrigger size="sm" className="w-auto min-w-36" aria-label="טווח תאריכים" title={data.rangeFromWorkspace ? "משתמש בטווח התאריכים של כל המסך" : undefined}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -47,42 +56,52 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
           </SelectContent>
         </Select>
         <Select value={config.compare} onValueChange={(v) => update({ compare: v })}>
-          <SelectTrigger size="sm" className="w-auto min-w-40" aria-label="Comparison">
+          <SelectTrigger size="sm" className="w-auto min-w-40" aria-label="השוואה">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(COMPARE_OPTIONS).map(([k, label]) => (
+            {Object.entries(COMPARE_LABELS).map(([k, label]) => (
               <SelectItem key={k} value={k}>
-                vs {label.toLowerCase()}
+                לעומת {label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         {pending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
-        {data.rangeFromWorkspace && <span className="text-xs text-muted-foreground">Workspace range: {RANGE_PRESETS[data.rangePreset]}</span>}
-        {data.service && <span className="text-xs font-medium text-brand">Showing {data.service} only</span>}
+        {data.rangeFromWorkspace && <span className="text-xs text-muted-foreground">טווח של כל המסך: {RANGE_PRESETS[data.rangePreset]}</span>}
+        {data.service && <span className="text-xs font-medium text-brand">מוצג רק: {data.service}</span>}
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-5 md:grid-cols-4">
-        <Stat label="Revenue in range" value={formatCurrency(summary.total, currency)} delta={change} hint={`vs ${compareLabel}`} />
-        <Stat label="This month" value={formatCurrency(summary.this_month, currency)} delta={mtdChange} hint="vs same days last month" />
-        <Stat label="Previous month" value={formatCurrency(summary.last_month, currency)} />
+        <Stat label="הכנסות בטווח" value={<Ltr>{formatCurrency(summary.total, currency)}</Ltr>} delta={change} hint={`לעומת ${compareLabel}`} />
+        <Stat label="החודש" value={<Ltr>{formatCurrency(summary.this_month, currency)}</Ltr>} delta={mtdChange} hint="לעומת אותם ימים בחודש שעבר" />
+        <Stat label="החודש הקודם" value={<Ltr>{formatCurrency(summary.last_month, currency)}</Ltr>} />
         <Stat
-          label="Avg. transaction"
-          value={formatCurrency(summary.tx_count ? summary.total / summary.tx_count : 0, currency)}
-          hint={`${summary.tx_count.toLocaleString("en-US")} transactions`}
+          label="ממוצע למכירה"
+          value={<Ltr>{formatCurrency(summary.tx_count ? summary.total / summary.tx_count : 0, currency)}</Ltr>}
+          hint={plural(summary.tx_count, "מכירה", "מכירות", "מכירה אחת")}
         />
       </div>
 
       {summary.tx_count === 0 ? (
-        <EmptyState compact title="No revenue in this date range" description="Try a wider date range." />
+        <EmptyState
+          compact
+          icon={<BarChart3 />}
+          title="אין הכנסות בטווח התאריכים הזה"
+          description="כאן יופיע גרף ההכנסות שלך לפי חודש ולפי שירות. נסה לבחור טווח תאריכים רחב יותר."
+          action={
+            <Button size="sm" variant="outline" onClick={() => update({ range: "all" })} disabled={data.rangeFromWorkspace}>
+              הצג את כל הזמן
+            </Button>
+          }
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">Revenue trend · complete months</p>
-            <div className="h-56" role="img" aria-label="Monthly revenue trend">
+            <p className="mb-3 text-xs font-medium text-muted-foreground">הכנסות לפי חודש · חודשים מלאים בלבד</p>
+            <div className="h-56" role="img" aria-label="גרף הכנסות לפי חודש" dir="ltr">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trend} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <AreaChart data={trend} margin={{ top: 4, right: 0, bottom: 0, left: 4 }}>
                   <defs>
                     <linearGradient id="rev-fill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
@@ -99,6 +118,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     minTickGap={24}
                   />
                   <YAxis
+                    orientation="right"
                     tickFormatter={(v) => formatCurrency(v, currency, true)}
                     tickLine={false}
                     axisLine={false}
@@ -111,11 +131,13 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                       if (!active || !payload?.length) return null;
                       const p = payload[0].payload as RevenueData["monthly"][number];
                       return (
-                        <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-md">
-                          <p className="font-medium">{monthLabel(p.month)}</p>
-                          <p className="mt-1 tabular">{formatCurrency(p.revenue, currency)}</p>
+                        <div dir="rtl" className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+                          <p className="font-medium">{formatMonth(p.month.slice(0, 7) + "-01", true)}</p>
+                          <p className="mt-1 text-sm font-semibold tabular">
+                            <Ltr>{formatCurrency(p.revenue, currency)}</Ltr>
+                          </p>
                           <p className="text-muted-foreground tabular">
-                            {p.tx_count} transactions · {p.customers} customers
+                            {plural(p.tx_count, "מכירה", "מכירות", "מכירה אחת")} · {plural(p.customers, "לקוח", "לקוחות")}
                           </p>
                         </div>
                       );
@@ -134,7 +156,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
             </div>
           </div>
           <div className="lg:col-span-2">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Revenue by service / product · click to filter</p>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">הכנסות לפי שירות / מוצר · לחץ כדי לסנן</p>
             <ul className="-mx-1.5 space-y-1">
               {byService.map((s) => {
                 const selected = data.service === s.name;
@@ -144,13 +166,13 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     <button
                       type="button"
                       onClick={() => toggle("service", s.name)}
-                      className={cn("group w-full rounded-md px-1.5 py-1 text-left transition-colors hover:bg-muted/60 cursor-pointer", selected && "bg-brand-soft hover:bg-brand-soft", dimmed && "opacity-50")}
-                      title={`${s.name}: ${formatCurrency(s.revenue, currency)} · ${s.tx_count} transactions — click to filter linked Components`}
+                      className={cn("group w-full rounded-md px-1.5 py-1 text-start transition-colors hover:bg-muted/60 cursor-pointer", selected && "bg-brand-soft hover:bg-brand-soft", dimmed && "opacity-50")}
+                      title={`${s.name}: ${formatCurrency(s.revenue, currency)} · ${plural(s.tx_count, "מכירה", "מכירות", "מכירה אחת")} — לחץ כדי לסנן את כל הכלים המחוברים`}
                       aria-pressed={selected}
                     >
                       <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
                         <span className={cn("truncate", selected && "font-medium text-brand")}>{s.name}</span>
-                        <span className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</span>
+                        <Ltr className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
                       <div className="h-1.5 rounded-full bg-muted">
                         <div className="h-full rounded-full bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />

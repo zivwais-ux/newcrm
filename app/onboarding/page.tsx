@@ -3,7 +3,7 @@ import { getSession } from "@/lib/supabase/server";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 import { Logo } from "@/components/layout/logo";
 
-export const metadata = { title: "Welcome" };
+export const metadata = { title: "ברוך הבא" };
 export const maxDuration = 60;
 
 export default async function OnboardingPage() {
@@ -12,7 +12,7 @@ export default async function OnboardingPage() {
   if (org?.onboarding_completed) redirect("/home");
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-brand-soft/50 via-background to-background">
       <header className="px-6 py-5 sm:px-10">
         <Logo />
       </header>

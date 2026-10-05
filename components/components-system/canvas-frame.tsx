@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Expand, GripVertical, Link2Off, Maximize2, MoreHorizontal, Settings2, Trash2 } from "lucide-react";
+import { Expand, GripVertical, Link2Off, Maximize2, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -46,6 +46,8 @@ export interface CanvasItem {
   consumes: FilterKey[];
   pending?: boolean;
 }
+
+const FILTER_NAMES: Record<FilterKey, string> = { range: "תאריכים", service: "שירות", stage: "שלב עסקה" };
 
 // Static class names so Tailwind generates them.
 export const SPAN: Record<ComponentWidth, string> = {
@@ -96,11 +98,13 @@ export function CanvasFrame({
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
+    // The handle sits on the end edge: in RTL that's the left side, so dragging left grows the card.
+    const dir = getComputedStyle(frame).direction === "rtl" ? -1 : 1;
     const startWidth = frame.getBoundingClientRect().width;
     const colWidth = grid.getBoundingClientRect().width / 12;
     let next: ComponentWidth = item.w;
     const move = (ev: PointerEvent) => {
-      next = nearestWidth((startWidth + ev.clientX - startX) / colWidth);
+      next = nearestWidth((startWidth + (ev.clientX - startX) * dir) / colWidth);
       setLiveW(next);
     };
     const up = () => {
@@ -121,40 +125,44 @@ export function CanvasFrame({
       }}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={cn(
-        "group/frame relative col-span-12 flex min-w-0 flex-col rounded-lg border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-shadow",
+        "group/frame relative col-span-12 flex min-w-0 flex-col rounded-xl border bg-surface shadow-sm transition-shadow hover:shadow-md",
         SPAN[w],
         isDragging && "z-10 opacity-60 ring-2 ring-brand/30",
         liveW && "ring-2 ring-brand/40",
       )}
       aria-label={item.name}
     >
-      <header className="flex items-center gap-2 border-b px-3.5 py-2.5">
+      <header className="flex items-center gap-2.5 border-b px-4 py-3">
         {editable && !item.pending && (
           <button
             ref={setActivatorNodeRef}
             {...listeners}
             {...attributes}
-            className="-ml-1 cursor-grab rounded p-0.5 text-zinc-300 transition-colors hover:text-zinc-500 active:cursor-grabbing"
-            aria-label={`Drag ${item.name}`}
+            className="-ms-1 cursor-grab rounded p-0.5 text-zinc-300 transition-colors hover:text-zinc-500 active:cursor-grabbing"
+            aria-label={`גרור את ${item.name}`}
           >
             <GripVertical className="size-4" />
           </button>
         )}
-        {Icon && <Icon className="size-4 text-muted-foreground" />}
-        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name}</h2>
+        {Icon && (
+          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+            <Icon className="size-3.5" />
+          </span>
+        )}
+        <h2 className="min-w-0 flex-1 truncate text-[15px] font-semibold">{item.name}</h2>
         {unlinked.length > 0 && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <span className="inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
                 <Link2Off className="size-3" />
-                Not filtered
+                לא מושפע מהסינון
               </span>
             </TooltipTrigger>
-            <TooltipContent>This Component doesn&apos;t react to the {unlinked.join(" / ")} filter</TooltipContent>
+            <TooltipContent>הכלי הזה לא מגיב לסינון לפי {unlinked.map((f) => FILTER_NAMES[f]).join(" / ")}</TooltipContent>
           </Tooltip>
         )}
         {!item.pending && (
-          <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label="Open full view">
+          <Button asChild variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label="פתח במסך מלא">
             <Link href={`/components/${item.id}`}>
               <Expand />
             </Link>
@@ -163,19 +171,19 @@ export function CanvasFrame({
         {editable && !item.pending && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label={`${item.name} options`}>
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground" aria-label={`אפשרויות עבור ${item.name}`}>
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onSelect={() => setConfigOpen(true)}>
                 <Settings2 />
-                Configure
+                הגדרות הכלי
               </DropdownMenuItem>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
                   <Maximize2 className="size-4 text-muted-foreground" />
-                  Width
+                  רוחב
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   <DropdownMenuRadioGroup value={item.w} onValueChange={(v) => onResize(v as ComponentWidth)}>
@@ -190,13 +198,13 @@ export function CanvasFrame({
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmRemove(true)}>
                 <Trash2 />
-                Remove from canvas
+                הסר מהמסך
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </header>
-      <div className="min-w-0 flex-1 p-4">
+      <div className="min-w-0 flex-1 p-5">
         {item.pending ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-4">
@@ -214,16 +222,16 @@ export function CanvasFrame({
       {editable && !item.pending && (
         <div
           onPointerDown={startResize}
-          className="absolute inset-y-3 -right-1.5 hidden w-3 cursor-ew-resize items-center justify-center opacity-0 transition-opacity group-hover/frame:opacity-100 lg:flex"
+          className="absolute inset-y-3 -end-1.5 hidden w-3 cursor-ew-resize items-center justify-center opacity-0 transition-opacity group-hover/frame:opacity-100 lg:flex"
           role="separator"
-          aria-label={`Resize ${item.name}`}
-          title="Drag to resize"
+          aria-label={`שנה רוחב של ${item.name}`}
+          title="גרור כדי לשנות רוחב"
         >
           <span className="h-10 w-1 rounded-full bg-brand/50" />
         </div>
       )}
       {liveW && (
-        <span className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 rounded bg-brand px-1.5 py-0.5 text-[11px] font-medium text-white">
+        <span className="pointer-events-none absolute -top-2.5 start-1/2 -translate-x-1/2 rtl:translate-x-1/2 rounded-md bg-brand px-2 py-0.5 text-[11px] font-medium text-white shadow-sm">
           {WIDTH_LABELS[liveW]}
         </span>
       )}
@@ -234,15 +242,15 @@ export function CanvasFrame({
       <AlertDialog open={confirmRemove} onOpenChange={setConfirmRemove}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {item.name}?</AlertDialogTitle>
+            <AlertDialogTitle>להסיר את &quot;{item.name}&quot; מהמסך?</AlertDialogTitle>
             <AlertDialogDescription>
-              The Component is removed from your canvas. Your business data is not affected, and you can drag it back any time.
+              הכלי יוסר ממסך העבודה בלבד. הנתונים של העסק לא נמחקים, ותמיד אפשר לגרור אותו בחזרה.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>ביטול</AlertDialogCancel>
             <AlertDialogAction variant="destructive" onClick={onRemove}>
-              Remove
+              הסר
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -257,11 +265,12 @@ export function DropPlaceholder({ w, name, innerRef }: { w: ComponentWidth; name
     <div
       ref={innerRef}
       className={cn(
-        "col-span-12 flex min-h-36 items-center justify-center rounded-lg border-2 border-dashed border-brand/50 bg-brand-soft/60 text-sm font-medium text-brand animate-in fade-in-0",
+        "bos-drop-border col-span-12 flex min-h-40 items-center justify-center gap-2 rounded-xl bg-brand-soft/60 text-sm font-medium text-brand animate-in fade-in-0",
         SPAN[w],
       )}
     >
-      Drop to add {name}
+      <Plus className="size-4" />
+      שחרר כאן כדי להוסיף את {name}
     </div>
   );
 }

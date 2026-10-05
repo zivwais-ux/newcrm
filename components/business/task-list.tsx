@@ -23,11 +23,11 @@ export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCu
         const overdue = t.status === "open" && t.due_date && t.due_date < today;
         const assignee = members.find((m) => m.user_id === t.assigned_to)?.full_name;
         return (
-          <div key={t.id} className="flex items-start gap-3 py-2.5">
+          <div key={t.id} className="flex items-start gap-3 py-3">
             <Checkbox
               className="mt-0.5"
               checked={t.status === "done"}
-              aria-label={`Mark ${t.title} as ${t.status === "done" ? "open" : "done"}`}
+              aria-label={t.status === "done" ? `סמן את "${t.title}" כפתוחה` : `סמן את "${t.title}" כבוצעה`}
               onCheckedChange={(v) => {
                 const status = v ? "done" : "open";
                 startTransition(async () => {
@@ -38,9 +38,14 @@ export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCu
               }}
             />
             <div className="min-w-0 flex-1">
-              <p className={cn("text-sm", t.status === "done" && "text-muted-foreground line-through")}>{t.title}</p>
+              <p dir="auto" className={cn("text-start text-sm", t.status === "done" && "text-muted-foreground line-through")}>
+                {t.title}
+              </p>
               <p className="flex flex-wrap gap-x-2 text-xs text-muted-foreground">
-                {t.due_date && <span className={cn(overdue && "font-medium text-negative")}>Due {formatDate(t.due_date)}</span>}
+                {t.due_date && <span className={cn(overdue && "font-medium text-negative")}>
+                    {overdue ? "באיחור · " : "עד "}
+                    {formatDate(t.due_date)}
+                  </span>}
                 {showCustomer && t.customers?.name && t.customer_id && (
                   <CustomerLink id={t.customer_id} className="hover:underline cursor-pointer">
                     {t.customers.name}
@@ -49,7 +54,11 @@ export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCu
                 {t.deals?.name && <span>{t.deals.name}</span>}
                 {assignee && <span>· {assignee}</span>}
               </p>
-              {t.description && <p className="mt-0.5 text-xs text-zinc-600">{t.description}</p>}
+              {t.description && (
+                <p dir="auto" className="mt-0.5 text-start text-xs text-zinc-600">
+                  {t.description}
+                </p>
+              )}
             </div>
           </div>
         );

@@ -20,6 +20,6 @@ export function aiModel() {
 }
 
 export const AI_UNAVAILABLE_NOTICE =
-  "AI is not connected, so this answer was produced by the built-in analysis engine from your data.";
+  "היועץ החכם לא מחובר כרגע, ולכן התשובה הופקה על ידי מנוע הניתוח המובנה מתוך הנתונים שלך.";
 export const AI_FAILED_NOTICE =
-  "The AI service didn't respond, so this answer was produced by the built-in analysis engine from your data.";
+  "שירות ה-AI לא הגיב, ולכן התשובה הופקה על ידי מנוע הניתוח המובנה מתוך הנתונים שלך.";

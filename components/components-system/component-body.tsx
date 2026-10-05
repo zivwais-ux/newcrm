@@ -1,6 +1,8 @@
-import { AlertCircle } from "lucide-react";
-import { EmptyState } from "@/components/business/empty-state";
-import { getDefinition, missingEntities, resolveConfig, ENTITY_SINGULAR } from "@/lib/components/registry";
+import Link from "next/link";
+import { AlertCircle, Database, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { entitiesText, getDefinition, missingEntities, resolveConfig } from "@/lib/components/registry";
 import { COMPONENT_LOADERS, type LoaderContext } from "@/lib/components/loaders";
 import type { DataCounts } from "@/types/domain";
 import { ComponentView } from "./views";
@@ -25,7 +27,7 @@ export async function ComponentBody({
   overrides?: Record<string, string>;
 }) {
   const def = getDefinition(type);
-  if (!def) return <EmptyState compact icon={AlertCircle} title="This Component is no longer available" />;
+  if (!def) return <EmptyState compact icon={<AlertCircle />} title="הכלי הזה כבר לא זמין" />;
   const config = resolveConfig(def, { ...(savedConfig ?? {}), ...(overrides ?? {}) });
 
   const missing = missingEntities(def, counts);
@@ -33,9 +35,17 @@ export async function ComponentBody({
     return (
       <EmptyState
         compact
+        icon={<Database />}
         title={def.emptyState.title}
-        description={`This Component needs ${missing.map((m) => ENTITY_SINGULAR[m]).join(" and ")} data. ${def.emptyState.description}`}
-        importCta
+        description={`הכלי הזה צריך ${entitiesText(missing)}. ${def.emptyState.description}`}
+        action={
+          <Button asChild size="sm">
+            <Link href="/data/import">
+              <Upload />
+              העלה קובץ
+            </Link>
+          </Button>
+        }
       />
     );
   }
@@ -47,9 +57,9 @@ export async function ComponentBody({
     return (
       <EmptyState
         compact
-        icon={AlertCircle}
-        title="We couldn't load this Component"
-        description="Your data is safe. Please refresh the page in a moment."
+        icon={<AlertCircle />}
+        title="משהו השתבש בטעינת הכלי"
+        description="הנתונים שלך שמורים. רענן את העמוד בעוד רגע."
       />
     );
   }

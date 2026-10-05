@@ -8,6 +8,8 @@ import { RANGE_PRESETS } from "@/lib/analytics/dates";
 import { activeFilterKeys, filterLabel, parseFilters, type WorkspaceFilters } from "@/lib/components/filters";
 import type { FilterKey } from "@/lib/components/types";
 
+const FILTER_NAMES: Record<FilterKey, string> = { range: "תאריכים", service: "שירות", stage: "שלב עסקה" };
+
 /** Read and write the shared workspace filters (URL search params). */
 export function useWorkspaceFilters() {
   const router = useRouter();
@@ -59,7 +61,7 @@ export function useOpenCustomer() {
 export function CustomerLink({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) {
   const open = useOpenCustomer();
   return (
-    <button type="button" onClick={() => open(id)} className={className ?? "block max-w-full truncate text-left font-medium hover:underline cursor-pointer"}>
+    <button type="button" onClick={() => open(id)} className={className ?? "block max-w-full truncate text-start font-medium hover:underline cursor-pointer"}>
       {children}
     </button>
   );
@@ -72,12 +74,12 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Select value={f.range ?? "component"} onValueChange={(v) => setParams({ range: v === "component" ? null : v })}>
-        <SelectTrigger size="sm" className="w-auto min-w-44 bg-surface" aria-label="Workspace date range">
+        <SelectTrigger size="sm" className="w-auto min-w-44 bg-surface" aria-label="טווח תאריכים לכל המסך">
           <CalendarRange className="size-3.5 text-muted-foreground" />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="component">Each Component&apos;s own range</SelectItem>
+          <SelectItem value="component">כל כלי לפי הטווח שלו</SelectItem>
           {Object.entries(RANGE_PRESETS).map(([k, label]) => (
             <SelectItem key={k} value={k}>
               {label}
@@ -86,21 +88,21 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
         </SelectContent>
       </Select>
       {chips.map((k) => (
-        <span key={k} className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft py-1 pr-1 pl-2.5 text-xs font-medium text-brand">
+        <span key={k} className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft py-1 pe-1 ps-2.5 text-xs font-medium text-brand">
           <Link2 className="size-3" />
           {filterLabel(k, f[k] as string)}
-          <button onClick={() => setParams({ [k]: null })} className="rounded-full p-0.5 hover:bg-brand/10 cursor-pointer" aria-label={`Clear ${k} filter`}>
+          <button onClick={() => setParams({ [k]: null })} className="rounded-full p-0.5 hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
             <X className="size-3" />
           </button>
         </span>
       ))}
       {chips.length > 0 && (
         <button onClick={() => setParams({ service: null, stage: null })} className="text-xs text-muted-foreground hover:text-foreground cursor-pointer">
-          Clear all
+          נקה הכל
         </button>
       )}
       {chips.length === 0 && (
-        <span className="hidden text-xs text-muted-foreground md:inline">Tip: click a service or pipeline stage to filter every linked Component.</span>
+        <span className="hidden text-xs text-muted-foreground md:inline">טיפ: לחיצה על שירות או על שלב עסקה מסננת את כל הכלים המחוברים.</span>
       )}
     </div>
   );

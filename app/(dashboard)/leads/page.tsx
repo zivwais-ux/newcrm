@@ -5,10 +5,11 @@ import { FilterTabs, Pagination, SearchInput } from "@/components/business/list-
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { LeadsTable } from "@/components/business/leads-table";
+import { LEAD_STATUS_LABELS } from "@/components/business/labels";
 import { pageParam, param, searchTerm, type SearchParams } from "@/lib/params";
 import type { Lead } from "@/types/domain";
 
-export const metadata = { title: "Leads" };
+export const metadata = { title: "פניות" };
 const PAGE_SIZE = 50;
 
 export default async function LeadsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -26,26 +27,32 @@ export default async function LeadsPage({ searchParams }: { searchParams: Search
 
   return (
     <PageContainer>
-      <PageHeader title="Leads" description="Potential customers and where they came from." actions={<NewRecordButton entity="leads" />} />
+      <PageHeader title="פניות" description="אנשים שהתעניינו ועוד לא הפכו ללקוחות — ומאיפה הם הגיעו." actions={<NewRecordButton entity="leads" />} />
       {!total ? (
-        <EmptyState icon={UserPlus} title="No leads yet" description="Add leads manually or import them from a spreadsheet." importCta action={<NewRecordButton entity="leads" variant="outline" />} />
+        <EmptyState
+          icon={UserPlus}
+          title="אין עדיין פניות"
+          description="כאן יופיעו אנשים שפנו אליך ועוד לא קנו. העלה קובץ אקסל או הוסף פנייה ראשונה."
+          importCta
+          action={<NewRecordButton entity="leads" variant="outline" />}
+        />
       ) : (
         <>
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <SearchInput placeholder="Search leads…" />
+            <SearchInput placeholder="חיפוש לפי שם, אימייל או מקור…" />
             <FilterTabs
               param="status"
               options={[
-                { value: "", label: "All" },
-                { value: "new", label: "New" },
-                { value: "contacted", label: "Contacted" },
-                { value: "qualified", label: "Qualified" },
-                { value: "converted", label: "Converted" },
-                { value: "lost", label: "Lost" },
+                { value: "", label: "הכל" },
+                { value: "new", label: LEAD_STATUS_LABELS.new },
+                { value: "contacted", label: LEAD_STATUS_LABELS.contacted },
+                { value: "qualified", label: LEAD_STATUS_LABELS.qualified },
+                { value: "converted", label: LEAD_STATUS_LABELS.converted },
+                { value: "lost", label: LEAD_STATUS_LABELS.lost },
               ]}
             />
           </div>
-          {data?.length ? <LeadsTable leads={data as Lead[]} /> : <EmptyState compact title="No matching leads" />}
+          {data?.length ? <LeadsTable leads={data as Lead[]} /> : <EmptyState compact icon={UserPlus} title="לא נמצאו פניות" description="נסה חיפוש אחר או סינון אחר." />}
           <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
         </>
       )}

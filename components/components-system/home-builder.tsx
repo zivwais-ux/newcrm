@@ -20,18 +20,19 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Check, Eye, Loader2, PanelLeftOpen, Pencil, Plus, Upload } from "lucide-react";
+import { ArrowLeft, Check, Eye, FileSpreadsheet, Hand, LayoutGrid, Link2, Loader2, MousePointerClick, PanelLeftOpen, Pencil, Plus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addComponent, removeComponent, reorderComponents, updateComponentConfig } from "@/lib/actions/components";
-import { ENTITY_SINGULAR } from "@/lib/components/registry";
+import { entitiesText } from "@/lib/components/registry";
 import { SIZE_TO_WIDTH, type ComponentSize, type ComponentWidth, type FilterKey } from "@/lib/components/types";
 import type { EntityName } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { CanvasFrame, DropPlaceholder, type CanvasItem } from "./canvas-frame";
-import { ComponentPalette, PaletteCard, type Checklist, type PaletteEntry } from "./component-palette";
+import { ComponentPalette, PaletteCard, linkedPartners, type Checklist, type PaletteEntry } from "./component-palette";
 import { FilterBar } from "./workspace-filters";
+import { CanvasStyles } from "./canvas-styles";
 
 const PLACEHOLDER = "__placeholder__";
 
@@ -50,7 +51,7 @@ function CanvasDropZone({ children, active, empty }: { children: React.ReactNode
     <div
       ref={setNodeRef}
       className={cn(
-        "relative min-h-[calc(100vh-13rem)] rounded-xl border bg-[radial-gradient(circle,var(--border)_1px,transparent_1px)] [background-size:18px_18px] p-4 transition-colors",
+        "dot-grid relative min-h-[calc(100vh-13rem)] rounded-xl border bg-muted/30 p-4 transition-colors sm:p-5",
         active && "border-dashed border-brand/50",
         active && isOver && empty && "bg-brand-soft/40",
       )}
@@ -129,6 +130,24 @@ export function HomeBuilder({
     });
   }
 
+  /** After the very first Component lands on the canvas, explain how Components link. */
+  function showFirstDropHint() {
+    let seen = true;
+    try {
+      seen = localStorage.getItem("bos.firstDropHint") === "1";
+      if (!seen) localStorage.setItem("bos.firstDropHint", "1");
+    } catch {
+      /* ignore */
+    }
+    if (!seen) {
+      toast("הכלי נוסף למסך", {
+        description: "טיפ: לחיצה על שירות בכלי ההכנסות תסנן את הלקוחות בכל שאר הכלים",
+        icon: <Link2 className="size-4 text-brand" />,
+        duration: 9000,
+      });
+    }
+  }
+
   async function add(type: string, index?: number) {
     const entry = entryById.get(type);
     if (!entry) return;
@@ -154,6 +173,7 @@ export function HomeBuilder({
         return;
       }
       setPaletteSheet(false);
+      showFirstDropHint();
       router.refresh();
     });
   }
@@ -179,9 +199,17 @@ export function HomeBuilder({
     // Decide before/after from the pointer position relative to the hovered card.
     const overRect = e.over!.rect;
     const start = e.activatorEvent as PointerEvent;
+    if (typeof start?.clientX !== "number") {
+      setPlaceholderIndex(index);
+      return;
+    }
     const px = start.clientX + e.delta.x;
     const py = start.clientY + e.delta.y;
-    const after = py > overRect.top + overRect.height * 0.75 || (py >= overRect.top + overRect.height * 0.25 && px > overRect.left + overRect.width / 2);
+    // The grid flows right-to-left in RTL, so "after" is the left half of the card there.
+    const rtl = getComputedStyle(document.documentElement).direction === "rtl";
+    const centerX = overRect.left + overRect.width / 2;
+    const pastCenter = rtl ? px < centerX : px > centerX;
+    const after = py > overRect.top + overRect.height * 0.75 || (py >= overRect.top + overRect.height * 0.25 && pastCenter);
     setPlaceholderIndex(after ? index + 1 : index);
   }
 
@@ -258,36 +286,38 @@ export function HomeBuilder({
     >
       <div className="flex min-h-[calc(100vh-3.5rem)]">
         {editable && (
-          <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[300px] shrink-0 border-r bg-background lg:block">{palette}</aside>
+          <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[300px] shrink-0 border-e bg-surface lg:block" aria-label="ספריית הכלים">
+            {palette}
+          </aside>
         )}
 
         <div className="min-w-0 flex-1 px-4 py-5 sm:px-6">
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <h1 className="text-lg font-semibold tracking-tight">My Workspace</h1>
+            <h1 className="text-xl font-bold tracking-tight">מסך העבודה שלי</h1>
             {canManage && (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
                 {saving ? (
                   <>
-                    <Loader2 className="size-3 animate-spin" /> Saving…
+                    <Loader2 className="size-3 animate-spin" /> שומר…
                   </>
                 ) : (
                   <>
-                    <Check className="size-3" /> All changes saved
+                    <Check className="size-3" /> הכל נשמר
                   </>
                 )}
               </span>
             )}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ms-auto flex items-center gap-2">
               {editable && (
                 <Button size="sm" variant="outline" className="lg:hidden" onClick={() => setPaletteSheet(true)}>
-                  <PanelLeftOpen />
-                  Components
+                  <PanelLeftOpen className="rtl:-scale-x-100" />
+                  ספריית הכלים
                 </Button>
               )}
               {canManage && (
                 <Button size="sm" variant={preview ? "default" : "outline"} onClick={togglePreview}>
                   {preview ? <Pencil /> : <Eye />}
-                  {preview ? "Edit workspace" : "Preview"}
+                  {preview ? "ערוך את המסך" : "תצוגה מקדימה"}
                 </Button>
               )}
             </div>
@@ -302,41 +332,18 @@ export function HomeBuilder({
 
           <CanvasDropZone active={dragging?.kind === "palette"} empty={empty}>
             {empty && placeholderIndex === null ? (
-              <div className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center text-center">
-                <div className="grid size-24 place-items-center rounded-xl border-2 border-dashed border-zinc-300 bg-surface/80">
-                  <span className="grid size-11 place-items-center rounded-full bg-brand-soft text-brand">
-                    <Plus className="size-5" />
-                  </span>
-                </div>
-                <h2 className="mt-6 text-lg font-semibold">Your workspace is empty</h2>
-                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                  {editable
-                    ? "Drag Components from the left panel to build the tools your business needs."
-                    : "Your workspace owner hasn't added any Components yet."}
-                </p>
-                <div className="mt-5 flex flex-wrap justify-center gap-2">
-                  {editable && (
-                    <Button onClick={() => (window.innerWidth >= 1024 ? add(entries.find((e) => e.recommended && !e.installedId)?.id ?? entries[0].id) : setPaletteSheet(true))}>
-                      <Plus />
-                      Add Component
-                    </Button>
-                  )}
-                  {!checklist.hasData && (
-                    <Button variant="outline" asChild>
-                      <Link href="/data/import">
-                        <Upload />
-                        Import data
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <EmptyCanvas
+                editable={editable}
+                hasData={checklist.hasData}
+                onAdd={() => add(entries.find((e) => e.recommended && !e.installedId)?.id ?? entries[0].id)}
+                onOpenLibrary={() => setPaletteSheet(true)}
+              />
             ) : (
               <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
                 <div className="grid grid-cols-12 gap-4">
                   {display.map((item) =>
                     item === PLACEHOLDER ? (
-                      <PlaceholderSlot key={PLACEHOLDER} w={placeholderWidth} name={entryById.get(paletteType!)?.name ?? "Component"} />
+                      <PlaceholderSlot key={PLACEHOLDER} w={placeholderWidth} name={entryById.get(paletteType!)?.name ?? "כלי"} />
                     ) : (
                       <CanvasFrame
                         key={item.id}
@@ -356,13 +363,14 @@ export function HomeBuilder({
         </div>
       </div>
 
+      <CanvasStyles />
       <DragOverlay dropAnimation={null}>
-        {paletteType && entryById.get(paletteType) ? <PaletteCard entry={entryById.get(paletteType)!} overlay canManage={canManage} /> : null}
+        {paletteType && entryById.get(paletteType) ? <PaletteCard entry={entryById.get(paletteType)!} overlay canManage={canManage} partners={linkedPartners(entryById.get(paletteType)!, entries)} /> : null}
       </DragOverlay>
 
       <Sheet open={paletteSheet} onOpenChange={setPaletteSheet}>
         <SheetContent side="left" className="w-[320px] p-0">
-          <SheetTitle className="sr-only">Components</SheetTitle>
+          <SheetTitle className="sr-only">ספריית הכלים</SheetTitle>
           {palette}
         </SheetContent>
       </Sheet>
@@ -370,19 +378,19 @@ export function HomeBuilder({
       <Dialog open={!!missing} onOpenChange={(o) => !o && setMissing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{missing?.name} needs more data</DialogTitle>
+            <DialogTitle>לכלי &quot;{missing?.name}&quot; חסרים נתונים</DialogTitle>
             <DialogDescription>
-              This Component needs {missing?.entities.map((e) => ENTITY_SINGULAR[e]).join(" and ")} data. Import a file or add records, then drag it in again.
+              הכלי הזה צריך {missing ? entitiesText(missing.entities) : ""}. העלה קובץ או הוסף רשומות, ואז גרור אותו שוב למסך.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMissing(null)}>
-              Not now
+              לא עכשיו
             </Button>
             <Button asChild>
               <Link href="/data/import">
                 <Upload />
-                Import Data
+                העלה קובץ
               </Link>
             </Button>
           </DialogFooter>
@@ -395,4 +403,84 @@ export function HomeBuilder({
 function PlaceholderSlot({ w, name }: { w: ComponentWidth; name: string }) {
   const { setNodeRef } = useDroppable({ id: PLACEHOLDER });
   return <DropPlaceholder w={w} name={name} innerRef={setNodeRef} />;
+}
+
+const STEPS = [
+  { icon: LayoutGrid, title: "1. בחר כלי מהספרייה", text: "כל כלי עונה על שאלה אחת בעסק" },
+  { icon: Hand, title: "2. גרור אותו לכאן", text: "או לחץ על + ליד הכלי" },
+  { icon: MousePointerClick, title: "3. הכלים עובדים יחד", text: "לחיצה בכלי אחד מסננת את כל השאר" },
+] as const;
+
+/** The empty canvas: a short, guided "how this works" for first-time owners. */
+function EmptyCanvas({
+  editable,
+  hasData,
+  onAdd,
+  onOpenLibrary,
+}: {
+  editable: boolean;
+  hasData: boolean;
+  onAdd: () => void;
+  onOpenLibrary: () => void;
+}) {
+  if (!editable) {
+    return (
+      <div className="flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center text-center">
+        <span className="grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/10">
+          <LayoutGrid className="size-5" />
+        </span>
+        <h2 className="mt-4 text-base font-semibold">מסך העבודה עדיין ריק</h2>
+        <p className="mt-1 max-w-sm text-[13px] text-muted-foreground">בעל העסק עדיין לא הוסיף כלים למסך. ברגע שיוסיף, תראה אותם כאן.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="relative flex min-h-[calc(100vh-16rem)] flex-col items-center justify-center px-2 text-center">
+      {/* Hint toward the library, which sits on the start side (right in RTL). */}
+      <div className="pointer-events-none absolute top-6 start-4 hidden items-center gap-2 text-[13px] font-medium text-brand lg:flex" aria-hidden>
+        <ArrowLeft className="bos-nudge size-5 rtl:-scale-x-100" />
+        <span className="rounded-full bg-brand-soft px-3 py-1 shadow-xs ring-1 ring-brand/15">הספרייה כאן — גרור ממנה כלי</span>
+      </div>
+
+      <div className="grid size-20 place-items-center rounded-2xl border-2 border-dashed border-brand/30 bg-surface shadow-sm">
+        <span className="grid size-11 place-items-center rounded-xl bg-brand-soft text-brand">
+          <Plus className="size-5" />
+        </span>
+      </div>
+      <h2 className="mt-5 text-xl font-bold tracking-tight">בנה את מסך העבודה שלך</h2>
+      <p className="mt-1.5 max-w-md text-[14px] leading-relaxed text-muted-foreground">
+        בחר רק את הכלים שהעסק שלך צריך, וסדר אותם איך שנוח לך. אפשר לשנות הכל בכל רגע.
+      </p>
+
+      <ol className="mt-7 grid w-full max-w-2xl gap-3 sm:grid-cols-3">
+        {STEPS.map(({ icon: Icon, title, text }) => (
+          <li key={title} className="flex flex-col items-center gap-2 rounded-xl border bg-surface px-4 py-5 shadow-xs">
+            <span className="grid size-9 place-items-center rounded-lg bg-brand-soft text-brand">
+              <Icon className="size-4" />
+            </span>
+            <span className="text-[14px] font-semibold">{title}</span>
+            <span className="text-[12px] leading-snug text-muted-foreground">{text}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-7 flex flex-wrap justify-center gap-2">
+        <Button className="hidden lg:inline-flex" onClick={onAdd}>
+          <Plus />
+          הוסף את הכלי המומלץ
+        </Button>
+        <Button className="lg:hidden" onClick={onOpenLibrary}>
+          <LayoutGrid />
+          פתח את ספריית הכלים
+        </Button>
+      </div>
+      <Link
+        href="/data/import"
+        className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-brand"
+      >
+        <FileSpreadsheet className="size-4" />
+        {hasData ? "יש לך עוד נתונים? העלה קובץ אקסל" : "העלה קובץ אקסל"}
+      </Link>
+    </div>
+  );
 }

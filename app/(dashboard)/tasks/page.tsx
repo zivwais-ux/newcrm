@@ -9,7 +9,7 @@ import { isoDate } from "@/lib/utils";
 import { pageParam, param, type SearchParams } from "@/lib/params";
 import type { Task } from "@/types/domain";
 
-export const metadata = { title: "Tasks" };
+export const metadata = { title: "משימות" };
 const PAGE_SIZE = 50;
 
 export default async function TasksPage({ searchParams }: { searchParams: SearchParams }) {
@@ -31,24 +31,29 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
 
   return (
     <PageContainer className="max-w-3xl">
-      <PageHeader title="Tasks" description="Follow-ups and to-dos for your team." actions={<NewRecordButton entity="tasks" />} />
+      <PageHeader title="משימות" description="למי לחזור ומה צריך לעשות — שלך ושל הצוות." actions={<NewRecordButton entity="tasks" />} />
       <div className="mb-4">
         <FilterTabs
           param="view"
           options={[
-            { value: "", label: "Open" },
-            { value: "mine", label: "Assigned to me" },
-            { value: "overdue", label: "Overdue" },
-            { value: "done", label: "Done" },
+            { value: "", label: "פתוחות" },
+            { value: "mine", label: "שלי" },
+            { value: "overdue", label: "באיחור" },
+            { value: "done", label: "בוצעו" },
           ]}
         />
       </div>
       {tasks.length ? (
-        <div className="rounded-lg border bg-surface px-4">
+        <div className="rounded-xl border bg-surface px-4 shadow-sm">
           <TaskList tasks={tasks} />
         </div>
       ) : (
-        <EmptyState icon={ListChecks} title={view === "done" ? "No completed tasks yet" : "You're all caught up"} description="Tasks you create — or confirm from AI suggestions — appear here." />
+        <EmptyState
+          icon={ListChecks}
+          title={view === "done" ? "עוד לא סיימת משימות" : "אין משימות פתוחות — כל הכבוד!"}
+          description="כאן יופיעו משימות שתוסיף, או שתאשר מההצעות של היועץ החכם."
+          action={view === "done" ? undefined : <NewRecordButton entity="tasks" variant="outline" />}
+        />
       )}
       <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
     </PageContainer>

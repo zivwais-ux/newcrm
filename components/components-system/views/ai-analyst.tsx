@@ -9,11 +9,11 @@ import type { AIAnalystData } from "@/lib/components/loaders";
 import { activeFilterKeys, describeFilters, filterLabel } from "@/lib/components/filters";
 
 export const SUGGESTED_PROMPTS = [
-  "Why are sales down?",
-  "Who are my top customers?",
-  "Which customers need attention?",
-  "What changed this month?",
-  "Which deals are at risk?",
+  "למה המכירות ירדו?",
+  "מי הלקוחות הכי טובים שלי?",
+  "לאילו לקוחות כדאי לחזור?",
+  "מה השתנה החודש?",
+  "אילו עסקאות תקועות?",
 ];
 
 export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
@@ -31,16 +31,17 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
           e.preventDefault();
           if (q.trim()) ask(q.trim());
         }}
-        className="flex items-center gap-2 rounded-md border bg-surface py-1 pr-1 pl-3 focus-within:ring-2 focus-within:ring-ring/30"
+        className="flex items-center gap-2 rounded-lg border bg-surface py-1 pe-1 ps-3 focus-within:ring-2 focus-within:ring-ring/30"
       >
         <Sparkles className="size-4 shrink-0 text-brand" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Ask anything about your business…"
+          placeholder="שאל כל שאלה על העסק שלך…"
+          dir="auto"
           className="h-8 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
-        <Button type="submit" size="icon-sm" disabled={!q.trim()} aria-label="Ask">
+        <Button type="submit" size="icon-sm" disabled={!q.trim()} aria-label="שאל את היועץ">
           <ArrowUp />
         </Button>
       </form>
@@ -56,9 +57,9 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
         ))}
       </div>
       {chips.length > 0 && (
-        <p className="text-xs text-brand">Asks within: {chips.map((k) => filterLabel(k, data.filters[k] as string)).join(" · ")}</p>
+        <p className="text-xs text-brand">שואל בתוך הסינון: {chips.map((k) => filterLabel(k, data.filters[k] as string)).join(" · ")}</p>
       )}
-      <p className="text-xs text-muted-foreground">Answers are computed from your own data. The AI can read and recommend — it never changes data without you.</p>
+      <p className="text-xs text-muted-foreground">התשובות מבוססות על הנתונים שלך בלבד. היועץ יכול לקרוא ולהמליץ, אבל אף פעם לא משנה נתונים בלי אישור שלך.</p>
     </div>
   );
 }

@@ -55,7 +55,7 @@ export function parseMoney(value: unknown): number | null {
     negative = true;
     v = v.slice(1, -1);
   }
-  v = v.replace(/[₪$€£]|ils|nis|usd|eur|ש"ח|שח/gi, "").replace(/\s/g, "");
+  v = v.replace(/[₪$€£]|ils|nis|usd|eur|ש["״']?ח|שקלים|שקל/gi, "").replace(/\s/g, "");
   if (v.startsWith("-")) {
     negative = true;
     v = v.slice(1);
@@ -115,6 +115,13 @@ export function parseDate(value: unknown, order: DateOrder = "dmy"): string | nu
   }
 
   if (/^\d{5}(\.\d+)?$/.test(v)) return excelSerialToIso(Number(v));
+
+  // "12 במרץ 2025", "מרץ 2025"
+  const he = v.match(/^(\d{1,2})?\s*ב?(ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)\s+(\d{4})/);
+  if (he) {
+    const month = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"].indexOf(he[2] === "מרס" ? "מרץ" : he[2]);
+    return validYmd(Number(he[3]), month + 1, Number(he[1] ?? 1));
+  }
 
   // "12 Mar 2025", "March 12, 2025"
   if (/[a-z]/i.test(v)) {

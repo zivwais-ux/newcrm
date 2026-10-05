@@ -1,26 +1,41 @@
 import Link from "next/link";
-import { Database, FileSpreadsheet, FileText, Sparkles, Upload } from "lucide-react";
+import { ClipboardPaste, Contact, Database, FileSpreadsheet, FileText, Link2, Upload } from "lucide-react";
 import { requireOrg } from "@/lib/supabase/server";
 import { getDataCounts } from "@/lib/analytics/queries";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { EmptyState } from "@/components/business/empty-state";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { LoadDemoButton } from "@/components/data-import/load-demo-button";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatNumber } from "@/lib/utils";
 
-export const metadata = { title: "Data" };
+export const metadata = { title: "הנתונים שלי" };
 
 const ENTITY_LINKS = [
-  { key: "customers", label: "Customers", href: "/customers" },
-  { key: "transactions", label: "Transactions", href: "/transactions" },
-  { key: "services", label: "Services", href: "/transactions" },
-  { key: "leads", label: "Leads", href: "/leads" },
-  { key: "deals", label: "Deals", href: "/deals" },
-  { key: "activities", label: "Activities", href: "/activities" },
-  { key: "tasks", label: "Tasks", href: "/tasks" },
+  { key: "customers", label: "לקוחות", href: "/customers" },
+  { key: "transactions", label: "מכירות", href: "/transactions" },
+  { key: "services", label: "שירותים", href: "/transactions" },
+  { key: "leads", label: "פניות", href: "/leads" },
+  { key: "deals", label: "עסקאות", href: "/deals" },
+  { key: "activities", label: "פעילות", href: "/activities" },
+  { key: "tasks", label: "משימות", href: "/tasks" },
 ] as const;
+
+const STATUS: Record<string, { label: string; variant: "positive" | "negative" | "warning" }> = {
+  completed: { label: "הושלם", variant: "positive" },
+  failed: { label: "נכשל", variant: "negative" },
+  importing: { label: "בתהליך", variant: "warning" },
+  uploaded: { label: "הועלה", variant: "warning" },
+  analyzed: { label: "נותח", variant: "warning" },
+};
+
+const WAYS = [
+  { icon: FileSpreadsheet, title: "קובץ אקסל", text: "xlsx, xls, ODS, Numbers — כולל כמה גיליונות בקובץ אחד" },
+  { icon: FileText, title: "CSV או טקסט", text: "גם קבצים בעברית מתוכנות ישנות" },
+  { icon: Link2, title: "Google Sheets", text: "מדביקים קישור שיתוף — וזהו" },
+  { icon: ClipboardPaste, title: "הדבקת טבלה", text: "מעתיקים מאקסל ומדביקים" },
+  { icon: Contact, title: "אנשי קשר מהנייד", text: "קובץ vcf מהטלפון או מ־Google Contacts" },
+];
 
 export default async function DataPage() {
   const { supabase, org } = await requireOrg();
@@ -33,67 +48,80 @@ export default async function DataPage() {
       .order("created_at", { ascending: false })
       .limit(20),
   ]);
-  const empty = Object.values(counts).every((n) => !n);
 
   return (
     <PageContainer>
       <PageHeader
-        title="Data"
-        description="Your canonical business data — the single source every Component reads from."
+        title="הנתונים שלי"
+        description="כל הנתונים של העסק במקום אחד — מכאן כל הכלים במסך העבודה מקבלים את המידע."
         actions={
-          <Button asChild size="sm">
+          <Button asChild variant="brand">
             <Link href="/data/import">
               <Upload />
-              Import data
+              העלאת נתונים
             </Link>
           </Button>
         }
       />
-      <div className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4 lg:grid-cols-7">
+      <div className="mb-8 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         {ENTITY_LINKS.map((e) => (
-          <Link key={e.key} href={e.href} className="bg-surface p-4 transition-colors hover:bg-muted/40">
-            <p className="text-xl font-semibold tabular">{counts[e.key].toLocaleString("en-US")}</p>
+          <Link key={e.key} href={e.href} className="rounded-xl border bg-surface p-4 shadow-xs transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <p className="text-xl font-bold tabular">{formatNumber(counts[e.key])}</p>
             <p className="text-xs text-muted-foreground">{e.label}</p>
           </Link>
         ))}
       </div>
 
-      <h2 className="mb-3 text-base font-semibold">Imports</h2>
+      <h2 className="mb-3 text-base font-semibold">אפשר להעלות נתונים מ…</h2>
+      <div className="mb-10 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        {WAYS.map((w) => (
+          <Link key={w.title} href="/data/import" className="group flex items-start gap-3 rounded-xl border bg-surface p-3.5 shadow-xs transition-all hover:border-brand/30 hover:shadow-md">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
+              <w.icon className="size-4" />
+            </span>
+            <span>
+              <span className="block text-[13px] font-semibold">{w.title}</span>
+              <span className="block text-xs leading-snug text-muted-foreground">{w.text}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <h2 className="mb-3 text-base font-semibold">היסטוריית העלאות</h2>
       {imports?.length ? (
-        <div className="rounded-lg border bg-surface">
+        <div className="overflow-hidden rounded-xl border bg-surface shadow-sm">
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="pl-4">File</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden sm:table-cell">Rows</TableHead>
-                <TableHead className="hidden md:table-cell">Imported</TableHead>
-                <TableHead className="pr-4 text-right">Date</TableHead>
+                <TableHead className="ps-4">קובץ</TableHead>
+                <TableHead>סטטוס</TableHead>
+                <TableHead className="hidden sm:table-cell">שורות</TableHead>
+                <TableHead className="hidden md:table-cell">מה יובא</TableHead>
+                <TableHead className="pe-4 text-end">תאריך</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {imports.map((f) => {
                 const stats = (f.stats ?? {}) as Record<string, number>;
+                const status = STATUS[f.status] ?? { label: f.status, variant: "warning" as const };
                 return (
                   <TableRow key={f.id}>
-                    <TableCell className="pl-4">
-                      <span className="flex items-center gap-2 font-medium">
+                    <TableCell className="ps-4">
+                      <span className="flex items-center gap-2 font-medium" dir="auto">
                         {f.file_type === "excel" ? <FileSpreadsheet className="size-4 text-muted-foreground" /> : <FileText className="size-4 text-muted-foreground" />}
                         {f.file_name}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={f.status === "completed" ? "positive" : f.status === "failed" ? "negative" : "warning"} className="capitalize">
-                        {f.status}
-                      </Badge>
+                      <Badge variant={status.variant}>{status.label}</Badge>
                     </TableCell>
-                    <TableCell className="hidden tabular sm:table-cell">{f.row_count?.toLocaleString("en-US") ?? "—"}</TableCell>
+                    <TableCell className="hidden tabular sm:table-cell">{f.row_count != null ? formatNumber(f.row_count) : "—"}</TableCell>
                     <TableCell className="hidden text-muted-foreground md:table-cell">
                       {stats.imported !== undefined
-                        ? `${stats.imported.toLocaleString("en-US")} records · ${stats.customersCreated ?? 0} new customers · ${stats.transactions ?? 0} transactions`
+                        ? `${formatNumber(stats.imported)} שורות · ${formatNumber(stats.customersCreated ?? 0)} לקוחות חדשים · ${formatNumber(stats.transactions ?? 0)} מכירות`
                         : "—"}
                     </TableCell>
-                    <TableCell className="pr-4 text-right text-muted-foreground">{formatDate(f.created_at)}</TableCell>
+                    <TableCell className="pe-4 text-end text-muted-foreground">{formatDate(f.created_at)}</TableCell>
                   </TableRow>
                 );
               })}
@@ -101,24 +129,20 @@ export default async function DataPage() {
           </Table>
         </div>
       ) : (
-        <EmptyState
-          icon={Database}
-          title="No imports yet"
-          description="Upload a CSV or Excel export from your current tools. The system maps it to your business model."
-          importCta
-        />
-      )}
-
-      {empty && (
-        <div className="mt-10 flex flex-col gap-3 rounded-lg border border-dashed p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Sparkles className="mt-0.5 size-4 text-brand" />
-            <div>
-              <p className="text-sm font-medium">Just exploring?</p>
-              <p className="text-sm text-muted-foreground">Load a realistic sample dataset into this empty workspace.</p>
-            </div>
-          </div>
-          <LoadDemoButton />
+        <div className="rounded-xl border bg-surface shadow-sm">
+          <EmptyState
+            icon={<Database />}
+            title="עוד לא העלית נתונים"
+            description="העלה את קובץ הלקוחות או המכירות שיש לך — כמו שהוא. אנחנו נבין מה יש בו ונפרוס אותו לכלים שלך."
+            action={
+              <Button asChild variant="brand">
+                <Link href="/data/import">
+                  <Upload />
+                  העלה קובץ
+                </Link>
+              </Button>
+            }
+          />
         </div>
       )}
     </PageContainer>

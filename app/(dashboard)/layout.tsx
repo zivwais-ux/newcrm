@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { supabase, user, profile, org, role } = await requireOrg();
   if (!org.onboarding_completed) redirect("/onboarding");
   const members = await getMembers(supabase, org.id);
-  const name = profile.full_name || user.email?.split("@")[0] || "there";
+  const name = profile.full_name || user.email?.split("@")[0] || "שם";
 
   return (
     <WorkspaceProvider
@@ -23,12 +23,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }}
     >
       <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r bg-sidebar lg:block">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-e bg-sidebar lg:block">
           <SidebarNav />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pb-24 lg:pb-0">{children}</main>
         </div>
       </div>
     </WorkspaceProvider>

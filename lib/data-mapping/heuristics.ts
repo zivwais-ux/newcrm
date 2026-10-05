@@ -99,16 +99,16 @@ export function suggestMappings(headers: string[], rows: RawRow[]): ColumnMappin
       let reason = "";
       if (hs > 0) {
         score = hs * (0.55 + 0.45 * fit);
-        reason = fit > 0.8 ? "Header and values match" : "Header matches";
+        reason = fit > 0.8 ? "הכותרת והערכים תואמים" : "הכותרת תואמת";
       }
       // Strong value signals can map a column even when the header is unknown.
       if (field.type === "email" && p.emailRatio > 0.8) {
         const s = 0.9 + 0.08 * p.emailRatio;
-        if (s > score) [score, reason] = [s, "Values look like email addresses"];
+        if (s > score) [score, reason] = [s, "הערכים נראים כמו כתובות מייל"];
       }
       if (field.type === "phone" && p.phoneRatio > 0.8 && hs === 0) {
         const s = 0.7 * p.phoneRatio;
-        if (s > score) [score, reason] = [s, "Values look like phone numbers"];
+        if (s > score) [score, reason] = [s, "הערכים נראים כמו מספרי טלפון"];
       }
       if (score > 0.3) candidates.push({ column, field, score: Math.min(score, 0.99), reason });
     }
@@ -138,7 +138,7 @@ export function suggestMappings(headers: string[], rows: RawRow[]): ColumnMappin
         column,
         target: CUSTOM,
         confidence: 0.3,
-        reason: "Not recognized — will be kept as a custom field",
+        reason: "לא זוהה — יישמר כשדה נוסף",
         source: "heuristic",
       },
   );
@@ -149,7 +149,7 @@ export function dedupeTargets(mapping: ColumnMapping[]): ColumnMapping[] {
   const seen = new Set<string>();
   return mapping.map((m) => {
     if (!FIELD_BY_KEY.has(m.target)) return m;
-    if (seen.has(m.target)) return { ...m, target: CUSTOM, confidence: 0.3, reason: "Duplicate target — kept as custom field" };
+    if (seen.has(m.target)) return { ...m, target: CUSTOM, confidence: 0.3, reason: "כפילות — יישמר כשדה נוסף" };
     seen.add(m.target);
     return m;
   });

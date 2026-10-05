@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 function useQueryUpdater() {
   const router = useRouter();
@@ -37,8 +37,15 @@ export function SearchInput({ placeholder }: { placeholder: string }) {
   }, [value]);
   return (
     <div className="relative w-full sm:max-w-xs">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-      <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} className="h-8 pl-8 text-[13px]" />
+      <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        dir="auto"
+        aria-label={placeholder}
+        className="h-9 ps-8 text-[13px]"
+      />
     </div>
   );
 }
@@ -48,14 +55,14 @@ export function FilterTabs({ param, options }: { param: string; options: { value
   const update = useQueryUpdater();
   const current = params.get(param) ?? "";
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-1 rounded-lg bg-muted/70 p-1">
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => update({ [param]: o.value || null })}
           className={cn(
-            "rounded-md px-2.5 py-1 text-[13px] transition-colors cursor-pointer",
-            current === o.value ? "bg-surface font-medium text-foreground shadow-[0_0_0_1px_var(--border)]" : "text-muted-foreground hover:text-foreground",
+            "rounded-md px-3 py-1 text-[13px] transition-all cursor-pointer",
+            current === o.value ? "bg-surface font-medium text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o.label}
@@ -76,31 +83,31 @@ export function Pagination({ page, pageSize, total }: { page: number; pageSize: 
     const qs = next.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   };
-  if (total <= pageSize) return <p className="px-1 pt-3 text-xs text-muted-foreground tabular">{total.toLocaleString("en-US")} total</p>;
+  if (total <= pageSize) return <p className="px-1 pt-3 text-xs text-muted-foreground tabular">סה״כ {formatNumber(total)}</p>;
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   return (
     <div className="flex items-center justify-between px-1 pt-3 text-xs text-muted-foreground">
       <span className="tabular">
-        {from.toLocaleString("en-US")}–{to.toLocaleString("en-US")} of {total.toLocaleString("en-US")}
+        עמוד {formatNumber(page)} מתוך {formatNumber(pages)} · {formatNumber(from)}–{formatNumber(to)} מתוך {formatNumber(total)}
       </span>
       <div className="flex gap-1">
-        <Button asChild={page > 1} size="icon-sm" variant="outline" disabled={page <= 1} aria-label="Previous page">
+        <Button asChild={page > 1} size="icon-sm" variant="outline" disabled={page <= 1} aria-label="העמוד הקודם">
           {page > 1 ? (
             <Link href={href(page - 1)}>
-              <ChevronLeft />
+              <ChevronLeft className="rtl:-scale-x-100" />
             </Link>
           ) : (
-            <ChevronLeft />
+            <ChevronLeft className="rtl:-scale-x-100" />
           )}
         </Button>
-        <Button asChild={page < pages} size="icon-sm" variant="outline" disabled={page >= pages} aria-label="Next page">
+        <Button asChild={page < pages} size="icon-sm" variant="outline" disabled={page >= pages} aria-label="העמוד הבא">
           {page < pages ? (
             <Link href={href(page + 1)}>
-              <ChevronRight />
+              <ChevronRight className="rtl:-scale-x-100" />
             </Link>
           ) : (
-            <ChevronRight />
+            <ChevronRight className="rtl:-scale-x-100" />
           )}
         </Button>
       </div>

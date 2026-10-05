@@ -28,20 +28,20 @@ const optionalDate = z
   .optional()
   .nullable()
   .transform((v) => (v ? v : null))
-  .pipe(z.string().regex(/^\d{4}-\d{2}-\d{2}/, "Invalid date").nullable());
-const money = z.coerce.number({ message: "Enter an amount" }).finite().min(0, "Amount can't be negative").max(1e10);
+  .pipe(z.string().regex(/^\d{4}-\d{2}-\d{2}/, "תאריך לא תקין").nullable());
+const money = z.coerce.number({ message: "הכנס סכום" }).finite().min(0, "הסכום לא יכול להיות שלילי").max(1e10);
 
 const schemas = {
   customers: z.object({
-    name: z.string().trim().min(1, "Name is required").max(200),
-    email: optionalText().pipe(z.string().email("Invalid email").nullable()),
+    name: z.string().trim().min(1, "צריך למלא שם").max(200),
+    email: optionalText().pipe(z.string().email("כתובת האימייל לא תקינה").nullable()),
     phone: optionalText(40),
     company: optionalText(),
     status: z.enum(["active", "inactive", "lead", "churned"]).default("active"),
   }),
   leads: z.object({
-    name: z.string().trim().min(1, "Name is required").max(200),
-    email: optionalText().pipe(z.string().email("Invalid email").nullable()),
+    name: z.string().trim().min(1, "צריך למלא שם").max(200),
+    email: optionalText().pipe(z.string().email("כתובת האימייל לא תקינה").nullable()),
     phone: optionalText(40),
     source: optionalText(80),
     status: z.enum(["new", "contacted", "qualified", "converted", "lost"]).default("new"),
@@ -49,7 +49,7 @@ const schemas = {
     owner_id: optionalUuid,
   }),
   deals: z.object({
-    name: z.string().trim().min(1, "Deal name is required").max(200),
+    name: z.string().trim().min(1, "צריך למלא שם לעסקה").max(200),
     customer_id: optionalUuid,
     stage: z.enum(DEAL_STAGES).default("new"),
     value: money.default(0),
@@ -59,7 +59,7 @@ const schemas = {
   transactions: z.object({
     customer_id: optionalUuid,
     amount: money,
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a date"),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "בחר תאריך"),
     product_or_service: optionalText(),
     status: z.enum(["paid", "pending", "cancelled", "refunded"]).default("paid"),
     type: z.enum(["sale", "refund", "subscription", "other"]).default("sale"),
@@ -68,11 +68,11 @@ const schemas = {
     customer_id: optionalUuid,
     deal_id: optionalUuid,
     type: z.enum(ACTIVITY_TYPES).default("appointment"),
-    date: z.string().min(10, "Choose a date"),
+    date: z.string().min(10, "בחר תאריך"),
     notes: optionalText(2000),
   }),
   tasks: z.object({
-    title: z.string().trim().min(1, "Title is required").max(200),
+    title: z.string().trim().min(1, "צריך לכתוב מה המשימה").max(200),
     description: optionalText(2000),
     customer_id: optionalUuid,
     deal_id: optionalUuid,
@@ -100,7 +100,7 @@ function revalidate(entity: RecordEntity, customerId?: string | null) {
 
 export async function createRecord<E extends RecordEntity>(entity: E, input: RecordInput<E>): Promise<ActionResult<{ id: string }>> {
   const parsed = schemas[entity].safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the form.");
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "בדוק את הפרטים בטופס.");
   const { supabase, org, user } = await requireOrg();
   const values: Record<string, unknown> = { ...parsed.data, organization_id: org.id };
   if (entity === "customers" || entity === "transactions" || entity === "activities") values.owner_id = user.id;
@@ -123,9 +123,9 @@ export async function updateRecord<E extends RecordEntity>(
   id: string,
   input: RecordInput<E>,
 ): Promise<ActionResult<null>> {
-  if (!z.string().uuid().safeParse(id).success) return fail("Invalid record.");
+  if (!z.string().uuid().safeParse(id).success) return fail("הרשומה לא תקינה.");
   const parsed = schemas[entity].safeParse(input);
-  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Please check the form.");
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "בדוק את הפרטים בטופס.");
   const { supabase, org } = await requireOrg();
   const values: Record<string, unknown> = { ...parsed.data };
   if (entity === "deals") values.last_activity_at = new Date().toISOString();
@@ -135,25 +135,25 @@ export async function updateRecord<E extends RecordEntity>(
     .eq("id", id)
     .eq("organization_id", org.id);
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("We couldn't find that record.");
+  if (!count) return fail("לא מצאנו את הרשומה.");
   revalidate(entity, values.customer_id as string | null);
   if (entity === "customers") revalidatePath(`/customers/${id}`);
   return ok(null);
 }
 
 export async function deleteRecord(entity: RecordEntity, id: string): Promise<ActionResult<null>> {
-  if (!z.string().uuid().safeParse(id).success) return fail("Invalid record.");
+  if (!z.string().uuid().safeParse(id).success) return fail("הרשומה לא תקינה.");
   const { supabase, org } = await requireOrg();
   const { error, count } = await supabase.from(entity).delete({ count: "exact" }).eq("id", id).eq("organization_id", org.id);
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("You don't have permission to delete this record.");
+  if (!count) return fail("אין לך הרשאה למחוק את הרשומה הזו.");
   revalidate(entity);
   return ok(null);
 }
 
 export async function moveDeal(id: string, stage: string): Promise<ActionResult<null>> {
   const parsed = z.object({ id: z.string().uuid(), stage: z.enum(DEAL_STAGES) }).safeParse({ id, stage });
-  if (!parsed.success) return fail("Invalid stage.");
+  if (!parsed.success) return fail("השלב לא תקין.");
   const { supabase, org } = await requireOrg();
   const { error } = await supabase
     .from("deals")
@@ -168,7 +168,7 @@ export async function moveDeal(id: string, stage: string): Promise<ActionResult<
 
 export async function setTaskStatus(id: string, status: "open" | "done"): Promise<ActionResult<null>> {
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(["open", "done"]) }).safeParse({ id, status });
-  if (!parsed.success) return fail("Invalid task.");
+  if (!parsed.success) return fail("המשימה לא תקינה.");
   const { supabase, org } = await requireOrg();
   const { error } = await supabase.from("tasks").update({ status }).eq("id", id).eq("organization_id", org.id);
   if (error) return fail(friendlyError(error));
@@ -192,9 +192,9 @@ const followupSchema = z.object({
  */
 export async function createFollowupTasks(input: z.input<typeof followupSchema>): Promise<ActionResult<{ created: number }>> {
   const parsed = followupSchema.safeParse(input);
-  if (!parsed.success) return fail("Please check the task details.");
+  if (!parsed.success) return fail("בדוק את פרטי המשימה.");
   const { customerIds, dealIds, title, dueDate, assignedTo, note } = parsed.data;
-  if (!customerIds.length && !dealIds.length) return fail("Select at least one record.");
+  if (!customerIds.length && !dealIds.length) return fail("בחר לפחות רשומה אחת.");
   const { supabase, org, user } = await requireOrg();
 
   // Fetch in chunks so long selections never produce oversized request URLs.
@@ -223,7 +223,7 @@ export async function createFollowupTasks(input: z.input<typeof followupSchema>)
     ...customers.map((c) => ({ ...base, title: `${title} — ${c.name}`, customer_id: c.id })),
     ...deals.map((d) => ({ ...base, title: `${title} — ${d.name}`, deal_id: d.id, customer_id: d.customer_id })),
   ];
-  if (!rows.length) return fail("We couldn't find the selected records.");
+  if (!rows.length) return fail("לא מצאנו את הרשומות שבחרת.");
   const { error } = await supabase.from("tasks").insert(rows);
   if (error) return fail(friendlyError(error));
   revalidatePath("/tasks");

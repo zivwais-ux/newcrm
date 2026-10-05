@@ -37,17 +37,28 @@ export function activeFilterKeys(f: WorkspaceFilters): FilterKey[] {
   return (Object.keys(f) as FilterKey[]).filter((k) => f[k] !== null);
 }
 
+/** Hebrew names for deal stages (DB values stay in English). */
+export const STAGE_NAMES: Record<DealStage, string> = {
+  new: "חדשה",
+  contacted: "נוצר קשר",
+  qualified: "רלוונטית",
+  proposal: "הצעת מחיר",
+  negotiation: "משא ומתן",
+  won: "נסגרה בהצלחה",
+  lost: "לא נסגרה",
+};
+
 export function filterLabel(key: FilterKey, value: string): string {
   if (key === "range") return RANGE_PRESETS[value as RangePreset] ?? value;
-  if (key === "stage") return `Stage: ${value[0].toUpperCase()}${value.slice(1)}`;
-  return `Service: ${value}`;
+  if (key === "stage") return `שלב: ${STAGE_NAMES[value as DealStage] ?? value}`;
+  return `שירות: ${value}`;
 }
 
 /** Human description used to give the AI analyst the same context the user sees. */
 export function describeFilters(f: WorkspaceFilters): string | null {
   const parts: string[] = [];
-  if (f.service) parts.push(`only the service/product "${f.service}"`);
-  if (f.range) parts.push(`the period: ${RANGE_PRESETS[f.range].toLowerCase()}`);
-  if (f.stage) parts.push(`deals in the "${f.stage}" stage`);
-  return parts.length ? `Focus on ${parts.join(", ")}.` : null;
+  if (f.service) parts.push(`רק השירות/המוצר "${f.service}"`);
+  if (f.range) parts.push(`התקופה: ${RANGE_PRESETS[f.range]}`);
+  if (f.stage) parts.push(`עסקאות בשלב "${STAGE_NAMES[f.stage]}"`);
+  return parts.length ? `התמקד ב: ${parts.join(", ")}.` : null;
 }

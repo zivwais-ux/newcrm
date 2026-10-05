@@ -6,10 +6,50 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireOrg } from "@/lib/supabase/server";
 import { buildBundle, CustomerResolver, type CanonicalRecord } from "@/lib/data-mapping/transform";
+import { getDataCounts } from "@/lib/analytics/queries";
+import { COMPONENT_REGISTRY, getDefinition, missingEntities } from "@/lib/components/registry";
 import type { ActionResult } from "@/types/domain";
 import { fail, friendlyError, ok } from "./errors";
 
 const BATCH = 500;
+const MAX_SHEET_BYTES = 10 * 1024 * 1024;
+
+const GOOGLE_HOSTS = /(^|\.)(google\.com|googleusercontent\.com)$/;
+
+/**
+ * Downloads a Google Sheet shared as "anyone with the link" as .xlsx (all tabs).
+ * Only Google hosts are contacted, redirects are followed manually and re-checked.
+ */
+export async function fetchGoogleSheet(link: string): Promise<ActionResult<{ base64: string; title: string }>> {
+  await requireOrg();
+  const match = String(link ?? "").match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]{20,80})/);
+  if (!match) return fail("הקישור לא נראה כמו קישור ל־Google Sheets. העתק את הקישור משורת הכתובת של הגיליון.");
+  let url = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=xlsx`;
+  try {
+    for (let hop = 0; hop < 4; hop++) {
+      const res = await fetch(url, { redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(20_000) });
+      if (res.status >= 300 && res.status < 400) {
+        const next = new URL(res.headers.get("location") ?? "", url);
+        if (next.protocol !== "https:" || !GOOGLE_HOSTS.test(next.hostname)) return fail("לא הצלחנו להוריד את הגיליון.");
+        if (/accounts\.google\.com/.test(next.hostname)) break;
+        url = next.toString();
+        continue;
+      }
+      const type = res.headers.get("content-type") ?? "";
+      if (!res.ok || type.includes("text/html")) break;
+      const length = Number(res.headers.get("content-length") ?? 0);
+      if (length > MAX_SHEET_BYTES) return fail("הגיליון גדול מ־10MB. נסה לייצא חלק ממנו.");
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.byteLength > MAX_SHEET_BYTES) return fail("הגיליון גדול מ־10MB. נסה לייצא חלק ממנו.");
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const name = decodeURIComponent(disposition.match(/filename\*=UTF-8''([^;]+)/)?.[1] ?? "").replace(/\.xlsx$/i, "");
+      return ok({ base64: buf.toString("base64"), title: name || "Google Sheets" });
+    }
+    return fail("הגיליון לא משותף. ב־Google Sheets לחץ “שיתוף” ← “כל מי שיש לו את הקישור” ונסה שוב.");
+  } catch {
+    return fail("לא הצלחנו להוריד את הגיליון. בדוק את הקישור ונסה שוב.");
+  }
+}
 
 const mappingSchema = z
   .array(
@@ -33,9 +73,9 @@ const createImportSchema = z.object({
 
 export async function createImport(input: z.infer<typeof createImportSchema>): Promise<ActionResult<{ id: string }>> {
   const parsed = createImportSchema.safeParse(input);
-  if (!parsed.success) return fail("This file can't be imported.");
+  if (!parsed.success) return fail("אי אפשר לייבא את הקובץ הזה.");
   const { supabase, org } = await requireOrg();
-  if (parsed.data.storagePath && !parsed.data.storagePath.startsWith(`${org.id}/`)) return fail("Invalid file location.");
+  if (parsed.data.storagePath && !parsed.data.storagePath.startsWith(`${org.id}/`)) return fail("מיקום קובץ לא תקין.");
 
   const { data: source, error: sourceError } = await supabase
     .from("data_sources")
@@ -126,6 +166,8 @@ export interface ChunkStats {
   leads: number;
   deals: number;
   activities: number;
+  /** Sales already in the system (same customer, date and amount) — skipped on re-import. */
+  existingSkipped: number;
 }
 
 async function loadCustomerResolver(supabase: SupabaseClient, orgId: string) {
@@ -153,22 +195,24 @@ async function insertInBatches(supabase: SupabaseClient, table: string, rows: Re
 
 /** Writes one chunk of canonical records into the canonical tables. */
 export async function importChunk(importId: string, records: CanonicalRecord[]): Promise<ActionResult<ChunkStats>> {
-  if (!z.string().uuid().safeParse(importId).success) return fail("Invalid import.");
+  if (!z.string().uuid().safeParse(importId).success) return fail("ייבוא לא תקין.");
   const parsed = z.array(recordSchema).max(2000).safeParse(records);
-  if (!parsed.success) return fail("Some rows couldn't be read. Please re-validate the file.");
+  if (!parsed.success) return fail("חלק מהשורות לא נקראו. נסה להעלות את הקובץ שוב.");
   const { supabase, org, user } = await requireOrg();
 
   try {
     const bundle = buildBundle(parsed.data as CanonicalRecord[]);
     const resolver = await loadCustomerResolver(supabase, org.id);
-    const stats: ChunkStats = { customersCreated: 0, customersMatched: 0, transactions: 0, services: 0, leads: 0, deals: 0, activities: 0 };
+    const stats: ChunkStats = { customersCreated: 0, customersMatched: 0, transactions: 0, services: 0, leads: 0, deals: 0, activities: 0, existingSkipped: 0 };
 
     const customerIds: string[] = [];
+    const matched = new Set<string>();
     const newCustomers: Record<string, unknown>[] = [];
     for (const c of bundle.customers) {
       const existing = resolver.find(c);
       if (existing) {
         customerIds.push(existing);
+        matched.add(existing);
         stats.customersMatched++;
       } else {
         const id = randomUUID();
@@ -198,10 +242,28 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
 
     const idFor = (i: number | null) => (i === null ? null : customerIds[i]);
 
+    // Re-importing the same file must not double revenue: skip sales that already exist
+    // for an existing customer on the same date with the same amount.
+    const known = new Set<string>();
+    const txKey = (customerId: string | null, date: string, amount: number) => `${customerId}|${date}|${Number(amount).toFixed(2)}`;
+    const toCheck = [...new Set(bundle.transactions.map((t) => idFor(t.customerIndex)).filter((id): id is string => !!id && matched.has(id)))];
+    for (let i = 0; i < toCheck.length; i += 100) {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("customer_id, date, amount")
+        .eq("organization_id", org.id)
+        .in("customer_id", toCheck.slice(i, i + 100))
+        .limit(20000);
+      if (error) throw error;
+      for (const t of data ?? []) known.add(txKey(t.customer_id, t.date, t.amount));
+    }
+    const freshTransactions = bundle.transactions.filter((t) => !known.has(txKey(idFor(t.customerIndex), t.date, t.amount)));
+    stats.existingSkipped = bundle.transactions.length - freshTransactions.length;
+
     await insertInBatches(
       supabase,
       "transactions",
-      bundle.transactions.map(({ customerIndex, ...t }) => ({
+      freshTransactions.map(({ customerIndex, ...t }) => ({
         organization_id: org.id,
         customer_id: idFor(customerIndex),
         service_id: t.product_or_service ? serviceIds.get(t.product_or_service.toLowerCase()) ?? null : null,
@@ -209,7 +271,7 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
         source_import_id: importId,
       })),
     );
-    stats.transactions = bundle.transactions.length;
+    stats.transactions = freshTransactions.length;
 
     await insertInBatches(
       supabase,
@@ -267,7 +329,7 @@ const statsSchema = z.object({
 
 export async function finalizeImport(importId: string, stats: z.infer<typeof statsSchema>): Promise<ActionResult<null>> {
   const parsed = statsSchema.safeParse(stats);
-  if (!z.string().uuid().safeParse(importId).success || !parsed.success) return fail("Invalid import.");
+  if (!z.string().uuid().safeParse(importId).success || !parsed.success) return fail("ייבוא לא תקין.");
   const { supabase, org } = await requireOrg();
   const { data, error } = await supabase
     .from("imported_files")
@@ -282,4 +344,32 @@ export async function finalizeImport(importId: string, stats: z.infer<typeof sta
   await supabase.from("ai_briefs").delete().eq("organization_id", org.id);
   revalidatePath("/", "layout");
   return ok(null);
+}
+
+export interface SpreadSummary {
+  /** Tools already on the canvas, with whether they now have the data they need. */
+  onCanvas: { type: string; name: string; ready: boolean }[];
+  /** Tools not on the canvas yet that the data now unlocks. */
+  unlocked: { type: string; name: string; description: string }[];
+  canManage: boolean;
+}
+
+/** After an import: which canvas tools received data, and which new tools the data unlocks. */
+export async function getSpreadSummary(): Promise<ActionResult<SpreadSummary>> {
+  const { supabase, org, role } = await requireOrg();
+  const [{ data: installed, error }, counts] = await Promise.all([
+    supabase.from("components").select("component_type, position").eq("organization_id", org.id).order("position"),
+    getDataCounts(supabase, org.id),
+  ]);
+  if (error) return fail(friendlyError(error));
+  const installedTypes = new Set((installed ?? []).map((c) => c.component_type));
+  const onCanvas = (installed ?? [])
+    .map((c) => getDefinition(c.component_type))
+    .filter((d): d is NonNullable<typeof d> => !!d)
+    .map((d) => ({ type: d.id, name: d.name, ready: missingEntities(d, counts).length === 0 }));
+  const unlocked = COMPONENT_REGISTRY.filter(
+    (d) => !installedTypes.has(d.id) && d.requiredEntities.length > 0 && missingEntities(d, counts).length === 0 && d.recommendedFor.includes(org.business_type),
+  ).map((d) => ({ type: d.id, name: d.name, description: d.description }));
+  const canManage = role === "owner" || role === "admin";
+  return ok({ onCanvas, unlocked, canManage });
 }

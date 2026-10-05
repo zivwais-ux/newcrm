@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BulkTaskDialog } from "./bulk-task-dialog";
 import { useMoney } from "@/components/layout/workspace-provider";
-import { formatCurrency, relativeDays } from "@/lib/utils";
+import { formatCurrency, formatNumber, plural, relativeDays } from "@/lib/utils";
+import { Ltr } from "@/components/ui/ltr";
+import { CUSTOMER_STATUS_LABELS, label } from "./labels";
 
 export interface CustomerRow {
   id: string;
@@ -27,7 +29,7 @@ export interface CustomerRow {
 export function CustomersTable({
   rows,
   allIds,
-  defaultTaskTitle = "Follow up",
+  defaultTaskTitle = "לחזור ללקוח",
 }: {
   rows: CustomerRow[];
   /** Every id in the current segment (when known) — enables "select all in segment". */
@@ -52,28 +54,28 @@ export function CustomersTable({
   return (
     <div>
       {selected.size > 0 && (
-        <div className="sticky top-14 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-md border bg-surface px-3 py-2 shadow-sm">
-          <span className="text-sm font-medium tabular">{selected.size} selected</span>
+        <div className="sticky top-16 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-xl border bg-surface px-3 py-2 shadow-md">
+          <span className="text-sm font-medium tabular">{plural(selected.size, "נבחר", "נבחרו", "נבחר אחד")}</span>
           {allIds && allIds.length > selected.size && (
             <Button size="xs" variant="ghost" onClick={() => setSelected(new Set(allIds))}>
-              Select all {allIds.length}
+              בחר את כל ה־{formatNumber(allIds.length)}
             </Button>
           )}
           <Button size="xs" variant="ghost" onClick={() => setSelected(new Set())}>
             <X />
-            Clear
+            נקה בחירה
           </Button>
-          <Button size="sm" className="ml-auto" onClick={() => setDialog(true)}>
+          <Button size="sm" className="ms-auto" onClick={() => setDialog(true)}>
             <ListPlus />
-            Create Follow-up Tasks
+            צור משימות מעקב
           </Button>
         </div>
       )}
-      <div className="rounded-lg border bg-surface">
+      <div className="overflow-hidden rounded-xl border bg-surface shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="pl-4">
+              <TableHead className="ps-4">
                 <Checkbox
                   checked={allOnPage ? true : someOnPage ? "indeterminate" : false}
                   onCheckedChange={(v) =>
@@ -86,41 +88,43 @@ export function CustomersTable({
                       return n;
                     })
                   }
-                  aria-label="Select all on this page"
+                  aria-label="בחר את כל הלקוחות בעמוד"
                 />
               </TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden md:table-cell">Contact</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="hidden lg:table-cell">Last purchase</TableHead>
-              <TableHead className="hidden text-right lg:table-cell">Purchases</TableHead>
-              <TableHead className="pr-4 text-right">Revenue</TableHead>
+              <TableHead>לקוח</TableHead>
+              <TableHead className="hidden md:table-cell">פרטי קשר</TableHead>
+              <TableHead className="hidden sm:table-cell">סטטוס</TableHead>
+              <TableHead className="hidden lg:table-cell">קנייה אחרונה</TableHead>
+              <TableHead className="hidden text-end lg:table-cell">קניות</TableHead>
+              <TableHead className="pe-4 text-end">הכנסות</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.map((r) => (
               <TableRow key={r.id} data-state={selected.has(r.id) ? "selected" : undefined}>
-                <TableCell className="pl-4">
-                  <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggle(r.id)} aria-label={`Select ${r.name}`} />
+                <TableCell className="ps-4">
+                  <Checkbox checked={selected.has(r.id)} onCheckedChange={() => toggle(r.id)} aria-label={`בחר את ${r.name}`} />
                 </TableCell>
                 <TableCell className="max-w-[260px]">
-                  <Link href={`/customers/${r.id}`} className="block truncate font-medium hover:underline">
+                  <Link href={`/customers/${r.id}`} className="block truncate font-medium hover:text-brand">
                     {r.name}
                   </Link>
                   <span className="block truncate text-xs text-muted-foreground">{r.note ?? r.company ?? ""}</span>
                 </TableCell>
                 <TableCell className="hidden max-w-[220px] md:table-cell">
-                  <span className="block truncate text-[13px]">{r.email ?? "—"}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{r.phone ?? ""}</span>
+                  <span className="block truncate text-[13px]">{r.email ? <Ltr>{r.email}</Ltr> : "—"}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{r.phone ? <Ltr>{r.phone}</Ltr> : ""}</span>
                 </TableCell>
                 <TableCell className="hidden sm:table-cell">
-                  <Badge variant={r.status === "active" ? "positive" : r.status === "churned" ? "negative" : "default"} className="capitalize">
-                    {r.status}
+                  <Badge variant={r.status === "active" ? "positive" : r.status === "churned" ? "negative" : "default"} >
+                    {label(CUSTOMER_STATUS_LABELS, r.status)}
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground lg:table-cell">{relativeDays(r.last_purchase)}</TableCell>
-                <TableCell className="hidden text-right tabular lg:table-cell">{r.purchases}</TableCell>
-                <TableCell className="pr-4 text-right font-medium tabular">{formatCurrency(r.revenue, currency)}</TableCell>
+                <TableCell className="hidden text-end tabular lg:table-cell">{formatNumber(r.purchases)}</TableCell>
+                <TableCell className="pe-4 text-end font-medium tabular">
+                  <Ltr>{formatCurrency(r.revenue, currency)}</Ltr>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

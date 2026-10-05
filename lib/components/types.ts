@@ -1,22 +1,23 @@
 import type { BusinessType, EntityName, MemberRole } from "@/types/domain";
+export type { EntityName };
 
 export type ComponentCategory = "customers" | "sales" | "finance" | "operations" | "ai";
 export type ComponentSize = "sm" | "md" | "lg";
 
 export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
-  customers: "Customers",
-  sales: "Sales",
-  finance: "Finance",
-  operations: "Operations",
-  ai: "AI",
+  customers: "לקוחות",
+  sales: "מכירות ועסקאות",
+  finance: "כסף והכנסות",
+  operations: "יום-יום",
+  ai: "עזרה חכמה",
 };
 
-export const SIZE_LABELS: Record<ComponentSize, string> = { sm: "Small", md: "Medium", lg: "Wide" };
+export const SIZE_LABELS: Record<ComponentSize, string> = { sm: "קטן", md: "בינוני", lg: "רחב" };
 
 /** Width on the 12-column canvas. */
 export const WIDTHS = ["3", "4", "6", "8", "12"] as const;
 export type ComponentWidth = (typeof WIDTHS)[number];
-export const WIDTH_LABELS: Record<ComponentWidth, string> = { "3": "¼ width", "4": "⅓ width", "6": "½ width", "8": "⅔ width", "12": "Full width" };
+export const WIDTH_LABELS: Record<ComponentWidth, string> = { "3": "רבע", "4": "שליש", "6": "חצי", "8": "שני שליש", "12": "רוחב מלא" };
 export const SIZE_TO_WIDTH: Record<ComponentSize, ComponentWidth> = { sm: "4", md: "6", lg: "12" };
 
 /**

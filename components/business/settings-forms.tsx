@@ -29,41 +29,41 @@ export function WorkspaceSettingsForm({
         startTransition(async () => {
           const res = await updateOrganization({ name: values.name, businessType: values.businessType, currency: values.currency as "ILS" });
           if (!res.ok) return void toast.error(res.error);
-          toast.success("Workspace updated");
+          toast.success("פרטי העסק נשמרו");
           router.refresh();
         });
       }}
     >
       <div className="space-y-1.5">
-        <Label htmlFor="ws-name">Business name</Label>
-        <Input id="ws-name" value={values.name} disabled={!canManage} onChange={(e) => setValues({ ...values, name: e.target.value })} />
+        <Label htmlFor="ws-name">שם העסק</Label>
+        <Input id="ws-name" dir="auto" value={values.name} disabled={!canManage} onChange={(e) => setValues({ ...values, name: e.target.value })} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label>Business type</Label>
+          <Label>סוג העסק</Label>
           <Select value={values.businessType} disabled={!canManage} onValueChange={(v) => setValues({ ...values, businessType: v as BusinessType })}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="service">Service business</SelectItem>
-              <SelectItem value="sales">Sales business</SelectItem>
-              <SelectItem value="both">Both</SelectItem>
+              <SelectItem value="service">עסק נותן שירות</SelectItem>
+              <SelectItem value="sales">עסק שמוכר</SelectItem>
+              <SelectItem value="both">גם וגם</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">Shapes Component recommendations.</p>
+          <p className="text-xs text-muted-foreground">לפי זה נמליץ לך על הכלים המתאימים.</p>
         </div>
         <div className="space-y-1.5">
-          <Label>Currency</Label>
+          <Label>מטבע</Label>
           <Select value={values.currency} disabled={!canManage} onValueChange={(v) => setValues({ ...values, currency: v })}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ILS">₪ Israeli shekel</SelectItem>
-              <SelectItem value="USD">$ US dollar</SelectItem>
-              <SelectItem value="EUR">€ Euro</SelectItem>
-              <SelectItem value="GBP">£ British pound</SelectItem>
+              <SelectItem value="ILS">₪ שקל</SelectItem>
+              <SelectItem value="USD">$ דולר אמריקאי</SelectItem>
+              <SelectItem value="EUR">€ אירו</SelectItem>
+              <SelectItem value="GBP">£ לירה שטרלינג</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -71,10 +71,10 @@ export function WorkspaceSettingsForm({
       {canManage ? (
         <Button type="submit" size="sm" disabled={pending}>
           {pending && <Loader2 className="animate-spin" />}
-          Save changes
+          שמור שינויים
         </Button>
       ) : (
-        <p className="text-xs text-muted-foreground">Only owners and admins can change workspace settings.</p>
+        <p className="text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את פרטי העסק.</p>
       )}
     </form>
   );
@@ -92,18 +92,18 @@ export function ProfileForm({ name }: { name: string }) {
         startTransition(async () => {
           const res = await updateProfileName(value);
           if (!res.ok) return void toast.error(res.error);
-          toast.success("Profile updated");
+          toast.success("הפרופיל נשמר");
           router.refresh();
         });
       }}
     >
       <div className="flex-1 space-y-1.5">
-        <Label htmlFor="p-name">Your name</Label>
-        <Input id="p-name" value={value} onChange={(e) => setValue(e.target.value)} />
+        <Label htmlFor="p-name">השם שלך</Label>
+        <Input id="p-name" dir="auto" value={value} onChange={(e) => setValue(e.target.value)} />
       </div>
       <Button type="submit" size="default" variant="outline" disabled={pending}>
         {pending && <Loader2 className="animate-spin" />}
-        Save
+        שמור
       </Button>
     </form>
   );

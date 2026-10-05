@@ -9,8 +9,9 @@ import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { Button } from "@/components/ui/button";
 import { pageParam, param, searchTerm, uuidList, type SearchParams } from "@/lib/params";
+import { formatNumber, plural } from "@/lib/utils";
 
-export const metadata = { title: "Customers" };
+export const metadata = { title: "לקוחות" };
 const PAGE_SIZE = 50;
 
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
@@ -30,13 +31,13 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
     const risk = await getCustomersAtRisk(supabase, org.id, threshold, drop, 500);
     ids = risk.map((r) => r.id);
     for (const r of risk)
-      notes.set(r.id, `${r.change_pct !== null && r.change_pct < 0 ? `Revenue ↓ ${Math.abs(r.change_pct)}% · ` : ""}last activity ${r.days_since} days ago`);
-    title ??= "Customers at risk";
+      notes.set(r.id, `${r.change_pct !== null && r.change_pct < 0 ? `ההכנסות ירדו ב־${Math.abs(r.change_pct)}% · ` : ""}פעילות אחרונה לפני ${formatNumber(r.days_since)} ימים`);
+    title ??= "לקוחות בסיכון";
   } else if (segment === "overdue") {
     const overdue = await getOverdueCustomers(supabase, org.id, 1.5, 500);
     ids = overdue.map((r) => r.id);
-    for (const r of overdue) notes.set(r.id, `Usually every ${r.median_interval_days} days · last seen ${r.days_since} days ago`);
-    title ??= "Regulars past their usual return date";
+    for (const r of overdue) notes.set(r.id, `בדרך כלל חוזר כל ${formatNumber(r.median_interval_days)} ימים · נראה לאחרונה לפני ${formatNumber(r.days_since)} ימים`);
+    title ??= "לקוחות קבועים שעבר הזמן שבו הם בדרך כלל חוזרים";
   }
   const segmented = Boolean(segment) || ids.length > 0 || param(params, "ids") !== undefined;
 
@@ -94,54 +95,54 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   return (
     <PageContainer>
       <PageHeader
-        title="Customers"
-        description="Everyone you do business with, in one place."
+        title="לקוחות"
+        description="כל מי שאתה עובד איתו — במקום אחד."
         actions={<NewRecordButton entity="customers" />}
       />
       {!totalCustomers ? (
         <EmptyState
           icon={Users}
-          title="No customers yet"
-          description="Import your existing customer list, or add your first customer."
+          title="אין עדיין לקוחות"
+          description="העלה קובץ אקסל עם רשימת הלקוחות שלך, או הוסף לקוח ראשון — הם יופיעו כאן."
           importCta
           action={<NewRecordButton entity="customers" variant="outline" />}
         />
       ) : (
         <>
           {segmented && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-brand-soft/60 px-4 py-3">
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand/15 bg-brand-soft/60 px-4 py-3 shadow-xs">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{title ?? "Selected customers"}</p>
+                <p className="text-sm font-medium">{title ?? "לקוחות נבחרים"}</p>
                 <p className="text-xs text-muted-foreground">
-                  {count.toLocaleString("en-US")} customers in this view. Select customers to create follow-up tasks.
+                  {plural(count, "לקוח", "לקוחות")} בתצוגה הזו. סמן לקוחות כדי ליצור להם משימות מעקב.
                 </p>
               </div>
               <Button asChild size="xs" variant="ghost">
                 <Link href="/customers">
                   <X />
-                  Clear
+                  נקה
                 </Link>
               </Button>
             </div>
           )}
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <SearchInput placeholder="Search name, email, phone, company…" />
+            <SearchInput placeholder="חיפוש לפי שם, אימייל, טלפון או חברה…" />
             <FilterTabs
               param="status"
               options={[
-                { value: "", label: "All" },
-                { value: "active", label: "Active" },
-                { value: "inactive", label: "Inactive" },
-                { value: "churned", label: "Churned" },
+                { value: "", label: "הכל" },
+                { value: "active", label: "פעילים" },
+                { value: "inactive", label: "לא פעילים" },
+                { value: "churned", label: "עזבו" },
               ]}
             />
           </div>
           {error ? (
-            <EmptyState title="We couldn't load customers" description="Please refresh the page." />
+            <EmptyState title="לא הצלחנו לטעון את הלקוחות" description="רענן את העמוד ונסה שוב." />
           ) : rows.length === 0 ? (
-            <EmptyState compact title="No matching customers" description="Try a different search or filter." />
+            <EmptyState compact icon={Users} title="לא נמצאו לקוחות" description="נסה חיפוש אחר או סינון אחר." />
           ) : (
-            <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle="Follow up" />
+            <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle="לחזור ללקוח" />
           )}
           <Pagination page={page} pageSize={PAGE_SIZE} total={count} />
         </>

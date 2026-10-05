@@ -32,9 +32,9 @@ async function nextPosition(supabase: Awaited<ReturnType<typeof requireOrg>>["su
  */
 export async function addComponent(componentType: string, position?: number): Promise<AddResult> {
   const def = getDefinition(componentType);
-  if (!def) return fail("This Component doesn't exist.");
+  if (!def) return fail("הכלי הזה לא קיים.");
   const { supabase, org, role } = await requireOrg();
-  if (!def.permissions.manage.includes(role)) return fail("Only owners and admins can add Components.");
+  if (!def.permissions.manage.includes(role)) return fail("רק בעלים ומנהלים יכולים להוסיף כלים.");
 
   const counts = await getDataCounts(supabase, org.id);
   const missing = missingEntities(def, counts);
@@ -75,7 +75,7 @@ export async function addComponent(componentType: string, position?: number): Pr
 
 export async function addRecommendedComponents(): Promise<ActionResult<{ added: string[] }>> {
   const { supabase, org, role } = await requireOrg();
-  if (role === "member") return fail("Only owners and admins can add Components.");
+  if (role === "member") return fail("רק בעלים ומנהלים יכולים להוסיף כלים.");
   const [{ data: installed }, counts] = await Promise.all([
     supabase.from("components").select("component_type").eq("organization_id", org.id),
     getDataCounts(supabase, org.id),
@@ -97,7 +97,7 @@ export async function addRecommendedComponents(): Promise<ActionResult<{ added: 
 }
 
 export async function removeComponent(id: string): Promise<ActionResult<null>> {
-  if (!z.string().uuid().safeParse(id).success) return fail("Invalid Component.");
+  if (!z.string().uuid().safeParse(id).success) return fail("הכלי לא תקין.");
   const { supabase, org } = await requireOrg();
   const { error, count } = await supabase
     .from("components")
@@ -105,14 +105,14 @@ export async function removeComponent(id: string): Promise<ActionResult<null>> {
     .eq("id", id)
     .eq("organization_id", org.id);
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("Only owners and admins can remove Components.");
+  if (!count) return fail("רק בעלים ומנהלים יכולים להסיר כלים.");
   revalidateWorkspace();
   return ok(null);
 }
 
 export async function reorderComponents(ids: string[]): Promise<ActionResult<null>> {
   const parsed = z.array(z.string().uuid()).max(50).safeParse(ids);
-  if (!parsed.success) return fail("Invalid order.");
+  if (!parsed.success) return fail("הסדר לא תקין.");
   const { supabase, org } = await requireOrg();
   const results = await Promise.all(
     parsed.data.map((id, position) =>
@@ -128,7 +128,7 @@ export async function reorderComponents(ids: string[]): Promise<ActionResult<nul
 export async function updateComponentConfig(id: string, patch: Record<string, string>): Promise<ActionResult<null>> {
   const parsedId = z.string().uuid().safeParse(id);
   const parsedPatch = z.record(z.string(), z.string().max(40)).safeParse(patch);
-  if (!parsedId.success || !parsedPatch.success) return fail("Invalid settings.");
+  if (!parsedId.success || !parsedPatch.success) return fail("ההגדרות לא תקינות.");
   const { supabase, org } = await requireOrg();
   const { data: row, error: readError } = await supabase
     .from("components")
@@ -138,7 +138,7 @@ export async function updateComponentConfig(id: string, patch: Record<string, st
     .single();
   if (readError || !row) return fail(friendlyError(readError));
   const def = getDefinition(row.component_type);
-  if (!def) return fail("This Component doesn't exist.");
+  if (!def) return fail("הכלי הזה לא קיים.");
   const config = resolveConfig(def, { ...(row.config as Record<string, unknown>), ...parsedPatch.data });
   const { error, count } = await supabase
     .from("components")
@@ -146,7 +146,7 @@ export async function updateComponentConfig(id: string, patch: Record<string, st
     .eq("id", id)
     .eq("organization_id", org.id);
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("Only owners and admins can change Component settings.");
+  if (!count) return fail("רק בעלים ומנהלים יכולים לשנות את הגדרות הכלי.");
   revalidatePath("/home");
   revalidatePath(`/components/${id}`);
   return ok(null);

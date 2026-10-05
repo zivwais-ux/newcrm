@@ -44,8 +44,8 @@ function DropdownMenuItem({
 
 function DropdownMenuRadioItem({ className, children, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
   return (
-    <DropdownMenuPrimitive.RadioItem className={cn(itemClass, "pl-7", className)} {...props}>
-      <span className="absolute left-2 flex size-3.5 items-center justify-center">
+    <DropdownMenuPrimitive.RadioItem className={cn(itemClass, "ps-7", className)} {...props}>
+      <span className="absolute start-2 flex size-3.5 items-center justify-center">
         <DropdownMenuPrimitive.ItemIndicator>
           <CheckIcon className="size-3.5" />
         </DropdownMenuPrimitive.ItemIndicator>
@@ -65,7 +65,7 @@ function DropdownMenuSubTrigger({ className, children, ...props }: React.Compone
   return (
     <DropdownMenuPrimitive.SubTrigger className={cn(itemClass, "data-[state=open]:bg-accent", className)} {...props}>
       {children}
-      <ChevronRightIcon className="ml-auto" />
+      <ChevronRightIcon className="ms-auto rtl:-scale-x-100" />
     </DropdownMenuPrimitive.SubTrigger>
   );
 }

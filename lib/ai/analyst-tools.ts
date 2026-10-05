@@ -16,6 +16,8 @@ import {
   getTopCustomers,
 } from "@/lib/analytics/queries";
 import { resolveRange } from "@/lib/analytics/dates";
+import { STAGE_NAMES } from "@/lib/components/filters";
+import type { DealStage } from "@/types/domain";
 
 // Read-only analytics tools available to the AI Business Analyst.
 // They run server-side through the user-scoped client: RLS confines them to the
@@ -151,6 +153,15 @@ const asInt = (v: unknown, fallback: number, min: number, max: number) => {
 };
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** Hebrew label for a deal stage (DB values stay in English). */
+export const stageLabel = (stage: string) => STAGE_NAMES[stage as DealStage] ?? stage;
+
+/** "yyyy-mm-dd" → "DD/MM/YYYY" (the date format Israeli users read). */
+export function dmy(iso: string | null | undefined) {
+  const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? "");
+}
+
 function addAction(ctx: ToolContext, action: AnalystAction) {
   if (!ctx.actions.some((a) => a.type === action.type && a.label === action.label)) ctx.actions.push(action);
 }
@@ -191,9 +202,9 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
       if (lapsed.length) {
         addAction(ctx, {
           type: "view_customers",
-          label: "View affected customers",
+          label: "הצג לקוחות",
           customerIds: lapsed.map((c) => c.id),
-          title: `Bought ${prev.from} – ${prev.to}, not since`,
+          title: `קנו בין ${dmy(prev.from)} ל-${dmy(prev.to)} ולא חזרו מאז`,
         });
       }
       return {
@@ -229,7 +240,7 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
         asDate(args.to, year.to),
         asInt(args.limit, 10, 1, 25),
       );
-      if (rows.length) addAction(ctx, { type: "view_customers", label: "View top customers", customerIds: rows.map((r) => r.id), title: "Top customers" });
+      if (rows.length) addAction(ctx, { type: "view_customers", label: "הצג לקוחות מובילים", customerIds: rows.map((r) => r.id), title: "לקוחות מובילים" });
       return rows.map((r) => ({ name: r.name, revenue: round(r.revenue), purchases: r.purchases, last_purchase: r.last_purchase }));
     }
     case "get_overdue_regulars": {
@@ -237,9 +248,15 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
       if (rows.length) {
         addAction(ctx, {
           type: "view_customers",
-          label: "View customers who haven't returned",
+          label: "הצג לקוחות שלא חזרו",
           customerIds: rows.map((r) => r.id),
-          title: "Regulars past their usual return date",
+          title: "לקוחות קבועים שעבר זמן החזרה הרגיל שלהם",
+        });
+        addAction(ctx, {
+          type: "create_tasks",
+          label: "צור משימות מעקב",
+          customerIds: rows.map((r) => r.id),
+          taskTitle: "לחזור ללקוח",
         });
       }
       return {
@@ -256,7 +273,7 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
     case "get_customers_at_risk": {
       const rows = await getCustomersAtRisk(supabase, orgId, asInt(args.inactive_days, 60, 14, 365), 30, 50);
       if (rows.length) {
-        addAction(ctx, { type: "view_customers", label: "View at-risk customers", customerIds: rows.map((r) => r.id), title: "Customers at risk" });
+        addAction(ctx, { type: "view_customers", label: "הצג לקוחות בסיכון", customerIds: rows.map((r) => r.id), title: "לקוחות בסיכון" });
       }
       return {
         count: rows.length,
@@ -276,9 +293,9 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
       if (rows.length) {
         addAction(ctx, {
           type: "create_tasks",
-          label: `Create follow-up tasks for ${rows.length} deals`,
+          label: rows.length === 1 ? "צור משימת מעקב לעסקה" : `צור משימות מעקב ל-${rows.length} עסקאות`,
           dealIds: rows.map((r) => r.id),
-          taskTitle: "Follow up on deal",
+          taskTitle: "מעקב אחרי העסקה",
         });
       }
       return {
@@ -289,14 +306,17 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
           customer: r.customer_name,
           value: round(r.value),
           stage: r.stage,
+          stage_label: stageLabel(r.stage),
           days_without_activity: r.days_idle,
           expected_close: r.expected_close,
           reason: r.reason,
         })),
       };
     }
-    case "get_pipeline_summary":
-      return getPipelineSummary(supabase, orgId);
+    case "get_pipeline_summary": {
+      const rows = await getPipelineSummary(supabase, orgId);
+      return rows.map((r) => ({ ...r, stage_label: stageLabel(r.stage) }));
+    }
     case "search_customers": {
       const q = String(args.query ?? "").trim().slice(0, 80).replace(/[%,()]/g, " ");
       if (!q) return [];

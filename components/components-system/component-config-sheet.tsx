@@ -35,7 +35,7 @@ export function ComponentConfigSheet({
     startTransition(async () => {
       const res = await updateComponentConfig(instanceId, values);
       if (!res.ok) return void toast.error(res.error);
-      toast.success("Settings saved");
+      toast.success("ההגדרות נשמרו");
       onOpenChange(false);
       router.refresh();
     });
@@ -45,8 +45,8 @@ export function ComponentConfigSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{name} settings</SheetTitle>
-          <SheetDescription>Changes apply to everyone in this workspace.</SheetDescription>
+          <SheetTitle>הגדרות הכלי: {name}</SheetTitle>
+          <SheetDescription>השינויים יחולו על כל מי שעובד איתך במערכת.</SheetDescription>
         </SheetHeader>
         <SheetBody className="space-y-5">
           {fields.map((f) => (
@@ -68,7 +68,7 @@ export function ComponentConfigSheet({
             </div>
           ))}
           <div className="space-y-1.5">
-            <Label>Size on Home</Label>
+            <Label>גודל במסך הבית</Label>
             <Select value={values.size} onValueChange={(v) => setValues((s) => ({ ...s, size: v }))}>
               <SelectTrigger>
                 <SelectValue />
@@ -85,11 +85,11 @@ export function ComponentConfigSheet({
         </SheetBody>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            ביטול
           </Button>
           <Button onClick={save} disabled={pending}>
             {pending && <Loader2 className="animate-spin" />}
-            Save
+            שמור
           </Button>
         </SheetFooter>
       </SheetContent>

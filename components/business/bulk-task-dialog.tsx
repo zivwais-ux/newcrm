@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWorkspace } from "@/components/layout/workspace-provider";
 import { createFollowupTasks } from "@/lib/actions/records";
-import { isoDate } from "@/lib/utils";
+import { formatNumber, isoDate, plural } from "@/lib/utils";
 
 /**
  * Confirmation step before creating tasks in bulk. Nothing is written until the
@@ -22,7 +22,7 @@ export function BulkTaskDialog({
   onOpenChange,
   customerIds = [],
   dealIds = [],
-  defaultTitle = "Follow up",
+  defaultTitle = "לחזור ללקוח",
   onCreated,
 }: {
   open: boolean;
@@ -40,7 +40,8 @@ export function BulkTaskDialog({
   const [created, setCreated] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const count = customerIds.length + dealIds.length;
-  const noun = dealIds.length && !customerIds.length ? "deal" : "customer";
+  const isDeals = Boolean(dealIds.length && !customerIds.length);
+  const tasksLabel = (n: number) => plural(n, "משימה", "משימות", "משימה אחת");
 
   function confirm() {
     startTransition(async () => {
@@ -64,13 +65,11 @@ export function BulkTaskDialog({
         {created !== null ? (
           <div className="flex flex-col items-center py-4 text-center">
             <CheckCircle2 className="size-8 text-positive" />
-            <DialogTitle className="mt-3">
-              {created} follow-up task{created === 1 ? "" : "s"} created
-            </DialogTitle>
-            <DialogDescription className="mt-1">They&apos;re assigned and visible on each customer&apos;s profile and in Tasks.</DialogDescription>
+            <DialogTitle className="mt-3">{created === 1 ? "נוצרה משימת מעקב אחת" : `נוצרו ${formatNumber(created)} משימות מעקב`}</DialogTitle>
+            <DialogDescription className="mt-1">הן כבר משויכות, ומופיעות בכרטיס של כל לקוח ובעמוד המשימות.</DialogDescription>
             <div className="mt-6 flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+                סגור
               </Button>
               <Button
                 onClick={() => {
@@ -78,31 +77,31 @@ export function BulkTaskDialog({
                   router.push("/tasks");
                 }}
               >
-                View tasks
+                למשימות
               </Button>
             </div>
           </div>
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle>Create follow-up tasks</DialogTitle>
+              <DialogTitle>יצירת משימות מעקב</DialogTitle>
               <DialogDescription>
-                This will create <span className="font-medium text-foreground">{count}</span> task{count === 1 ? "" : "s"} — one for each selected {noun}. Please confirm.
+                ייווצרו <span className="font-medium text-foreground">{tasksLabel(count)}</span> — אחת לכל {isDeals ? "עסקה" : "לקוח"} שבחרת. אשר כדי להמשיך.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="bt-title">Task title</Label>
-                <Input id="bt-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Each task gets the {noun} name appended.</p>
+                <Label htmlFor="bt-title">מה צריך לעשות?</Label>
+                <Input id="bt-title" dir="auto" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <p className="text-xs text-muted-foreground">לכל משימה יתווסף שם {isDeals ? "העסקה" : "הלקוח"}.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="bt-due">Due date</Label>
-                  <Input id="bt-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+                  <Label htmlFor="bt-due">תאריך יעד</Label>
+                  <Input id="bt-due" type="date" dir="ltr" className="text-end" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Assign to</Label>
+                  <Label>באחריות</Label>
                   <Select value={assignee} onValueChange={setAssignee}>
                     <SelectTrigger>
                       <SelectValue />
@@ -110,8 +109,8 @@ export function BulkTaskDialog({
                     <SelectContent>
                       {members.map((m) => (
                         <SelectItem key={m.user_id} value={m.user_id}>
-                          {m.full_name ?? "Teammate"}
-                          {m.user_id === user.id ? " (you)" : ""}
+                          {m.full_name ?? "חבר צוות"}
+                          {m.user_id === user.id ? " (אני)" : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -121,11 +120,11 @@ export function BulkTaskDialog({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                ביטול
               </Button>
               <Button onClick={confirm} disabled={pending || !count || !title.trim()}>
                 {pending && <Loader2 className="animate-spin" />}
-                Create {count} task{count === 1 ? "" : "s"}
+                צור {tasksLabel(count)}
               </Button>
             </DialogFooter>
           </>

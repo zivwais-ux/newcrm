@@ -6,34 +6,30 @@ import { toast } from "sonner";
 import {
   ArrowRight,
   Briefcase,
+  Check,
   FileSpreadsheet,
-  FileText,
   Layers,
   Loader2,
-  PencilLine,
-  Sparkles,
   Store,
   Sprout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { completeOnboarding, createOrganization } from "@/lib/actions/org";
-import { loadDemoData } from "@/lib/actions/demo";
 import type { BusinessType } from "@/types/domain";
 
 const BUSINESS_TYPES: { value: BusinessType; title: string; description: string; icon: React.ElementType }[] = [
-  { value: "service", title: "Service Business", description: "Salons, clinics, studios, cleaning, repairs, local services", icon: Store },
-  { value: "sales", title: "Sales Business", description: "Agencies, B2B, sales teams, IT, real estate", icon: Briefcase },
-  { value: "both", title: "Both", description: "Services delivered with a sales process", icon: Layers },
+  { value: "service", title: "אני נותן שירות", description: "מספרה, קליניקה, סטודיו, ניקיון, תיקונים, שירותים מקומיים", icon: Store },
+  { value: "sales", title: "אני מוכר", description: "סוכנות, מכירות לעסקים, צוות מכירות, נדל״ן", icon: Briefcase },
+  { value: "both", title: "גם וגם", description: "נותן שירות, ויש גם תהליך מכירה", icon: Layers },
 ];
 
 const DATA_SOURCES = [
-  { value: "excel", title: "Excel", description: "An .xlsx workbook", icon: FileSpreadsheet },
-  { value: "csv", title: "CSV", description: "Exported from another system", icon: FileText },
-  { value: "manual", title: "Manual", description: "I'll add records myself", icon: PencilLine },
-  { value: "none", title: "I don't have data yet", description: "Start fresh", icon: Sprout },
+  { value: "excel", title: "יש לי קובץ", description: "אקסל, CSV או ייצוא מתוכנה אחרת — נעלה אותו עכשיו", icon: FileSpreadsheet },
+  { value: "none", title: "מתחילים עם מסך ריק", description: "אוסיף לקוחות בעצמי, או אעלה קובץ אחר כך", icon: Sprout },
 ] as const;
 
 type DataSource = (typeof DATA_SOURCES)[number]["value"];
@@ -57,14 +53,30 @@ function OptionCard({
       onClick={onClick}
       aria-pressed={selected}
       className={cn(
-        "flex w-full items-start gap-3 rounded-md border bg-surface p-4 text-left transition-colors cursor-pointer",
-        selected ? "border-foreground ring-1 ring-foreground" : "hover:border-zinc-300",
+        "group relative flex w-full items-center gap-4 rounded-xl border bg-surface p-4 text-start shadow-xs transition-all cursor-pointer sm:p-5",
+        selected ? "border-brand ring-2 ring-brand/20" : "hover:-translate-y-px hover:border-zinc-300 hover:shadow-sm",
       )}
     >
-      <Icon className={cn("mt-0.5 size-4 shrink-0", selected ? "text-foreground" : "text-muted-foreground")} />
-      <span className="space-y-0.5">
-        <span className="block text-sm font-medium">{title}</span>
-        <span className="block text-[13px] text-muted-foreground">{description}</span>
+      <span
+        className={cn(
+          "grid size-11 shrink-0 place-items-center rounded-xl transition-colors",
+          selected ? "bg-brand text-white" : "bg-brand-soft text-brand",
+        )}
+      >
+        <Icon className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1 space-y-0.5">
+        <span className="block text-[15px] font-semibold">{title}</span>
+        <span className="block text-[13px] leading-relaxed text-muted-foreground">{description}</span>
+      </span>
+      <span
+        aria-hidden
+        className={cn(
+          "grid size-5 shrink-0 place-items-center rounded-full border transition-colors",
+          selected ? "border-brand bg-brand text-white" : "border-border",
+        )}
+      >
+        {selected && <Check className="size-3" />}
       </span>
     </button>
   );
@@ -85,11 +97,10 @@ export function OnboardingFlow({
   const [businessType, setBusinessType] = useState<BusinessType | null>(initialType);
   const [source, setSource] = useState<DataSource | null>(null);
   const [pending, startTransition] = useTransition();
-  const [demoPending, setDemoPending] = useState(false);
 
   function submitBusiness(e: React.FormEvent) {
     e.preventDefault();
-    if (!businessType) return toast.error("Choose the type of business you run.");
+    if (!businessType) return toast.error("בחר איזה סוג עסק יש לך.");
     startTransition(async () => {
       const res = await createOrganization({ name: businessName, businessType, fullName: defaultName || undefined });
       if (!res.ok) return void toast.error(res.error);
@@ -98,7 +109,7 @@ export function OnboardingFlow({
   }
 
   function submitData() {
-    if (!source) return toast.error("Choose where your data is today.");
+    if (!source) return toast.error("בחר איפה הנתונים שלך נמצאים היום.");
     startTransition(async () => {
       const res = await completeOnboarding(source);
       if (!res.ok) return void toast.error(res.error);
@@ -107,48 +118,37 @@ export function OnboardingFlow({
     });
   }
 
-  async function exploreDemo() {
-    setDemoPending(true);
-    const done = await completeOnboarding("none");
-    if (!done.ok) {
-      setDemoPending(false);
-      return void toast.error(done.error);
-    }
-    const res = await loadDemoData();
-    setDemoPending(false);
-    if (!res.ok) return void toast.error(res.error);
-    toast.success(`Sample data loaded: ${res.data.customers} customers, ${res.data.transactions} transactions.`);
-    router.replace("/components?imported=1");
-    router.refresh();
-  }
-
   return (
     <div className="w-full max-w-lg">
-      <div className="mb-8 flex items-center gap-2 text-xs text-muted-foreground">
-        <span className={cn("h-1 w-8 rounded-full", "bg-foreground")} />
-        <span className={cn("h-1 w-8 rounded-full", step === "data" ? "bg-foreground" : "bg-border")} />
-        <span className="ml-2 tabular">Step {step === "business" ? 1 : 2} of 2</span>
+      <div className="mb-10 space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">{step === "business" ? "על העסק" : "הנתונים שלך"}</span>
+          <span className="tabular">שלב {step === "business" ? 1 : 2} מתוך 2</span>
+        </div>
+        <Progress value={step === "business" ? 50 : 100} className="h-2" />
       </div>
 
       {step === "business" ? (
         <form onSubmit={submitBusiness} className="space-y-8">
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome to your Business OS</h1>
-            <p className="text-[15px] text-muted-foreground">Build a workspace around the way your business actually works.</p>
+            <h1 className="text-[28px] leading-tight font-bold tracking-tight">ברוך הבא! בוא נכיר את העסק שלך</h1>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">שתי שאלות קצרות, ונבנה לך מסך עבודה שמתאים בדיוק לאיך שהעסק שלך עובד.</p>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="businessName">Business name</Label>
+            <Label htmlFor="businessName">איך קוראים לעסק?</Label>
             <Input
               id="businessName"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="e.g. Sparkle & Shine Cleaning"
+              placeholder="למשל: ניקיון ברק"
+              dir="auto"
+              className="h-11 text-[15px]"
               required
               autoFocus
             />
           </div>
           <fieldset className="space-y-3">
-            <legend className="mb-3 text-sm font-medium">What type of business do you run?</legend>
+            <legend className="mb-3 text-sm font-medium">מה העסק עושה?</legend>
             {BUSINESS_TYPES.map((t) => (
               <OptionCard
                 key={t.value}
@@ -162,19 +162,19 @@ export function OnboardingFlow({
           </fieldset>
           <Button type="submit" size="lg" className="w-full" disabled={pending || !businessName.trim() || !businessType}>
             {pending ? <Loader2 className="animate-spin" /> : null}
-            Continue
-            {!pending && <ArrowRight />}
+            המשך
+            {!pending && <ArrowRight className="rtl:-scale-x-100" />}
           </Button>
         </form>
       ) : (
         <div className="space-y-8">
           <div className="space-y-2">
-            <h1 className="text-2xl font-semibold tracking-tight">Where is your business data today?</h1>
-            <p className="text-[15px] text-muted-foreground">
-              Bring it in as it is. The system will understand it and suggest the tools you need.
+            <h1 className="text-[28px] leading-tight font-bold tracking-tight">איפה הנתונים של העסק נמצאים היום?</h1>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              מביאים אותם כמו שהם. המערכת תבין לבד ותציע את הכלים שמתאימים לך.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3">
             {DATA_SOURCES.map((s) => (
               <OptionCard
                 key={s.value}
@@ -186,26 +186,11 @@ export function OnboardingFlow({
               />
             ))}
           </div>
-          <Button size="lg" className="w-full" onClick={submitData} disabled={pending || !source || demoPending}>
+          <Button size="lg" className="w-full" onClick={submitData} disabled={pending || !source}>
             {pending ? <Loader2 className="animate-spin" /> : null}
-            {source === "excel" || source === "csv" ? "Continue to import" : "Go to my workspace"}
-            {!pending && <ArrowRight />}
+            {source === "excel" ? "המשך להעלאת הקובץ" : "קח אותי למסך העבודה"}
+            {!pending && <ArrowRight className="rtl:-scale-x-100" />}
           </Button>
-          {source === "none" && (
-            <div className="flex items-start gap-3 rounded-md border border-dashed p-4">
-              <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" />
-              <div className="flex-1 space-y-2">
-                <p className="text-sm">
-                  Want to look around first? Load a realistic sample{" "}
-                  {businessType === "sales" ? "B2B sales company" : "service business"} into your workspace.
-                </p>
-                <Button variant="outline" size="sm" onClick={exploreDemo} disabled={demoPending || pending}>
-                  {demoPending && <Loader2 className="animate-spin" />}
-                  {demoPending ? "Loading sample data…" : "Explore with sample data"}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

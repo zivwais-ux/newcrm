@@ -15,16 +15,16 @@ const bodySchema = z.object({
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session.user || !session.org) {
-    return NextResponse.json({ error: "Please sign in to use the analyst." }, { status: 401 });
+    return NextResponse.json({ error: "יש להתחבר כדי לשאול את היועץ." }, { status: 401 });
   }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Please enter a question." }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: "כתוב שאלה." }, { status: 400 });
 
   try {
     const result = await runAnalyst(session.supabase, session.org, parsed.data.messages);
     return NextResponse.json(result);
   } catch (error) {
     console.error("[api] analyst", (error as Error).message);
-    return NextResponse.json({ error: "The analyst couldn't answer right now. Please try again." }, { status: 500 });
+    return NextResponse.json({ error: "היועץ לא הצליח לענות כרגע. נסה שוב." }, { status: 500 });
   }
 }

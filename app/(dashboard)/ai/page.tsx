@@ -3,7 +3,7 @@ import { getDataCounts } from "@/lib/analytics/queries";
 import { AnalystChat } from "@/components/ai/analyst-chat";
 import { param, type SearchParams } from "@/lib/params";
 
-export const metadata = { title: "Ask AI" };
+export const metadata = { title: "היועץ החכם" };
 
 export default async function AIPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;

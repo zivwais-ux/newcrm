@@ -6,11 +6,12 @@ import { PipelineBoard } from "@/components/business/pipeline-board";
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { Stat } from "@/components/business/stat";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatNumber, plural } from "@/lib/utils";
+import { Ltr } from "@/components/ui/ltr";
 import { param, type SearchParams } from "@/lib/params";
 import type { Deal } from "@/types/domain";
 
-export const metadata = { title: "Deals" };
+export const metadata = { title: "עסקאות" };
 
 export default async function DealsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
@@ -27,16 +28,22 @@ export default async function DealsPage({ searchParams }: { searchParams: Search
 
   return (
     <PageContainer className="max-w-none">
-      <PageHeader title="Deals" description="Drag deals between stages. Click a deal to edit or reassign it." actions={<NewRecordButton entity="deals" />} />
+      <PageHeader title="עסקאות" description="גרור עסקה משלב לשלב. לחץ על עסקה כדי לערוך אותה." actions={<NewRecordButton entity="deals" />} />
       {!deals.length ? (
-        <EmptyState icon={Handshake} title="No deals yet" description="Create your first deal or import your pipeline." importCta action={<NewRecordButton entity="deals" variant="outline" />} />
+        <EmptyState
+          icon={Handshake}
+          title="אין עדיין עסקאות"
+          description="כאן תראה את כל העסקאות שבתהליך, לפי שלבים. הוסף עסקה ראשונה או העלה קובץ אקסל."
+          importCta
+          action={<NewRecordButton entity="deals" variant="outline" />}
+        />
       ) : (
         <div className="space-y-6">
-          <div className="grid max-w-3xl grid-cols-2 gap-5 sm:grid-cols-4">
-            <Stat label="Open pipeline" value={formatCurrency(open.reduce((s, x) => s + x.value, 0), org.currency)} />
-            <Stat label="Open deals" value={open.reduce((s, x) => s + x.deals, 0)} />
-            <Stat label="Won" value={formatCurrency(won?.value ?? 0, org.currency)} hint={`${won?.deals ?? 0} deals`} />
-            <Stat label="Win rate" value={winRate === null ? "—" : `${winRate}%`} />
+          <div className="grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm sm:grid-cols-4 [&>*]:bg-surface [&>*]:p-4">
+            <Stat label="שווי עסקאות פתוחות" value={<Ltr>{formatCurrency(open.reduce((s, x) => s + x.value, 0), org.currency)}</Ltr>} />
+            <Stat label="עסקאות פתוחות" value={formatNumber(open.reduce((s, x) => s + x.deals, 0))} />
+            <Stat label="נסגרו בהצלחה" value={<Ltr>{formatCurrency(won?.value ?? 0, org.currency)}</Ltr>} hint={plural(won?.deals ?? 0, "עסקה", "עסקאות", "עסקה אחת")} />
+            <Stat label="אחוז הצלחה" value={winRate === null ? "—" : <Ltr>{winRate}%</Ltr>} />
           </div>
           <PipelineBoard deals={deals} focusDealId={param(params, "deal") ?? null} />
         </div>

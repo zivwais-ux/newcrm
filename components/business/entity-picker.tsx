@@ -28,6 +28,7 @@ export function EntityPicker({
   const [options, setOptions] = useState<Option[]>([]);
   const [label, setLabel] = useState<string | null>(initialLabel ?? null);
   const [pending, startTransition] = useTransition();
+  const noun = kind === "customer" ? { pick: "בחר לקוח", search: "חיפוש לקוח…", none: "לא נמצאו לקוחות" } : { pick: "בחר עסקה", search: "חיפוש עסקה…", none: "לא נמצאו עסקאות" };
 
   useEffect(() => {
     if (!open) return;
@@ -44,17 +45,17 @@ export function EntityPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-surface px-3 text-left text-sm cursor-pointer"
+          className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-input bg-surface px-3 text-start text-sm shadow-xs cursor-pointer"
         >
           <span className={cn("truncate", !value && "text-muted-foreground")}>
-            {value ? label ?? "Selected" : placeholder ?? `Select ${kind}`}
+            {value ? label ?? "נבחר" : placeholder ?? noun.pick}
           </span>
           <span className="flex items-center gap-1">
             {value && (
               <span
                 role="button"
                 tabIndex={0}
-                aria-label="Clear"
+                aria-label="נקה"
                 onClick={(e) => {
                   e.stopPropagation();
                   setLabel(null);
@@ -71,9 +72,9 @@ export function EntityPicker({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder={`Search ${kind}s…`} value={query} onValueChange={setQuery} />
+          <CommandInput placeholder={noun.search} value={query} onValueChange={setQuery} />
           <CommandList>
-            <CommandEmpty>{pending ? "Searching…" : `No ${kind}s found.`}</CommandEmpty>
+            <CommandEmpty>{pending ? "מחפש…" : noun.none}</CommandEmpty>
             <CommandGroup>
               {options.map((o) => (
                 <CommandItem

@@ -1,12 +1,12 @@
-import { isoDate } from "@/lib/utils";
+import { isoDate, MONTHS_LONG } from "@/lib/utils";
 
 export const RANGE_PRESETS = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  "6m": "Last 6 months",
-  "12m": "Last 12 months",
-  ytd: "Year to date",
-  all: "All time",
+  "30d": "30 הימים האחרונים",
+  "90d": "90 הימים האחרונים",
+  "6m": "חצי שנה אחרונה",
+  "12m": "12 החודשים האחרונים",
+  ytd: "מתחילת השנה",
+  all: "כל הזמן",
 } as const;
 export type RangePreset = keyof typeof RANGE_PRESETS;
 
@@ -50,8 +50,8 @@ export function lastTwoFullMonths(now = new Date()) {
   const prevStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
   const prevEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0);
   return {
-    current: { from: isoDate(curStart), to: isoDate(curEnd), label: curStart.toLocaleString("en", { month: "long" }) },
-    previous: { from: isoDate(prevStart), to: isoDate(prevEnd), label: prevStart.toLocaleString("en", { month: "long" }) },
+    current: { from: isoDate(curStart), to: isoDate(curEnd), label: MONTHS_LONG[curStart.getMonth()] },
+    previous: { from: isoDate(prevStart), to: isoDate(prevEnd), label: MONTHS_LONG[prevStart.getMonth()] },
   };
 }
 

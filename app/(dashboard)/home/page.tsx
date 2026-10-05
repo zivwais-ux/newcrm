@@ -16,7 +16,7 @@ import { BriefCard } from "@/components/ai/brief-card";
 import type { SearchParams } from "@/lib/params";
 import type { InstalledComponent } from "@/types/domain";
 
-export const metadata = { title: "Home" };
+export const metadata = { title: "בית" };
 
 function BodySkeleton() {
   return (
@@ -110,7 +110,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         canManage={canManage(role)}
         activeFilters={activeFilterKeys(filters)}
         top={
-          <Suspense fallback={<Skeleton className="h-28 rounded-lg" />}>
+          <Suspense fallback={<Skeleton className="h-28 rounded-xl" />}>
             <BriefSection org={{ id: org.id, name: org.name, currency: org.currency }} />
           </Suspense>
         }

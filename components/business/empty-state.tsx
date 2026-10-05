@@ -1,8 +1,12 @@
 import Link from "next/link";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { EmptyState as BaseEmptyState } from "@/components/ui/empty-state";
 
+/**
+ * Teaching empty state for business pages. Thin adapter over the shared
+ * primitive that also offers the "upload a file" shortcut.
+ */
 export function EmptyState({
   icon: Icon,
   title,
@@ -21,27 +25,27 @@ export function EmptyState({
   compact?: boolean;
 }) {
   return (
-    <div className={cn("flex flex-col items-center justify-center text-center", compact ? "py-8" : "py-16", className)}>
-      {Icon && (
-        <div className="mb-4 grid size-10 place-items-center rounded-md border bg-surface text-muted-foreground">
-          <Icon className="size-4.5" />
-        </div>
-      )}
-      <p className="text-sm font-medium">{title}</p>
-      {description && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>}
-      {(action || importCta) && (
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-          {importCta && (
-            <Button asChild size="sm">
-              <Link href="/data/import">
-                <Upload />
-                Import Data
-              </Link>
-            </Button>
-          )}
-          {action}
-        </div>
-      )}
-    </div>
+    <BaseEmptyState
+      icon={Icon ? <Icon /> : undefined}
+      title={title}
+      description={description}
+      compact={compact}
+      className={className}
+      action={
+        action || importCta ? (
+          <>
+            {importCta && (
+              <Button asChild size="sm">
+                <Link href="/data/import">
+                  <Upload />
+                  העלה קובץ אקסל
+                </Link>
+              </Button>
+            )}
+            {action}
+          </>
+        ) : undefined
+      }
+    />
   );
 }

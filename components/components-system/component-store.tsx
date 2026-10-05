@@ -24,9 +24,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addComponent, addRecommendedComponents } from "@/lib/actions/components";
 import { CATEGORY_LABELS, type ComponentCategory, type ComponentDefinition } from "@/lib/components/types";
-import { ENTITY_SINGULAR } from "@/lib/components/registry";
+import { entitiesText } from "@/lib/components/registry";
 import type { EntityName } from "@/types/domain";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "customer-hub": Users,
@@ -39,6 +39,15 @@ export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "deal-risk": ShieldAlert,
   "followup-radar": Radar,
   tasks: ListChecks,
+};
+
+const ENTITY_COUNT_LABELS: Record<string, string> = {
+  customers: "לקוחות",
+  transactions: "מכירות",
+  services: "שירותים",
+  leads: "פניות",
+  deals: "עסקאות",
+  activities: "פעילויות",
 };
 
 export interface StoreEntry {
@@ -67,35 +76,35 @@ function ComponentCard({
     <div
       id={`c-${entry.definition.id}`}
       className={cn(
-        "flex flex-col rounded-lg border bg-surface p-4 transition-colors",
+        "flex flex-col rounded-xl border bg-surface p-5 shadow-xs transition-[box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md",
         highlight && "ring-2 ring-brand/40",
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-md border bg-background text-zinc-600">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
           <Icon className="size-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">{entry.definition.name}</p>
+          <p className="text-[15px] font-semibold">{entry.definition.name}</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">{entry.definition.description}</p>
         </div>
       </div>
       <div className="mt-4 flex items-center justify-between gap-2">
         <span className={cn("truncate text-xs", entry.ready ? "text-muted-foreground" : "text-warning")}>
-          {entry.installedId ? "On your Home" : entry.reason}
+          {entry.installedId ? "כבר במסך" : entry.reason}
         </span>
         {entry.installedId ? (
           <Button asChild size="xs" variant="ghost">
             <Link href={`/components/${entry.installedId}`}>
               <Check />
-              Open
+              פתח
             </Link>
           </Button>
         ) : (
           canManage && (
             <Button size="xs" variant={entry.recommended ? "default" : "outline"} onClick={onAdd} disabled={adding}>
               {adding ? <Loader2 className="animate-spin" /> : <Plus />}
-              Add
+              הוסף למסך
             </Button>
           )
         )}
@@ -136,8 +145,8 @@ export function ComponentStore({
       else toast.error(res.error);
       return;
     }
-    toast.success(`${entry.definition.name} added to your workspace`, {
-      action: { label: "Go to Home", onClick: () => router.push("/home") },
+    toast.success(`"${entry.definition.name}" נוסף למסך העבודה`, {
+      action: { label: "למסך הבית", onClick: () => router.push("/home") },
     });
     router.refresh();
   }
@@ -146,7 +155,7 @@ export function ComponentStore({
     startBulk(async () => {
       const res = await addRecommendedComponents();
       if (!res.ok) return void toast.error(res.error);
-      toast.success(`Added ${res.data.added.length} Components`);
+      toast.success(res.data.added.length === 1 ? "נוסף כלי אחד למסך" : `נוספו ${formatNumber(res.data.added.length)} כלים למסך`);
       router.push("/home");
       router.refresh();
     });
@@ -157,15 +166,15 @@ export function ComponentStore({
   return (
     <div className="space-y-12">
       {justImported && (
-        <div className="rounded-lg border bg-surface p-5">
-          <p className="text-sm font-semibold">Your data is in.</p>
+        <div className="rounded-xl border border-brand/20 bg-brand-soft/50 p-5 shadow-xs">
+          <p className="text-[15px] font-semibold">הנתונים שלך עלו בהצלחה.</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            We detected{" "}
+            מצאנו{" "}
             {(["customers", "transactions", "services", "leads", "deals", "activities"] as const)
               .filter((k) => counts[k])
-              .map((k) => `${counts[k].toLocaleString("en-US")} ${k}`)
+              .map((k) => `${formatNumber(counts[k])} ${ENTITY_COUNT_LABELS[k]}`)
               .join(", ")}
-            . Based on your business and your data, we recommend these Components.
+            . לפי סוג העסק והנתונים, אלה הכלים שאנחנו ממליצים עליהם.
           </p>
         </div>
       )}
@@ -173,13 +182,13 @@ export function ComponentStore({
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold">Recommended for your business</h2>
-            <p className="text-sm text-muted-foreground">Based on your business type and the data you have.</p>
+            <h2 className="text-base font-semibold">מומלץ לעסק שלך</h2>
+            <p className="text-sm text-muted-foreground">לפי סוג העסק והנתונים שכבר יש לך.</p>
           </div>
           {canManage && recommended.length > 1 && (
             <Button onClick={addAllRecommended} disabled={bulkPending}>
               {bulkPending ? <Loader2 className="animate-spin" /> : <Plus />}
-              Add Recommended ({recommended.length})
+              הוסף את כל המומלצים ({formatNumber(recommended.length)})
             </Button>
           )}
         </div>
@@ -197,17 +206,17 @@ export function ComponentStore({
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed p-5 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>
               {Object.values(counts).some(Boolean)
-                ? "You've added everything we recommend. Browse all Components below."
-                : "Import your business data and we'll recommend the right Components."}
+                ? "הוספת את כל מה שהמלצנו עליו. אפשר לעיין בכל הכלים למטה."
+                : "העלה את נתוני העסק, ונמליץ לך על הכלים המתאימים."}
             </span>
             {!Object.values(counts).some(Boolean) && (
               <Button asChild size="sm">
                 <Link href="/data/import">
                   <Upload />
-                  Import Data
+                  העלה קובץ
                 </Link>
               </Button>
             )}
@@ -240,20 +249,19 @@ export function ComponentStore({
       <Dialog open={!!missing} onOpenChange={(o) => !o && setMissing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{missing?.name} needs more data</DialogTitle>
+            <DialogTitle>לכלי &quot;{missing?.name}&quot; חסרים נתונים</DialogTitle>
             <DialogDescription>
-              This Component needs {missing?.entities.map((e) => ENTITY_SINGULAR[e]).join(" and ")} data. Import a file or add records, then
-              add it again.
+              הכלי הזה צריך {missing ? entitiesText(missing.entities) : ""}. העלה קובץ או הוסף רשומות, ואז הוסף אותו שוב.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMissing(null)}>
-              Not now
+              לא עכשיו
             </Button>
             <Button asChild>
               <Link href="/data/import">
                 <Upload />
-                Import Data
+                העלה קובץ
               </Link>
             </Button>
           </DialogFooter>
