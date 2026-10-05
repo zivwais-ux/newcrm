@@ -27,6 +27,11 @@ export function CanvasStyles() {
   animation: bos-march 0.8s linear infinite;
 }
 
+@keyframes bos-updated {
+  0% { box-shadow: 0 0 0 0 rgb(21 128 61 / 0.35); }
+  100% { box-shadow: 0 0 0 12px rgb(21 128 61 / 0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bos-nudge, .bos-drop-border { animation: none; }
 }

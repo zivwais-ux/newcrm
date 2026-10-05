@@ -9,10 +9,13 @@ import { cn } from "@/lib/utils";
 import { ImportWizard } from "./import-wizard";
 
 export const OPEN_IMPORT_EVENT = "bos:open-import";
+let panelMounted = 0;
 
 /** Opens the import panel from anywhere on the page (e.g. an empty tool's "upload a file" button). */
 export function openImportPanel(hint?: string) {
+  if (!panelMounted) return false;
   window.dispatchEvent(new CustomEvent(OPEN_IMPORT_EVENT, { detail: { hint } }));
+  return true;
 }
 
 /**
@@ -70,7 +73,9 @@ export function CanvasFileDrop({ onImported }: { onImported?: (updatedTypes: str
     window.addEventListener("dragover", overFn);
     window.addEventListener("drop", drop);
     window.addEventListener(OPEN_IMPORT_EVENT, openEvent);
+    panelMounted++;
     return () => {
+      panelMounted--;
       window.removeEventListener("dragenter", enter);
       window.removeEventListener("dragleave", leave);
       window.removeEventListener("dragover", overFn);

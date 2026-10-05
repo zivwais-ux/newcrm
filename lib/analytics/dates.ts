@@ -11,10 +11,10 @@ export const RANGE_PRESETS = {
 export type RangePreset = keyof typeof RANGE_PRESETS;
 
 export const COMPARE_OPTIONS = {
-  previous_period: "Previous period",
-  previous_month: "Previous month",
-  previous_quarter: "Previous quarter",
-  previous_year: "Previous year",
+  previous_period: "התקופה הקודמת",
+  previous_month: "החודש הקודם",
+  previous_quarter: "הרבעון הקודם",
+  previous_year: "השנה הקודמת",
 } as const;
 export type CompareOption = keyof typeof COMPARE_OPTIONS;
 

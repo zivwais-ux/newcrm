@@ -69,7 +69,9 @@ export function CanvasFrame({
   activeFilters,
   onResize,
   onRemove,
+  highlighted = false,
 }: {
+  highlighted?: boolean;
   item: CanvasItem;
   body: React.ReactNode;
   editable: boolean;
@@ -128,9 +130,11 @@ export function CanvasFrame({
         "group/frame relative col-span-12 flex min-w-0 flex-col rounded-xl border bg-surface shadow-sm transition-shadow hover:shadow-md",
         SPAN[w],
         isDragging && "z-10 opacity-60 ring-2 ring-brand/30",
+        highlighted && "ring-2 ring-positive/50 shadow-md animate-[bos-updated_1.2s_ease-out_2]",
         liveW && "ring-2 ring-brand/40",
       )}
       aria-label={item.name}
+      data-updated={highlighted || undefined}
     >
       <header className="flex items-center gap-2.5 border-b px-4 py-3">
         {editable && !item.pending && (

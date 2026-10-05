@@ -18,7 +18,7 @@ import { Plus } from "lucide-react";
 import { RecordFormDialog } from "./record-form";
 import { useWorkspace } from "@/components/layout/workspace-provider";
 import { moveDeal } from "@/lib/actions/records";
-import { cn, daysAgo, formatCurrency, formatNumber } from "@/lib/utils";
+import { cn, daysAgo, formatCurrency, formatNumber, plural } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
 import { DEAL_STAGES, type Deal, type DealStage } from "@/types/domain";
 import { STAGE_LABELS } from "./labels";
@@ -49,7 +49,7 @@ function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () =
       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
         <Ltr className="font-semibold tabular">{formatCurrency(deal.value, org.currency)}</Ltr>
         <span className={cn("truncate text-muted-foreground", open && idle >= 14 && "text-warning")}>
-          {open ? (idle <= 0 ? "עודכנה היום" : `${formatNumber(idle)} ימים בלי תזוזה`) : owner ?? ""}
+          {open ? (idle <= 0 ? "עודכנה היום" : `${plural(idle, "יום", "ימים")} בלי תזוזה`) : owner ?? ""}
         </span>
       </div>
       {open && owner && <p className="mt-1 truncate text-[11px] text-muted-foreground">{owner}</p>}

@@ -13,7 +13,7 @@ import { CustomerSpotlight } from "@/components/components-system/customer-spotl
 import type { CanvasItem } from "@/components/components-system/canvas-frame";
 import type { PaletteEntry } from "@/components/components-system/component-palette";
 import { BriefCard } from "@/components/ai/brief-card";
-import type { SearchParams } from "@/lib/params";
+import { param, type SearchParams } from "@/lib/params";
 import type { InstalledComponent } from "@/types/domain";
 
 export const metadata = { title: "בית" };
@@ -109,6 +109,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         checklist={{ hasData: Object.values(counts).some((n) => n > 0), componentCount: installed.length }}
         canManage={canManage(role)}
         activeFilters={activeFilterKeys(filters)}
+        updated={(param(params, "updated") ?? "").split(",").filter(Boolean)}
         top={
           <Suspense fallback={<Skeleton className="h-28 rounded-xl" />}>
             <BriefSection org={{ id: org.id, name: org.name, currency: org.currency }} />

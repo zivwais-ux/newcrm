@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const { supabase, user, profile, org, role } = await requireOrg();
   if (!org.onboarding_completed) redirect("/onboarding");
   const members = await getMembers(supabase, org.id);
-  const name = profile.full_name || user.email?.split("@")[0] || "שם";
+  const name = profile.full_name || user.email?.split("@")[0] || "חבר צוות";
 
   return (
     <WorkspaceProvider

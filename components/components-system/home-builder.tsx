@@ -29,6 +29,7 @@ import { entitiesText } from "@/lib/components/registry";
 import { SIZE_TO_WIDTH, type ComponentSize, type ComponentWidth, type FilterKey } from "@/lib/components/types";
 import type { EntityName } from "@/types/domain";
 import { cn } from "@/lib/utils";
+import { CanvasFileDrop } from "@/components/data-import/canvas-file-drop";
 import { CanvasFrame, DropPlaceholder, type CanvasItem } from "./canvas-frame";
 import { ComponentPalette, PaletteCard, linkedPartners, type Checklist, type PaletteEntry } from "./component-palette";
 import { FilterBar } from "./workspace-filters";
@@ -69,8 +70,11 @@ export function HomeBuilder({
   canManage,
   activeFilters,
   top,
+  updated = [],
 }: {
   top?: React.ReactNode;
+  /** Component types that just received imported data — briefly highlighted. */
+  updated?: string[];
   items: CanvasItem[];
   bodies: Record<string, React.ReactNode>;
   entries: PaletteEntry[];
@@ -86,6 +90,12 @@ export function HomeBuilder({
   const [placeholderIndex, setPlaceholderIndex] = useState<number | null>(null);
   const [missing, setMissing] = useState<{ name: string; entities: EntityName[] } | null>(null);
   const [saving, startSaving] = useTransition();
+  const [flash, setFlash] = useState<Set<string>>(() => new Set(updated));
+  useEffect(() => {
+    if (!flash.size) return;
+    const t = setTimeout(() => setFlash(new Set()), 4000);
+    return () => clearTimeout(t);
+  }, [flash]);
   const editable = canManage && !preview;
 
   useEffect(() => setItems(initialItems), [initialItems]);
@@ -353,6 +363,7 @@ export function HomeBuilder({
                         activeFilters={activeFilters}
                         onResize={(w) => resize(item.id, w)}
                         onRemove={() => remove(item.id)}
+                        highlighted={flash.has(item.type)}
                       />
                     ),
                   )}
@@ -396,6 +407,7 @@ export function HomeBuilder({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <CanvasFileDrop onImported={(types) => setFlash(new Set(types))} />
     </DndContext>
   );
 }

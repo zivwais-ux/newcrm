@@ -1,10 +1,9 @@
-import Link from "next/link";
-import { AlertCircle, Database, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { AlertCircle, Database } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { entitiesText, getDefinition, missingEntities, resolveConfig } from "@/lib/components/registry";
 import { COMPONENT_LOADERS, type LoaderContext } from "@/lib/components/loaders";
 import type { DataCounts } from "@/types/domain";
+import { ImportButton } from "@/components/data-import/import-button";
 import { ComponentView } from "./views";
 
 /**
@@ -38,14 +37,7 @@ export async function ComponentBody({
         icon={<Database />}
         title={def.emptyState.title}
         description={`הכלי הזה צריך ${entitiesText(missing)}. ${def.emptyState.description}`}
-        action={
-          <Button asChild size="sm">
-            <Link href="/data/import">
-              <Upload />
-              העלה קובץ
-            </Link>
-          </Button>
-        }
+        action={<ImportButton need={missing[0]} hint={`הכלי "${def.name}" צריך ${entitiesText(missing)}. העלה קובץ שיש בו אותם — כל פורמט, כל שמות עמודות.`} />}
       />
     );
   }
