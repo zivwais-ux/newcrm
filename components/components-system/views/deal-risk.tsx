@@ -14,7 +14,7 @@ import type { DealRiskData } from "@/lib/components/loaders";
 import type { DealStage } from "@/types/domain";
 import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 
-export function DealRiskView({ data, config, currency }: ViewProps<DealRiskData>) {
+export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
   const [bulk, setBulk] = useState(false);
   if (!data.deals.length)
     return (
@@ -22,7 +22,7 @@ export function DealRiskView({ data, config, currency }: ViewProps<DealRiskData>
         compact
         icon={<ShieldCheck />}
         title="אין עסקאות תקועות"
-        description={`בכל העסקאות הפתוחות${data.stage ? ` בשלב ${STAGE_LABELS[data.stage]}` : ""} הייתה פעילות ב-${config.idleDays} הימים האחרונים. עסקה שתיתקע תופיע כאן.`}
+        description={`בכל העסקאות הפתוחות${data.stage ? ` בשלב ${STAGE_LABELS[data.stage]}` : ""} הייתה פעילות ב-${data.idleDays} הימים האחרונים. עסקה שתיתקע תופיע כאן.`}
       />
     );
   return (
@@ -32,29 +32,37 @@ export function DealRiskView({ data, config, currency }: ViewProps<DealRiskData>
           <span className="font-medium text-foreground tabular">{formatNumber(data.total)}</span> עסקאות · <Ltr>{formatCurrency(data.totalValue, currency)}</Ltr> בסיכון
           {data.stage && <span className="font-medium text-brand"> · {STAGE_LABELS[data.stage]}</span>}
         </p>
-        <Button size="xs" variant="outline" onClick={() => setBulk(true)}>
-          צור משימות לכולן
-        </Button>
+        {data.ids.length > 0 ? (
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => setBulk(true)}
+            title={data.withTaskCount ? `${plural(data.withTaskCount, "עסקאות", "עסקאות", "עסקה אחת")} כבר עם משימה פתוחה — לא ניצור להן עוד אחת` : undefined}
+          >
+            צור משימות ({formatNumber(data.ids.length)})
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">לכולן כבר יש משימה פתוחה</span>
+        )}
       </div>
       {data.deals.map((d) => (
         <ListRow key={d.id} className="items-start">
           <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="truncate text-sm font-medium">{d.customer_name ?? d.name}</p>
+            <p className="truncate text-sm font-medium">{d.name}</p>
+            {d.customer_name && <p className="truncate text-xs text-muted-foreground">{d.customer_name}</p>}
             <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
               <Ltr className="font-medium text-foreground tabular">{formatCurrency(d.value, currency)}</Ltr>
               <Badge variant="outline">{STAGE_LABELS[d.stage as DealStage] ?? d.stage}</Badge>
-              {d.reason === "past_close_date" ? (
-                <span className="text-warning">עבר תאריך הסגירה הצפוי ({formatDate(d.expected_close)})</span>
-              ) : (
-                <span className="text-warning">אין פעילות כבר {plural(d.days_idle, "יום", "ימים")}</span>
-              )}
+              {d.idle && <span className="text-warning">אין פעילות כבר {plural(d.days_idle, "יום", "ימים", "יום אחד")}</span>}
+              {d.pastClose && <span className="text-warning">עבר תאריך הסגירה הצפוי ({formatDate(d.expected_close)})</span>}
+              {d.hasOpenTask && <Badge variant="brand">יש משימה פתוחה</Badge>}
             </p>
           </div>
           <div className="flex shrink-0 gap-0.5">
             <Button asChild size="xs" variant="ghost">
               <Link href={`/deals?deal=${d.id}`}>צפה בעסקה</Link>
             </Button>
-            <CreateTaskButton dealId={d.id} customerId={d.customer_id} customerName={d.customer_name} title={`לחזור לגבי ${d.name}`} />
+            {!d.hasOpenTask && <CreateTaskButton dealId={d.id} customerId={d.customer_id} customerName={d.customer_name} title={`לחזור לגבי ${d.name}`} />}
           </div>
         </ListRow>
       ))}

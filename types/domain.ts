@@ -60,7 +60,7 @@ export interface Deal {
   custom_fields: Record<string, unknown>;
   created_at: string;
   updated_at: string;
-  customers?: { name: string } | null;
+  customers?: { name: string; phone?: string | null } | null;
 }
 
 export interface Transaction {

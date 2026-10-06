@@ -3,13 +3,14 @@
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, Check, Handshake, ListChecks, Sun, UserRoundCheck } from "lucide-react";
+import { BellRing, CalendarClock, Check, CheckCircle2, Handshake, ListChecks, Sun, UserRoundCheck, UserRoundX } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { ACTIVITY_TYPE_LABELS, label } from "@/components/business/labels";
-import { setTaskStatus } from "@/lib/actions/records";
-import { formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
+import { setAppointmentAttendance, setTaskDone } from "@/lib/actions/tools";
+import { cn, formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 import type { TodayData } from "@/lib/components/loaders";
 import { CustomerLink } from "../workspace-filters";
 import { CreateTaskButton, ListRow, SectionLabel, type ViewProps } from "../shared";
@@ -36,9 +37,26 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
   const router = useRouter();
   const [, start] = useTransition();
   const [tasks, markDone] = useOptimistic(data.tasks, (state, id: string) => state.filter((t) => t.id !== id));
-  const total = data.appointments.length + data.taskCount + data.comeBack.length + data.stuck.length;
+  const [appointments, markAttendance] = useOptimistic(data.appointments, (state, m: { id: string; attendance: "arrived" | "no_show" }) =>
+    state.map((a) => (a.id === m.id ? { ...a, attendance: m.attendance } : a)),
+  );
+  // Counts follow optimistic updates immediately, before the server refresh lands.
+  const taskCount = Math.max(0, data.taskCount - (data.tasks.length - tasks.length));
+  const openAppointments = appointments.filter((a) => !a.attendance).length;
+  const pendingReminders = data.reminders.filter((r) => !r.sent).length;
+  const total = openAppointments + taskCount + data.comeBack.length + data.stuck.length + pendingReminders;
 
-  if (!total)
+  function attendance(id: string, value: "arrived" | "no_show") {
+    start(async () => {
+      markAttendance({ id, attendance: value });
+      const res = await setAppointmentAttendance(id, value);
+      if (!res.ok) toast.error(res.error);
+      else toast.success(value === "arrived" ? "נרשם שהלקוח הגיע" : "נרשם שהלקוח לא הגיע");
+      router.refresh();
+    });
+  }
+
+  if (!total && !appointments.length && !data.reminders.length)
     return (
       <EmptyState
         compact
@@ -56,25 +74,44 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
         {data.scopedTo && <span className="text-muted-foreground"> · רק {data.scopedTo}</span>}
       </p>
 
-      {data.appointments.length > 0 && (
-        <Section icon={<CalendarClock />} title="תורים ופגישות היום" count={data.appointments.length}>
-          {data.appointments.map((a) => (
-            <ListRow key={a.id}>
+      {appointments.length > 0 && (
+        <Section icon={<CalendarClock />} title="תורים ופגישות היום" count={appointments.length}>
+          {appointments.map((a) => (
+            <ListRow key={a.id} className={cn(a.attendance && "opacity-70")}>
               <span className="w-12 shrink-0 text-sm font-semibold tabular">
                 <Ltr>{time(a.date)}</Ltr>
               </span>
               <div className="min-w-0 flex-1">
                 {a.customer_id && a.customer ? <CustomerLink id={a.customer_id}>{a.customer.name}</CustomerLink> : <p className="text-sm">{label(ACTIVITY_TYPE_LABELS, a.type)}</p>}
-                <p className="truncate text-xs text-muted-foreground">{a.notes || label(ACTIVITY_TYPE_LABELS, a.type)}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {a.attendance === "arrived" && <span className="font-medium text-positive">הגיע · </span>}
+                  {a.attendance === "no_show" && <span className="font-medium text-negative">לא הגיע · </span>}
+                  {a.notes || label(ACTIVITY_TYPE_LABELS, a.type)}
+                </p>
               </div>
-              {a.customer && <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template="תזכורת לתור" />}
+              {a.past && !a.attendance && (
+                <div className="flex shrink-0 gap-0.5">
+                  <Button size="xs" variant="ghost" className="text-positive" onClick={() => attendance(a.id, "arrived")}>
+                    <CheckCircle2 />
+                    הגיע
+                  </Button>
+                  <Button size="xs" variant="ghost" className="text-negative" onClick={() => attendance(a.id, "no_show")}>
+                    <UserRoundX />
+                    לא הגיע
+                  </Button>
+                </div>
+              )}
+              {a.customer && !a.past && <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template="תזכורת לתור" />}
+              {a.customer && a.attendance === "no_show" && (
+                <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template="הודעה חופשית" />
+              )}
             </ListRow>
           ))}
         </Section>
       )}
 
       {tasks.length > 0 && (
-        <Section icon={<ListChecks />} title="משימות להיום ובאיחור" count={data.taskCount}>
+        <Section icon={<ListChecks />} title="משימות להיום ובאיחור" count={taskCount}>
           {tasks.map((t) => {
             const late = t.due_date && t.due_date < data.today;
             return (
@@ -85,7 +122,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
                   onClick={() =>
                     start(async () => {
                       markDone(t.id);
-                      const res = await setTaskStatus(t.id, "done");
+                      const res = await setTaskDone(t.id, true);
                       if (!res.ok) toast.error(res.error);
                       else toast.success("כל הכבוד! המשימה סומנה כבוצעה");
                       router.refresh();
@@ -138,6 +175,38 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
                 </p>
               </div>
               {d.customer_name && <WhatsAppButton phone={d.phone} name={d.customer_name} customerId={d.customer_id} dealId={d.id} />}
+            </ListRow>
+          ))}
+        </Section>
+      )}
+
+      {data.reminders.length > 0 && (
+        <Section icon={<BellRing />} title="תזכורת לתורים של מחר" count={pendingReminders}>
+          <p className="mb-1 text-xs text-muted-foreground">שלח לכל לקוח תזכורת ב-WhatsApp, כדי שלא ישכח את התור של {formatDate(data.tomorrow)}.</p>
+          {data.reminders.map((r) => (
+            <ListRow key={r.id}>
+              <span className="w-12 shrink-0 text-sm font-semibold tabular">
+                <Ltr>{time(r.date)}</Ltr>
+              </span>
+              <div className="min-w-0 flex-1">
+                {r.customer_id && r.customer ? <CustomerLink id={r.customer_id}>{r.customer.name}</CustomerLink> : <p className="text-sm">{label(ACTIVITY_TYPE_LABELS, r.type)}</p>}
+                <p className="truncate text-xs text-muted-foreground">
+                  {r.sent && <span className="font-medium text-positive">נשלחה הודעה היום · </span>}
+                  {r.notes || label(ACTIVITY_TYPE_LABELS, r.type)}
+                </p>
+              </div>
+              {r.customer ? (
+                <WhatsAppButton
+                  phone={r.customer.phone}
+                  name={r.customer.name}
+                  customerId={r.customer_id}
+                  template="תזכורת לתור"
+                  variant="button"
+                  label={r.sent ? "שלח שוב" : "שלח תזכורת"}
+                />
+              ) : (
+                <span className="text-xs text-muted-foreground">אין לקוח מקושר</span>
+              )}
             </ListRow>
           ))}
         </Section>

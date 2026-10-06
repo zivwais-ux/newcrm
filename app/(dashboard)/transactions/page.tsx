@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Receipt } from "lucide-react";
+import { Receipt, X } from "lucide-react";
 import { requireOrg } from "@/lib/supabase/server";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { FilterTabs, Pagination, SearchInput } from "@/components/business/list-controls";
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
@@ -16,16 +17,27 @@ import type { Transaction } from "@/types/domain";
 export const metadata = { title: "כסף ומכירות" };
 const PAGE_SIZE = 50;
 
+/** Accepts only a real calendar date "yyyy-mm-dd". */
+function dateParam(v: string | undefined) {
+  if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return null;
+  const d = new Date(`${v}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v ? null : v;
+}
+
 export default async function TransactionsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
   const page = pageParam(params);
   const q = searchTerm(param(params, "q"));
   const type = param(params, "type");
+  const from = dateParam(param(params, "from"));
+  const to = dateParam(param(params, "to"));
 
   let query = supabase.from("transactions").select("*, customers(name)", { count: "exact" }).eq("organization_id", org.id);
   if (q) query = query.or(`product_or_service.ilike.%${q}%,owner_name.ilike.%${q}%`);
   if (type) query = query.eq("type", type);
+  if (from) query = query.gte("date", from);
+  if (to) query = query.lte("date", to);
   const { data, count } = await query
     .order("date", { ascending: false })
     .order("created_at", { ascending: false })
@@ -46,6 +58,31 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         />
       ) : (
         <>
+          {(from || to) && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand/15 bg-brand-soft/60 px-4 py-3 shadow-xs">
+              <p className="min-w-0 flex-1 text-sm font-medium">
+                {from && to ? (
+                  <>
+                    מכירות מ-<Ltr>{formatDate(from)}</Ltr> עד <Ltr>{formatDate(to)}</Ltr>
+                  </>
+                ) : from ? (
+                  <>
+                    מכירות מ-<Ltr>{formatDate(from)}</Ltr> והלאה
+                  </>
+                ) : (
+                  <>
+                    מכירות עד <Ltr>{formatDate(to)}</Ltr>
+                  </>
+                )}
+              </p>
+              <Button asChild size="xs" variant="ghost">
+                <Link href="/transactions">
+                  <X />
+                  כל התאריכים
+                </Link>
+              </Button>
+            </div>
+          )}
           <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <SearchInput placeholder="חיפוש לפי מוצר, שירות או עובד…" />
             <FilterTabs

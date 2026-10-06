@@ -27,6 +27,10 @@ export interface RevenueSummary {
   compare_total: number;
   tx_count: number;
   compare_tx_count: number;
+  /** Paid sales in range (refunds, pending and cancelled excluded). */
+  sale_count: number;
+  /** Amount of sales still waiting for payment (status 'pending'), not counted as revenue. */
+  pending_total: number;
   customers: number;
   compare_customers: number;
   this_month: number;
@@ -64,6 +68,8 @@ export async function getRevenueSummary(
     compare_total: num(d.compare_total),
     tx_count: num(d.tx_count),
     compare_tx_count: num(d.compare_tx_count),
+    sale_count: num(d.sale_count ?? d.tx_count),
+    pending_total: num(d.pending_total),
     customers: num(d.customers),
     compare_customers: num(d.compare_customers),
     this_month: num(d.this_month),
@@ -215,6 +221,21 @@ export async function getOverdueCustomers(supabase: SupabaseClient, org: string,
   }));
 }
 
+export interface OneTimeCustomer {
+  id: string;
+  name: string;
+  phone: string | null;
+  total_revenue: number;
+  last_purchase: string;
+  days_since: number;
+}
+
+/** Customers who bought exactly once, between `minDays` and a year ago — worth inviting back. */
+export async function getOneTimeCustomers(supabase: SupabaseClient, org: string, minDays = 30, limit = 50): Promise<OneTimeCustomer[]> {
+  const rows = await rpc<OneTimeCustomer[]>(supabase, "one_time_customers", { org, min_days: minDays, p_limit: limit });
+  return (rows ?? []).map((r) => ({ ...r, total_revenue: num(r.total_revenue), days_since: num(r.days_since) }));
+}
+
 export interface RiskCustomer {
   id: string;
   name: string;
@@ -360,6 +381,8 @@ export async function getRevenueSummaryFiltered(
     compare_total: num(d.compare_total),
     tx_count: num(d.tx_count),
     compare_tx_count: num(d.compare_tx_count),
+    sale_count: num(d.sale_count ?? d.tx_count),
+    pending_total: num(d.pending_total),
     customers: num(d.customers),
     compare_customers: num(d.compare_customers),
     this_month: num(d.this_month),

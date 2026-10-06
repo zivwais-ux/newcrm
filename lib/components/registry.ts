@@ -34,6 +34,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     actions: [
       { id: "whatsapp", label: "שלח WhatsApp" },
       { id: "complete-task", label: "סמן כבוצעה" },
+      { id: "mark-attendance", label: "סמן הגיע / לא הגיע" },
+      { id: "remind-tomorrow", label: "תזכורת לתורים של מחר" },
     ],
     permissions: MANAGERS,
     consumes: ["service"],
@@ -88,6 +90,7 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
         label: "טווח תאריכים",
         type: "select",
         options: [
+          { value: "30d", label: "30 הימים האחרונים" },
           { value: "90d", label: "90 הימים האחרונים" },
           { value: "6m", label: "חצי שנה אחרונה" },
           { value: "12m", label: "12 החודשים האחרונים" },
@@ -140,7 +143,7 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     requiredEntities: ["transactions"],
     recommendedFor: ["service", "both"],
     defaultSize: "md",
-    visualization: "אחוז לקוחות חוזרים ורשימת קבועים שלא חזרו",
+    visualization: "אחוז לקוחות חוזרים, קבועים שלא חזרו, ומי שקנה פעם אחת וכדאי להזמין",
     configFields: [
       {
         key: "factor",
@@ -199,6 +202,7 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     actions: [
       { id: "view-customer", label: "צפה בלקוח" },
       { id: "create-task", label: "צור משימה" },
+      { id: "bulk-tasks", label: "צור משימות לכולם" },
     ],
     permissions: MANAGERS,
     consumes: ["service"],
@@ -225,6 +229,16 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
         ],
         default: "recent",
       },
+      {
+        key: "whatsapp",
+        label: "הודעות WhatsApp שנשלחו",
+        type: "select",
+        options: [
+          { value: "hide", label: "אל תציג (רק תורים, שיחות וביקורים)" },
+          { value: "show", label: "הצג גם אותן" },
+        ],
+        default: "hide",
+      },
     ],
     actions: [
       { id: "add-activity", label: "הוסף פעילות" },
@@ -249,6 +263,8 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     actions: [
       { id: "add-deal", label: "הוסף עסקה" },
       { id: "move-deal", label: "העבר עסקה לשלב אחר" },
+      { id: "record-sale", label: "רשום מכירה מעסקה שנסגרה" },
+      { id: "whatsapp", label: "שלח WhatsApp" },
     ],
     permissions: MANAGERS,
     consumes: ["stage"],
@@ -308,8 +324,24 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
         ],
         default: "7",
       },
+      {
+        key: "idleDays",
+        label: "עסקה שקטה אם לא הייתה בה פעילות במשך",
+        type: "select",
+        options: [
+          { value: "7", label: "7 ימים" },
+          { value: "14", label: "14 ימים" },
+          { value: "30", label: "30 ימים" },
+        ],
+        default: "14",
+      },
     ],
-    actions: [{ id: "create-task", label: "צור משימה" }],
+    actions: [
+      { id: "create-task", label: "צור משימה" },
+      { id: "complete-task", label: "סמן כבוצעה" },
+      { id: "whatsapp", label: "שלח WhatsApp" },
+      { id: "mark-lead-contacted", label: "סמן שנוצר קשר" },
+    ],
     permissions: MANAGERS,
     consumes: ["stage"],
     emits: [],
@@ -339,6 +371,9 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     actions: [
       { id: "add-task", label: "הוסף משימה" },
       { id: "complete-task", label: "סמן כבוצעה" },
+      { id: "postpone-task", label: "דחה למחר" },
+      { id: "edit-task", label: "ערוך משימה" },
+      { id: "delete-task", label: "מחק משימה" },
     ],
     permissions: MANAGERS,
     consumes: [],

@@ -17,7 +17,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Search
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
   const [{ data }, summary] = await Promise.all([
-    supabase.from("deals").select("*, customers(name)").eq("organization_id", org.id).order("value", { ascending: false }).limit(500),
+    supabase.from("deals").select("*, customers(name, phone)").eq("organization_id", org.id).order("value", { ascending: false }).limit(500),
     getPipelineSummary(supabase, org.id),
   ]);
   const deals = (data ?? []) as Deal[];
@@ -45,7 +45,7 @@ export default async function DealsPage({ searchParams }: { searchParams: Search
             <Stat label="נסגרו בהצלחה" value={<Ltr>{formatCurrency(won?.value ?? 0, org.currency)}</Ltr>} hint={plural(won?.deals ?? 0, "עסקה", "עסקאות", "עסקה אחת")} />
             <Stat label="אחוז הצלחה" value={winRate === null ? "—" : <Ltr>{winRate}%</Ltr>} />
           </div>
-          <PipelineBoard deals={deals} focusDealId={param(params, "deal") ?? null} />
+          <PipelineBoard deals={deals} summary={summary} focusDealId={param(params, "deal") ?? null} />
         </div>
       )}
     </PageContainer>

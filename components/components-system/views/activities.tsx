@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { CalendarClock } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityItem } from "@/components/business/activity-list";
@@ -10,12 +11,12 @@ import { SectionLabel, type ViewProps } from "../shared";
 export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
   const sections = data.upcomingFirst
     ? [
-        { label: "בהמשך", items: data.upcoming },
-        { label: "לאחרונה", items: data.recent },
+        { label: "היום ובהמשך", items: data.upcoming },
+        { label: "לפני היום", items: data.recent },
       ]
     : [
-        { label: "לאחרונה", items: data.recent },
-        { label: "בהמשך", items: data.upcoming },
+        { label: "לפני היום", items: data.recent },
+        { label: "היום ובהמשך", items: data.upcoming },
       ];
   const empty = !data.upcoming.length && !data.recent.length;
   return (
@@ -30,7 +31,7 @@ export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
           compact
           icon={<CalendarClock />}
           title="עדיין אין פעילות"
-          description="כאן יופיעו התורים, השיחות והביקורים שלך לפי תאריך. רשום את הפעילות הראשונה."
+          description="כאן יופיעו התורים, השיחות והביקורים שלך — מה שמחכה היום ובהמשך, ומה שהיה לאחרונה. רשום את הפעילות הראשונה."
           action={
             <NewRecordButton entity="activities" size="sm">
               הוסף פעילות
@@ -48,6 +49,11 @@ export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
               ))}
             </div>
           ))
+      )}
+      {!empty && (
+        <Link href="/activities" className="inline-block text-xs font-medium text-muted-foreground hover:text-foreground">
+          לכל הפעילות ←
+        </Link>
       )}
     </div>
   );

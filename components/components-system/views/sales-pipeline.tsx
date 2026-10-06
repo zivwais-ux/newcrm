@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Handshake } from "lucide-react";
-import { PipelineBoard } from "@/components/business/pipeline-board";
-import { Upload } from "lucide-react";
+import { Handshake, Upload, X } from "lucide-react";
+import { PipelineBoard, STAGE_LABELS } from "@/components/business/pipeline-board";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -16,7 +15,7 @@ import { useWorkspaceFilters } from "../workspace-filters";
 
 export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
   const { toggle } = useWorkspaceFilters();
-  if (!data.deals.length)
+  if (!data.totalDeals)
     return (
       <EmptyState
         compact
@@ -39,6 +38,7 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
   const open = data.summary.filter((s) => s.stage !== "won" && s.stage !== "lost");
   const won = data.summary.find((s) => s.stage === "won");
   const lost = data.summary.find((s) => s.stage === "lost");
+  const stageRow = data.stage ? data.summary.find((s) => s.stage === data.stage) : null;
   const winRate = won && lost && won.deals + lost.deals ? Math.round((won.deals / (won.deals + lost.deals)) * 100) : null;
   return (
     <div className="space-y-5">
@@ -51,7 +51,30 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
         <Stat label="נסגרו בהצלחה" value={<Ltr>{formatCurrency(won?.value ?? 0, currency)}</Ltr>} hint={plural(won?.deals ?? 0, "עסקה", "עסקאות", "עסקה אחת")} />
         <Stat label="אחוז סגירה" value={winRate === null ? "—" : <Ltr>{winRate}%</Ltr>} />
       </div>
-      <PipelineBoard deals={data.deals} limitPerColumn={3} selectedStage={data.stage} onStageClick={(stage) => toggle("stage", stage)} />
+      {data.stage && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>
+            מוצגות רק עסקאות בשלב <span className="font-medium text-foreground">{STAGE_LABELS[data.stage]}</span>
+            {stageRow && (
+              <>
+                {" "}
+                · {plural(stageRow.deals, "עסקה", "עסקאות", "עסקה אחת")} · <Ltr>{formatCurrency(stageRow.value, currency)}</Ltr>
+              </>
+            )}
+          </span>
+          <Button size="xs" variant="ghost" onClick={() => toggle("stage", null)}>
+            <X />
+            הצג את כל השלבים
+          </Button>
+        </div>
+      )}
+      <PipelineBoard
+        deals={data.deals}
+        summary={data.summary}
+        limitPerColumn={3}
+        selectedStage={data.stage}
+        onStageClick={(stage) => toggle("stage", stage)}
+      />
       <Link href="/deals" className="inline-block text-xs font-medium text-muted-foreground hover:text-foreground">
         לכל העסקאות ←
       </Link>
