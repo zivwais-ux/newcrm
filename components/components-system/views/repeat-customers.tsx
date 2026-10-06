@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Stat } from "@/components/business/stat";
-import { CalendarCheck, Repeat, Upload } from "lucide-react";
+import { CalendarCheck, Repeat, UploadSimple } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -27,7 +27,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
           data.scopedTo ? undefined : (
             <Button asChild size="sm">
               <Link href="/data/import">
-                <Upload />
+                <UploadSimple />
                 העלה קובץ מכירות
               </Link>
             </Button>
@@ -65,7 +65,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
 
       <div>
         <SectionLabel className="mb-1">
-          בדרך כלל חוזרים, אבל עוד לא חזרו · <span className="text-foreground tabular">{formatNumber(stats.overdue)}</span>
+          בדרך כלל חוזרים, אבל עוד לא חזרו · <span className="text-foreground num">{formatNumber(stats.overdue)}</span>
           {data.scopedTo && <span className="font-normal"> · לפי קצב הקנייה הכללי</span>}
         </SectionLabel>
         {overdue.length === 0 ? (
@@ -102,7 +102,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
             קנו פעם אחת — כדאי להזמין לחזור
             {data.oneTimeTotal !== null && (
               <>
-                {" "}· <span className="text-foreground tabular">{formatNumber(data.oneTimeTotal)}</span>
+                {" "}· <span className="text-foreground num">{formatNumber(data.oneTimeTotal)}</span>
               </>
             )}
           </SectionLabel>

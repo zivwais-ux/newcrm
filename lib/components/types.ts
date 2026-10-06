@@ -18,6 +18,10 @@ export const SIZE_LABELS: Record<ComponentSize, string> = { sm: "קטן", md: "�
 export const WIDTHS = ["3", "4", "6", "8", "12"] as const;
 export type ComponentWidth = (typeof WIDTHS)[number];
 export const WIDTH_LABELS: Record<ComponentWidth, string> = { "3": "רבע", "4": "שליש", "6": "חצי", "8": "שני שליש", "12": "רוחב מלא" };
+/** Module height on the canvas: regular follows its content, tall reserves a long block (lists, charts). */
+export const HEIGHTS = ["regular", "tall"] as const;
+export type ComponentHeight = (typeof HEIGHTS)[number];
+export const HEIGHT_LABELS: Record<ComponentHeight, string> = { regular: "רגיל", tall: "גבוה" };
 export const SIZE_TO_WIDTH: Record<ComponentSize, ComponentWidth> = { sm: "4", md: "6", lg: "12" };
 
 /**
@@ -70,4 +74,4 @@ export interface ComponentDefinition {
   emits: EmitKey[];
 }
 
-export type ComponentConfig = Record<string, string> & { size?: ComponentSize; w?: ComponentWidth };
+export type ComponentConfig = Record<string, string> & { size?: ComponentSize; w?: ComponentWidth; h?: ComponentHeight };

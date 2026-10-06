@@ -50,7 +50,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 {(l.custom_fields?.owner_name as string) ?? members.find((m) => m.user_id === l.owner_id)?.full_name ?? "—"}
               </TableCell>
               <TableCell className="hidden text-muted-foreground lg:table-cell">{relativeDays(l.updated_at)}</TableCell>
-              <TableCell className="pe-4 text-end tabular">{l.value ? <Ltr>{formatCurrency(l.value, org.currency)}</Ltr> : "—"}</TableCell>
+              <TableCell className="pe-4 text-end num">{l.value ? <Ltr>{formatCurrency(l.value, org.currency)}</Ltr> : "—"}</TableCell>
             </TableRow>
           ))}
         </TableBody>

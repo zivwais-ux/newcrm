@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarPlus, Handshake, ListPlus, MoreHorizontal, NotebookPen, Pencil, Receipt, Trash2 } from "lucide-react";
+import { CalendarPlus, DotsThree, Handshake, ListPlus, NotePencil, PencilSimple, Receipt, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { WhatsAppButton } from "./whatsapp-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -49,16 +49,16 @@ export function CustomerActions({ customer }: { customer: Customer }) {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="icon-sm" variant="outline" aria-label="עוד פעולות">
-            <MoreHorizontal />
+            <DotsThree />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setDialog("edit")}>
-            <Pencil />
+            <PencilSimple />
             ערוך לקוח
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("activities")}>
-            <NotebookPen />
+            <NotePencil />
             רשום שיחה או הערה
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("deals")}>
@@ -69,7 +69,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
-                <Trash2 />
+                <Trash />
                 מחק לקוח
               </DropdownMenuItem>
             </>

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ListPlus } from "lucide-react";
+import { ListPlus } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { RecordFormDialog } from "@/components/business/record-form";
 import { updateComponentConfig } from "@/lib/actions/components";
@@ -88,5 +88,15 @@ export function SectionLabel({ children, className }: { children: React.ReactNod
 }
 
 export function ListRow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("flex items-center gap-3 border-t py-2.5 first:border-t-0", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "relative -mx-2 flex items-center gap-3 border-t border-border px-2 py-2.5 transition-colors first:border-t-0 hover:bg-muted/50",
+        "before:absolute before:inset-y-1.5 before:start-0 before:w-[2px] before:bg-brand before:opacity-0 before:transition-opacity hover:before:opacity-100",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
 }

@@ -3,10 +3,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Neutral, premium SaaS palette. One accent, warm off-white canvas. */
+/* Modular studio: stone neutrals, one indigo accent, a darker "table" the modules sit on. */
 :root {
   --radius: 2px;
-  --background: #fafaf9;
+  --background: #f3f2ef;
+  --table: #efeeea;
+  --module: #ffffff;
+  --rail: #fbfaf8;
+  --line: #c9c6c0;
   --foreground: #18181b;
   --surface: #ffffff;
   --card: #ffffff;
@@ -17,8 +21,8 @@
   --primary-foreground: #fafafa;
   --secondary: #f4f4f5;
   --secondary-foreground: #18181b;
-  --muted: #f4f4f3;
-  --muted-foreground: #71717a;
+  --muted: #f1f0ed;
+  --muted-foreground: #6b6966;
   --accent: #f4f4f5;
   --accent-foreground: #18181b;
   --brand: #4f46e5;
@@ -30,10 +34,11 @@
   --warning: #b45309;
   --warning-soft: #fffbeb;
   --destructive: #dc2626;
-  --border: #e4e2df;
-  --input: #e4e4e7;
+  --border: #dcdad6;
+  --border-strong: #c9c6c0;
+  --input: #d6d3cf;
   --ring: #a1a1aa;
-  --sidebar: #f5f5f4;
+  --sidebar: #f5f4f1;
   --chart-1: #4f46e5;
   --chart-2: #0ea5e9;
   --chart-3: #10b981;
@@ -42,8 +47,13 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --color-table: var(--table);
+  --color-module: var(--module);
+  --color-rail: var(--rail);
+  --color-line: var(--line);
+  --color-border-strong: var(--border-strong);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
@@ -85,11 +95,13 @@
   --radius-xl: var(--radius);
   --radius-2xl: var(--radius);
   --radius-3xl: var(--radius);
-  --shadow-xs: 0 1px 0 rgb(24 24 27 / 0.05);
-  --shadow-sm: 0 1px 0 rgb(24 24 27 / 0.05), 0 1px 3px rgb(24 24 27 / 0.06);
-  --shadow-md: 0 1px 0 rgb(24 24 27 / 0.05), 0 4px 10px rgb(24 24 27 / 0.08);
-  --shadow-lg: 0 4px 8px rgb(24 24 27 / 0.04), 0 12px 32px rgb(24 24 27 / 0.1);
-  --shadow-xl: 0 8px 16px rgb(24 24 27 / 0.06), 0 24px 56px rgb(24 24 27 / 0.16);
+  --shadow-xs: 0 1px 0 rgb(68 60 48 / 0.06);
+  --shadow-sm: 0 1px 0 rgb(68 60 48 / 0.06), 0 2px 4px -1px rgb(68 60 48 / 0.06);
+  --shadow-md: 0 1px 0 rgb(68 60 48 / 0.06), 0 6px 14px -4px rgb(68 60 48 / 0.12);
+  --shadow-lg: 0 2px 4px rgb(68 60 48 / 0.05), 0 14px 32px -8px rgb(68 60 48 / 0.18);
+  --shadow-xl: 0 4px 10px rgb(68 60 48 / 0.06), 0 28px 60px -12px rgb(68 60 48 / 0.24);
+  /* A module lifted off the table: a crisp offset edge, like a physical block. */
+  --shadow-block: 0 1px 0 rgb(68 60 48 / 0.08), 3px 3px 0 -1px rgb(68 60 48 / 0.07);
 }
 
 @layer base {
@@ -102,11 +114,20 @@
   }
   body {
     @apply bg-background text-foreground;
-    line-height: 1.55;
-    font-weight: 450;
+    line-height: 1.6;
+    font-weight: 400;
   }
   h1, h2, h3 {
     font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
   }
   ::selection {
     background: var(--brand-soft);
@@ -128,7 +149,42 @@
     transform: scaleX(-1);
   }
   .dot-grid {
-    background-image: radial-gradient(circle, rgb(24 24 27 / 0.09) 1px, transparent 1px);
-    background-size: 18px 18px;
+    background-image: radial-gradient(circle, rgb(68 60 48 / 0.16) 1px, transparent 1.2px);
+    background-size: 20px 20px;
+  }
+  /* Numbers: mono, tabular, slightly tight. */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  /* Fine paper grain over the table so it doesn't read as flat digital grey. */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .27 0 0 0 0 .24 0 0 0 0 .19 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* Data flowing along a connection line between modules. */
+  .flow-dash {
+    stroke-dasharray: 4 6;
+    animation: flow-dash 0.9s linear infinite;
+  }
+  @keyframes flow-dash {
+    to {
+      stroke-dashoffset: -10;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow-dash {
+      animation: none;
+    }
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { UploadSimple } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { openImportPanel } from "./canvas-file-drop";
 
@@ -30,7 +30,7 @@ export function ImportButton({
           if (openImportPanel(hint)) e.preventDefault();
         }}
       >
-        <Upload />
+        <UploadSimple />
         {label}
       </Link>
     </Button>

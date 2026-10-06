@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
+import { Module, ModuleBody, ModuleRail } from "@/components/ui/module";
 
-/** Surface card: hairline border, soft layered shadow, generous radius. */
-export function Card({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="card" className={cn("rounded-xl border bg-surface shadow-sm", className)} {...props} />;
+/** Card = a Module on the table. Kept as a thin alias so existing callers speak the module language. */
+export function Card({ className, ...props }: React.ComponentProps<"section">) {
+  return <Module data-slot="card" className={className} {...props} />;
 }
 
+/** Card header = the module rail (icon, title, actions), with an optional description line under it. */
 export function CardHeader({
   title,
   description,
@@ -19,17 +21,13 @@ export function CardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-start gap-3 border-b px-5 py-4", className)}>
-      {icon && <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand [&_svg]:size-4">{icon}</span>}
-      <div className="min-w-0 flex-1">
-        <h2 className="text-[15px] font-semibold leading-tight">{title}</h2>
-        {description && <p className="mt-0.5 text-[13px] text-muted-foreground">{description}</p>}
-      </div>
-      {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
-    </div>
+    <>
+      <ModuleRail icon={icon} title={title} actions={actions} className={className} />
+      {description && <p className="px-4 pt-4 text-[13px] leading-relaxed text-muted-foreground sm:px-5">{description}</p>}
+    </>
   );
 }
 
 export function CardBody({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("p-5", className)} {...props} />;
+  return <ModuleBody className={cn(className)} {...props} />;
 }

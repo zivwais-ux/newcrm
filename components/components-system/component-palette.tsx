@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useDraggable } from "@dnd-kit/core";
-import { Check, ChevronDown, CircleHelp, GripVertical, LayoutGrid, Link2, Plus, Search, Sparkles, Upload } from "lucide-react";
+import { Check, DotsSixVertical, LinkSimple, MagnifyingGlass, Plus, Question, Sparkle, SquaresFour, UploadSimple } from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS, type ComponentCategory, type EmitKey, type FilterKey } from "@/lib/components/types";
@@ -34,7 +34,7 @@ const LINK_LABELS: Record<EmitKey, string> = {
   customer: "לקוח",
 };
 
-/** Names of the other Components this one talks to (it filters them, or they filter it). */
+/** Names of the other modules this one talks to (it filters them, or they filter it). */
 export function linkedPartners(entry: PaletteEntry, entries: PaletteEntry[]): string[] {
   const emits = entry.emits.filter((k): k is FilterKey => k !== "customer");
   return entries
@@ -46,7 +46,75 @@ export function linkedPartners(entry: PaletteEntry, entries: PaletteEntry[]): st
     .map((o) => o.name);
 }
 
-/** The draggable card for one Component in the library. */
+type Shape = "chart" | "list" | "board" | "chat" | "agenda";
+const SHAPES: Record<string, Shape> = {
+  "revenue-intelligence": "chart",
+  "sales-pipeline": "board",
+  "ai-analyst": "chat",
+  today: "agenda",
+  tasks: "agenda",
+};
+
+/**
+ * A structural hint of what the module looks like on the table — its layout, not fake data:
+ * a number over a line for charts, rows for lists, columns for boards.
+ */
+function Schematic({ type }: { type: string }) {
+  const shape = SHAPES[type] ?? "list";
+  return (
+    <div className="relative h-[72px] overflow-hidden border-b border-border bg-rail px-3 py-2.5" aria-hidden>
+      {shape === "chart" && (
+        <>
+          <div className="h-2.5 w-14 bg-foreground/80" />
+          <div className="mt-1.5 h-1.5 w-8 bg-border-strong" />
+          <svg viewBox="0 0 120 30" preserveAspectRatio="none" className="absolute inset-x-3 bottom-2 h-7 w-[calc(100%-1.5rem)]">
+            <polyline points="0,24 18,20 34,22 52,13 70,16 88,8 104,10 120,3" fill="none" stroke="var(--brand)" strokeWidth="1.5" />
+          </svg>
+        </>
+      )}
+      {shape === "list" && (
+        <div className="space-y-2 pt-0.5">
+          {[0.8, 0.6, 0.7].map((w, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="size-2 shrink-0 bg-brand/70" />
+              <span className="h-1.5 bg-border-strong" style={{ width: `${w * 100}%` }} />
+            </div>
+          ))}
+        </div>
+      )}
+      {shape === "board" && (
+        <div className="grid h-full grid-cols-4 gap-1.5">
+          {[3, 2, 2, 1].map((n, c) => (
+            <div key={c} className="space-y-1 border-t-2 border-brand/60 pt-1">
+              {Array.from({ length: n }, (_, i) => (
+                <div key={i} className="h-2.5 border border-border bg-module" />
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+      {shape === "chat" && (
+        <div className="space-y-1.5 pt-0.5">
+          <div className="ms-auto h-3 w-1/2 bg-brand/70" />
+          <div className="h-3 w-3/4 border border-border bg-module" />
+          <div className="h-3 w-2/5 border border-border bg-module" />
+        </div>
+      )}
+      {shape === "agenda" && (
+        <div className="space-y-1.5 pt-0.5">
+          {["09", "11", "14"].map((h) => (
+            <div key={h} className="flex items-center gap-2">
+              <span className="num text-[9px] text-muted-foreground">{h}:00</span>
+              <span className="h-2.5 flex-1 border-s-2 border-brand bg-brand-soft" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** One module in the drawer: drag it onto the table, or press + to drop it at the end. */
 export function PaletteCard({
   entry,
   onAdd,
@@ -66,7 +134,7 @@ export function PaletteCard({
     data: { kind: "palette", type: entry.id },
     disabled: disabled || overlay,
   });
-  const Icon = COMPONENT_ICONS[entry.id] ?? Sparkles;
+  const Icon = COMPONENT_ICONS[entry.id] ?? Sparkle;
 
   return (
     <div
@@ -74,73 +142,58 @@ export function PaletteCard({
       {...(overlay ? {} : listeners)}
       {...(overlay ? {} : attributes)}
       className={cn(
-        "group flex items-start gap-3 rounded-lg border bg-surface p-3 text-start shadow-xs transition-[box-shadow,border-color,transform] duration-150",
-        !disabled && "cursor-grab hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md active:cursor-grabbing",
-        entry.installedId && "bg-muted/40 shadow-none",
-        isDragging && "opacity-40",
-        overlay && "w-72 -rotate-1 cursor-grabbing border-brand/40 shadow-xl ring-2 ring-brand/20",
+        "group relative flex flex-col border border-border bg-module text-start shadow-xs transition-[box-shadow,border-color,transform] duration-150",
+        !disabled && "cursor-grab hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-block active:cursor-grabbing",
+        entry.installedId && "opacity-60 shadow-none",
+        isDragging && "opacity-30",
+        overlay && "w-64 -rotate-2 cursor-grabbing border-brand shadow-xl",
       )}
-      title={disabled ? undefined : "גרור למסך העבודה"}
+      title={disabled ? undefined : "גרור לשולחן"}
     >
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
-        <Icon className="size-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold leading-tight">{entry.name}</span>
-        <span className="mt-0.5 block text-[12px] leading-snug text-muted-foreground">{entry.description}</span>
-        {partners.length > 0 && (
-          <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">
-            <Link2 className="size-3 shrink-0 text-brand" />
-            <span className="truncate">
-              עובד יחד עם: {partners.slice(0, 2).join(", ")}
-              {partners.length > 2 && ` ועוד ${partners.length - 2}`}
+      <Schematic type={entry.id} />
+      <div className="flex items-start gap-2 p-3">
+        <Icon className="mt-0.5 size-[18px] shrink-0 text-brand" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-semibold leading-tight">{entry.name}</span>
+          <span className="mt-1 line-clamp-2 block text-[12px] leading-snug text-muted-foreground">{entry.description}</span>
+          {partners.length > 0 && (
+            <span className="mt-1.5 flex max-w-full items-center gap-1 text-[11px] text-muted-foreground">
+              <LinkSimple className="size-3 shrink-0 text-brand" />
+              <span className="truncate">
+                מחובר ל{partners.slice(0, 2).join(", ")}
+                {partners.length > 2 && ` ועוד ${partners.length - 2}`}
+              </span>
             </span>
-          </span>
-        )}
-        {entry.installedId ? (
-          <span className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-positive">
-            <Check className="size-3" />
-            כבר במסך
-          </span>
-        ) : (
-          !entry.ready && <span className="mt-1.5 block text-[11px] text-warning">{entry.reason}</span>
-        )}
-      </span>
+          )}
+          {entry.installedId ? (
+            <span className="mt-1.5 flex items-center gap-1 text-[11px] font-medium text-positive">
+              <Check className="size-3" weight="bold" />
+              כבר על השולחן
+            </span>
+          ) : (
+            !entry.ready && <span className="mt-1.5 block text-[11px] text-warning">{entry.reason}</span>
+          )}
+        </span>
+      </div>
       {!disabled && !overlay && (
-        <span className="flex flex-col items-center gap-1">
+        <span className="absolute top-2 end-2 flex items-center gap-0.5">
           <button
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onAdd}
-            className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
-            aria-label={`הוסף את ${entry.name} למסך`}
-            title="הוסף למסך"
+            className="grid size-6 place-items-center border border-border bg-module text-muted-foreground opacity-0 transition-opacity hover:border-brand hover:text-brand group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
+            aria-label={`הוסף את ${entry.name} לשולחן`}
+            title="הוסף לשולחן"
           >
-            <Plus className="size-3.5" />
+            <Plus className="size-3.5" weight="bold" />
           </button>
-          <GripVertical className="size-3.5 text-zinc-300" />
+          <DotsSixVertical className="size-4 text-border-strong" weight="bold" />
         </span>
       )}
+      {entry.recommended && !entry.installedId && !overlay && (
+        <span className="absolute -top-px start-3 bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">מומלץ</span>
+      )}
     </div>
-  );
-}
-
-function Section({ title, icon, children, defaultOpen = true }: { title: string; icon?: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <section>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center gap-1.5 py-1.5 text-[13px] font-medium cursor-pointer"
-        aria-expanded={open}
-      >
-        {icon}
-        <span className="flex-1 text-start">{title}</span>
-        <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", !open && "-rotate-90")} />
-      </button>
-      {open && <div className="mt-1.5 space-y-2">{children}</div>}
-    </section>
   );
 }
 
@@ -157,24 +210,24 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
   useEffect(() => setFlags({ linked: readFlag("bos.linked"), askedAI: readFlag("bos.askedAI") }), []);
   const steps = [
     { done: checklist.hasData, label: "העלה את נתוני העסק (קובץ אקסל)", href: "/data/import" },
-    { done: checklist.componentCount >= 3, label: "גרור 3 כלים למסך העבודה" },
-    { done: flags.linked, label: "לחץ על שירות או שלב עסקה כדי לסנן את כל הכלים" },
+    { done: checklist.componentCount >= 3, label: "גרור 3 מודולים לשולחן" },
+    { done: flags.linked, label: "לחץ על שירות או שלב עסקה, וראה את הקו נדלק" },
     { done: flags.askedAI, label: "שאל את היועץ החכם שאלה", href: "/ai" },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const emitters = entries.filter((e) => e.emits.some((k) => k !== "customer"));
 
   return (
-    <div className="space-y-6 text-[13px]">
+    <div className="grid gap-x-10 gap-y-6 text-[13px] md:grid-cols-3">
       <section>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-semibold">צעדים ראשונים</h3>
-          <span className="text-xs text-muted-foreground tabular" dir="ltr">
+          <span className="num text-xs text-muted-foreground" dir="ltr">
             {doneCount}/{steps.length}
           </span>
         </div>
-        <div className="mb-3 h-1.5 rounded-sm bg-muted">
-          <div className="h-full rounded-sm bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        <div className="mb-3 h-1 bg-muted">
+          <div className="h-full bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
         </div>
         <ul className="space-y-2">
           {steps.map((s) => (
@@ -182,10 +235,10 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
               <span
                 className={cn(
                   "mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border",
-                  s.done ? "border-positive bg-positive text-white" : "border-zinc-300",
+                  s.done ? "border-positive bg-positive text-white" : "border-border-strong",
                 )}
               >
-                {s.done && <Check className="size-2.5" />}
+                {s.done && <Check className="size-2.5" weight="bold" />}
               </span>
               {s.href && !s.done ? (
                 <Link href={s.href} className="hover:underline">
@@ -200,23 +253,25 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
       </section>
 
       <section className="space-y-2">
-        <h3 className="font-semibold">איך בונים את המסך</h3>
+        <h3 className="font-semibold">איך בונים את השולחן</h3>
         <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">גרור</strong> כלי מהספרייה אל מסך העבודה, או עמוד עליו ולחץ על +.
+          <strong className="font-medium text-foreground">גרור</strong> מודול מהמגירה אל השולחן, או לחץ על + שבפינה שלו.
         </p>
         <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">סדר מחדש</strong> בעזרת הידית ⋮⋮ שליד שם הכלי.
+          <strong className="font-medium text-foreground">סדר מחדש</strong> בעזרת הידית ⋮⋮ בפס של המודול.
         </p>
         <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">שנה גודל</strong> בגרירת הקצה השמאלי של הכלי.
+          <strong className="font-medium text-foreground">שנה גודל</strong> בגרירת הקצה של המודול, או מהתפריט (רוחב וגובה).
         </p>
-        <p className="text-muted-foreground">כל שינוי נשמר לבד, וכל הצוות רואה אותו.</p>
+        <p className="text-muted-foreground">
+          <strong className="font-medium text-foreground">שורת הפקודה</strong> למעלה מבינה משפטים כמו &quot;מכירה 250 לדנה&quot; או &quot;תור ליוסי מחר ב-10&quot;.
+        </p>
       </section>
 
       <section className="space-y-2">
         <h3 className="flex items-center gap-1.5 font-semibold">
-          <Link2 className="size-3.5 text-brand" />
-          הכלים עובדים יחד
+          <LinkSimple className="size-3.5 text-brand" />
+          הקווים בין המודולים
         </h3>
         <ul className="space-y-1.5 text-muted-foreground">
           {emitters.map((e) => {
@@ -228,40 +283,22 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
                   .filter((k) => k !== "customer")
                   .map((k) => LINK_LABELS[k])
                   .join(" או ")}{" "}
-                מסננת את {targets.length ? targets.join(", ") : "שאר הכלים"}.
+                מסננת את {targets.length ? targets.join(", ") : "שאר המודולים"}.
               </li>
             );
           })}
-          <li>לחיצה על שם של לקוח פותחת את כרטיס הלקוח, בלי לצאת מהמסך.</li>
-          <li>משימה שתיצור בכל מקום תופיע מיד ב&quot;משימות&quot; וב&quot;למי לחזור&quot;.</li>
+          <li>לחיצה על שם של לקוח פותחת את כרטיס הלקוח, בלי לצאת מהשולחן.</li>
         </ul>
+        <Link href="/data/import" className="mt-2 inline-flex items-center gap-1.5 font-medium text-brand hover:underline">
+          <UploadSimple className="size-4" />
+          העלה עוד נתונים
+        </Link>
       </section>
-
-      <section className="space-y-2">
-        <h3 className="font-semibold">הזנה מהירה</h3>
-        <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">+ חדש</strong> למעלה (או + בתחתית המסך בנייד) ← &quot;מכירה מהירה&quot; או &quot;תור חדש&quot;. לקוח שעוד
-          לא קיים נוסף תוך כדי, עם שם וטלפון.
-        </p>
-        <p className="text-muted-foreground">
-          <strong className="font-medium text-foreground">בנייד:</strong> בתפריט הדפדפן בחר &quot;הוסף למסך הבית&quot;, והמערכת תיפתח כמו אפליקציה.
-        </p>
-        <p className="text-muted-foreground">
-          קובץ שהעלית בטעות? ב<Link href="/data" className="font-medium text-foreground hover:underline">הנתונים שלי</Link> אפשר למחוק אותו יחד עם מה שיובא ממנו.
-        </p>
-      </section>
-
-      <Link
-        href="/data/import"
-        className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand"
-      >
-        <Upload className="size-4" />
-        העלה עוד נתונים
-      </Link>
     </div>
   );
 }
 
+/** The drawer's content: category tabs, search and a grid of modules — or the help tab. */
 export function ComponentPalette({
   entries,
   checklist,
@@ -273,71 +310,82 @@ export function ComponentPalette({
   canManage: boolean;
   onAdd: (type: string) => void;
 }) {
-  const [tab, setTab] = useState<"library" | "help">("library");
+  const [tab, setTab] = useState<"all" | "recommended" | ComponentCategory | "help">("all");
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
-  const filtered = useMemo(
-    () => (q ? entries.filter((e) => `${e.name} ${e.description} ${CATEGORY_LABELS[e.category]}`.toLowerCase().includes(q)) : entries),
-    [entries, q],
-  );
-  const recommended = filtered.filter((e) => e.recommended && !e.installedId);
-  const categories = Object.keys(CATEGORY_LABELS) as ComponentCategory[];
+  const categories = (Object.keys(CATEGORY_LABELS) as ComponentCategory[]).filter((c) => entries.some((e) => e.category === c));
+  const hasRecommended = entries.some((e) => e.recommended && !e.installedId);
   const partners = useMemo(() => new Map(entries.map((e) => [e.id, linkedPartners(e, entries)])), [entries]);
+  const shown = useMemo(() => {
+    let list = entries;
+    if (tab === "recommended") list = list.filter((e) => e.recommended && !e.installedId);
+    else if (tab !== "all" && tab !== "help") list = list.filter((e) => e.category === tab);
+    if (q) list = list.filter((e) => `${e.name} ${e.description} ${CATEGORY_LABELS[e.category]}`.toLowerCase().includes(q));
+    // Modules not yet on the table first.
+    return [...list].sort((a, b) => Number(Boolean(a.installedId)) - Number(Boolean(b.installedId)) || Number(b.recommended) - Number(a.recommended));
+  }, [entries, tab, q]);
+
+  const tabs: { id: typeof tab; label: string }[] = [
+    { id: "all", label: "הכל" },
+    ...(hasRecommended ? [{ id: "recommended" as const, label: "מומלץ לעסק" }] : []),
+    ...categories.map((c) => ({ id: c, label: CATEGORY_LABELS[c] })),
+  ];
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-1 border-b px-3 pt-3">
-        {(
-          [
-            ["library", "ספריית הכלים", LayoutGrid],
-            ["help", "עזרה", CircleHelp],
-          ] as const
-        ).map(([id, label, Icon]) => (
+      <div className="flex flex-wrap items-center gap-x-1 gap-y-2 border-b border-border px-4 pt-2 sm:px-6">
+        <div className="-mb-px flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "shrink-0 border-b-2 px-2.5 pb-2.5 pt-1.5 text-[13px] font-medium transition-colors cursor-pointer",
+                tab === t.id ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
           <button
-            key={id}
-            onClick={() => setTab(id)}
+            onClick={() => setTab("help")}
             className={cn(
-              "-mb-px flex items-center gap-1.5 border-b-2 px-2 pb-2.5 text-[13px] font-medium transition-colors cursor-pointer",
-              tab === id ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+              "flex shrink-0 items-center gap-1 border-b-2 px-2.5 pb-2.5 pt-1.5 text-[13px] font-medium transition-colors cursor-pointer",
+              tab === "help" ? "border-brand text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
-            <Icon className="size-3.5" />
-            {label}
+            <Question className="size-3.5" />
+            איך זה עובד
           </button>
-        ))}
+        </div>
+        {tab !== "help" && (
+          <div className="relative mb-2 w-full sm:w-56">
+            <MagnifyingGlass className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input dir="auto" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חיפוש מודול…" className="h-8 ps-8 text-[13px]" />
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         {tab === "help" ? (
           <HelpPanel entries={entries} checklist={checklist} />
         ) : (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input dir="auto" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="חיפוש…" className="h-8 ps-8 text-[13px]" />
-            </div>
-            {canManage && <p className="-mt-1 text-xs text-muted-foreground">גרור כלי אל מסך העבודה, או לחץ על + שליד הכלי.</p>}
-            {!canManage && <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את מסך העבודה.</p>}
-            {recommended.length > 0 && (
-              <Section title="מומלץ לעסק שלך" icon={<Sparkles className="size-3.5 text-brand" />}>
-                {recommended.map((e) => (
-                  <PaletteCard key={`rec-${e.id}`} entry={e} canManage={canManage} partners={partners.get(e.id)} onAdd={() => onAdd(e.id)} />
-                ))}
-              </Section>
+          <>
+            {!canManage && (
+              <p className="mb-3 bg-muted px-3 py-2 text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את השולחן.</p>
             )}
-            {categories.map((cat) => {
-              const list = filtered.filter((e) => e.category === cat && !(e.recommended && !e.installedId));
-              if (!list.length) return null;
-              return (
-                <Section key={cat} title={CATEGORY_LABELS[cat]} defaultOpen>
-                  {list.map((e) => (
-                    <PaletteCard key={e.id} entry={e} canManage={canManage} partners={partners.get(e.id)} onAdd={() => onAdd(e.id)} />
-                  ))}
-                </Section>
-              );
-            })}
-            {!filtered.length && <p className="py-6 text-center text-xs text-muted-foreground">לא נמצאו כלים עבור &quot;{query}&quot;.</p>}
-          </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+              {shown.map((e) => (
+                <PaletteCard key={e.id} entry={e} canManage={canManage} partners={partners.get(e.id)} onAdd={() => onAdd(e.id)} />
+              ))}
+            </div>
+            {!shown.length && (
+              <p className="flex items-center justify-center gap-2 py-10 text-[13px] text-muted-foreground">
+                <SquaresFour className="size-4" />
+                לא נמצאו מודולים{q ? ` עבור "${query}"` : ""}.
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,14 +1,15 @@
-import { CalendarClock } from "lucide-react";
+import { CalendarDots } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { FilterTabs, Pagination } from "@/components/business/list-controls";
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { ActivityItem } from "@/components/business/activity-list";
+import { Module, ModuleRail } from "@/components/ui/module";
 import { pageParam, param, type SearchParams } from "@/lib/params";
 import { ACTIVITY_TYPES, type Activity } from "@/types/domain";
 import { ACTIVITY_TYPE_LABELS } from "@/components/business/labels";
-import { formatDate, isoDate } from "@/lib/utils";
+import { formatDate, formatNumber, isoDate } from "@/lib/utils";
 
 export const metadata = { title: "יומן פעילות" };
 const WEEKDAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
@@ -46,39 +47,42 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
   return (
     <PageContainer className="max-w-3xl">
       <PageHeader title="יומן פעילות" description="תורים, שיחות, פגישות והערות — לפי הסדר." actions={<NewRecordButton entity="activities" />} />
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <FilterTabs
-          param="when"
-          options={[
-            { value: "", label: "הכל" },
-            { value: "upcoming", label: "מה שמתוכנן" },
-            { value: "past", label: "מה שהיה" },
-          ]}
-        />
-        <FilterTabs param="type" options={[{ value: "", label: "כל הסוגים" }, ...ACTIVITY_TYPES.map((t) => ({ value: t, label: ACTIVITY_TYPE_LABELS[t] ?? t }))]} />
-      </div>
-      {!rows.length ? (
-        <EmptyState
-          icon={CalendarClock}
-          title="אין עדיין פעילות"
-          description="כאן יופיעו התורים, השיחות והפגישות שלך לפי ימים. רשום את הפעילות הראשונה."
-          action={<NewRecordButton entity="activities" variant="outline" />}
-        />
-      ) : (
-        <div className="space-y-6">
-          {[...groups.entries()].map(([key, { label: day, items }]) => (
-            <div key={key}>
-              <p className="mb-2 px-1 text-[13px] font-semibold text-muted-foreground">{day}</p>
-              <div className="rounded-xl border bg-surface px-4 shadow-sm">
-                {items.map((a) => (
-                  <ActivityItem key={a.id} activity={a} />
-                ))}
-              </div>
-            </div>
-          ))}
+      <Module>
+        <ModuleRail icon={<CalendarDots />} title="יומן פעילות" meta={<span className="num">{formatNumber(count ?? 0)}</span>} />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
+          <FilterTabs
+            param="when"
+            options={[
+              { value: "", label: "הכל" },
+              { value: "upcoming", label: "מה שמתוכנן" },
+              { value: "past", label: "מה שהיה" },
+            ]}
+          />
+          <FilterTabs param="type" options={[{ value: "", label: "כל הסוגים" }, ...ACTIVITY_TYPES.map((t) => ({ value: t, label: ACTIVITY_TYPE_LABELS[t] ?? t }))]} />
         </div>
-      )}
-      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
+        {!rows.length ? (
+          <EmptyState
+            icon={CalendarDots}
+            title="אין עדיין פעילות"
+            description="כאן יופיעו התורים, השיחות והפגישות שלך לפי ימים. רשום את הפעילות הראשונה."
+            action={<NewRecordButton entity="activities" variant="outline" />}
+          />
+        ) : (
+          <div>
+            {[...groups.entries()].map(([key, { label: day, items }]) => (
+              <section key={key} className="border-b border-border last:border-b-0">
+                <h3 className="sticky top-0 z-[1] border-b border-border/60 bg-rail/95 px-4 py-1.5 text-xs font-semibold text-muted-foreground backdrop-blur-sm">{day}</h3>
+                <div className="px-4">
+                  {items.map((a) => (
+                    <ActivityItem key={a.id} activity={a} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
+      </Module>
     </PageContainer>
   );
 }

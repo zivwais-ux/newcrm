@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, ArrowUpRight, CalendarPlus, ChevronLeft, ListPlus, Loader2, Mail, Phone, RotateCw } from "lucide-react";
+import { ArrowClockwise, ArrowUpRight, CalendarPlus, CaretLeft, CircleNotch, Envelope, ListPlus, Phone, WarningCircle } from "@phosphor-icons/react";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,12 +62,12 @@ function SpotlightError({ message, onClose }: { message: string; onClose: () => 
         <SheetBody>
           <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
             <span className="grid size-10 place-items-center rounded-full bg-negative-soft text-negative">
-              <AlertCircle className="size-5" />
+              <WarningCircle className="size-5" />
             </span>
             <p className="max-w-xs text-sm font-semibold">{message}</p>
             <div className="flex gap-2">
               <Button size="sm" variant="outline" disabled={pending} onClick={() => startTransition(() => router.refresh())}>
-                {pending ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                {pending ? <CircleNotch className="animate-spin" /> : <ArrowClockwise />}
                 נסה שוב
               </Button>
               <Button size="sm" variant="ghost" onClick={onClose}>
@@ -100,7 +100,7 @@ function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightDat
           <SheetDescription className="flex flex-wrap gap-x-4 gap-y-1">
             {c.email && (
               <a href={`mailto:${c.email}`} className="inline-flex items-center gap-1 hover:text-foreground">
-                <Mail className="size-3.5" />
+                <Envelope className="size-3.5" />
                 <Ltr>{c.email}</Ltr>
               </a>
             )}
@@ -159,8 +159,8 @@ function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightDat
                     >
                       <span className="truncate font-medium group-hover:text-brand">{d.name}</span>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                        {STAGE_LABELS[d.stage]} · <Ltr className="font-medium text-foreground tabular">{money(Number(d.value))}</Ltr>
-                        <ChevronLeft className="size-3.5" aria-hidden />
+                        {STAGE_LABELS[d.stage]} · <Ltr className="font-medium text-foreground num">{money(Number(d.value))}</Ltr>
+                        <CaretLeft className="size-3.5" aria-hidden />
                       </span>
                     </Link>
                   </li>
@@ -178,7 +178,7 @@ function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightDat
                     <span className="truncate">
                       {t.product_or_service ?? "קנייה"} <span className="text-xs text-muted-foreground">· {formatDate(t.date)}</span>
                     </span>
-                    <Ltr className="tabular">{money(Number(t.amount))}</Ltr>
+                    <Ltr className="num">{money(Number(t.amount))}</Ltr>
                   </li>
                 ))}
               </ul>
@@ -214,7 +214,7 @@ function StatTile({ label, value, hint }: { label: string; value: React.ReactNod
   return (
     <div className="min-w-0 rounded-xl border bg-muted/30 px-4 py-3">
       <p className="truncate text-[12px] text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-xl font-semibold tracking-tight tabular">{value}</p>
+      <p className="mt-1 truncate text-xl font-semibold tracking-tight num">{value}</p>
       {hint && <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{hint}</p>}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileSpreadsheet } from "lucide-react";
+import { FileXls } from "@phosphor-icons/react";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { detectFormat } from "@/lib/data-mapping/parse-file";
 import { cn } from "@/lib/utils";
@@ -100,7 +100,7 @@ export function CanvasFileDrop({ onImported }: { onImported?: (updatedTypes: str
           )}
         >
           <span className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand">
-            <FileSpreadsheet className="size-7" />
+            <FileXls className="size-7" />
           </span>
           <p className="text-lg font-bold">שחרר כדי להעלות את הקובץ</p>
           <p className="text-[13px] text-muted-foreground">אקסל, CSV, Google Sheets או אנשי קשר — הנתונים ייפרסו לכלים שבמסך</p>

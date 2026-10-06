@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -29,7 +29,7 @@ export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground tabular">{formatNumber(data.total)}</span> עסקאות · <Ltr>{formatCurrency(data.totalValue, currency)}</Ltr> בסיכון
+          <span className="font-medium text-foreground num">{formatNumber(data.total)}</span> עסקאות · <Ltr>{formatCurrency(data.totalValue, currency)}</Ltr> בסיכון
           {data.stage && <span className="font-medium text-brand"> · {STAGE_LABELS[data.stage]}</span>}
         </p>
         {data.ids.length > 0 ? (
@@ -51,7 +51,7 @@ export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
             <p className="truncate text-sm font-medium">{d.name}</p>
             {d.customer_name && <p className="truncate text-xs text-muted-foreground">{d.customer_name}</p>}
             <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
-              <Ltr className="font-medium text-foreground tabular">{formatCurrency(d.value, currency)}</Ltr>
+              <Ltr className="font-medium text-foreground num">{formatCurrency(d.value, currency)}</Ltr>
               <Badge variant="outline">{STAGE_LABELS[d.stage as DealStage] ?? d.stage}</Badge>
               {d.idle && <span className="text-warning">אין פעילות כבר {plural(d.days_idle, "יום", "ימים", "יום אחד")}</span>}
               {d.pastClose && <span className="text-warning">עבר תאריך הסגירה הצפוי ({formatDate(d.expected_close)})</span>}

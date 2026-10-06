@@ -3,7 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BellRing, CalendarClock, Check, CheckCircle2, Handshake, ListChecks, Sun, UserRoundCheck, UserRoundX } from "lucide-react";
+import { BellRinging, CalendarDots, Check, CheckCircle, Handshake, ListChecks, Sun, UserCheck, UserMinus } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -26,7 +26,7 @@ function Section({ icon, title, count, children }: { icon: React.ReactNode; titl
       <div className="mb-1 flex items-center gap-2">
         <span className="grid size-6 place-items-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5">{icon}</span>
         <SectionLabel>{title}</SectionLabel>
-        <span className="rounded-sm bg-muted px-1.5 text-[11px] font-medium tabular text-muted-foreground">{formatNumber(count)}</span>
+        <span className="rounded-sm bg-muted px-1.5 text-[11px] font-medium num text-muted-foreground">{formatNumber(count)}</span>
       </div>
       <div>{children}</div>
     </section>
@@ -75,10 +75,10 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       </p>
 
       {appointments.length > 0 && (
-        <Section icon={<CalendarClock />} title="תורים ופגישות היום" count={appointments.length}>
+        <Section icon={<CalendarDots />} title="תורים ופגישות היום" count={appointments.length}>
           {appointments.map((a) => (
             <ListRow key={a.id} className={cn(a.attendance && "opacity-70")}>
-              <span className="w-12 shrink-0 text-sm font-semibold tabular">
+              <span className="w-12 shrink-0 text-sm font-semibold num">
                 <Ltr>{time(a.date)}</Ltr>
               </span>
               <div className="min-w-0 flex-1">
@@ -92,11 +92,11 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
               {a.past && !a.attendance && (
                 <div className="flex shrink-0 gap-0.5">
                   <Button size="xs" variant="ghost" className="text-positive" onClick={() => attendance(a.id, "arrived")}>
-                    <CheckCircle2 />
+                    <CheckCircle />
                     הגיע
                   </Button>
                   <Button size="xs" variant="ghost" className="text-negative" onClick={() => attendance(a.id, "no_show")}>
-                    <UserRoundX />
+                    <UserMinus />
                     לא הגיע
                   </Button>
                 </div>
@@ -147,7 +147,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       )}
 
       {data.comeBack.length > 0 && (
-        <Section icon={<UserRoundCheck />} title="הגיע הזמן שיחזרו" count={data.comeBack.length}>
+        <Section icon={<UserCheck />} title="הגיע הזמן שיחזרו" count={data.comeBack.length}>
           {data.comeBack.map((c) => (
             <ListRow key={c.id}>
               <div className="min-w-0 flex-1">
@@ -181,11 +181,11 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       )}
 
       {data.reminders.length > 0 && (
-        <Section icon={<BellRing />} title="תזכורת לתורים של מחר" count={pendingReminders}>
+        <Section icon={<BellRinging />} title="תזכורת לתורים של מחר" count={pendingReminders}>
           <p className="mb-1 text-xs text-muted-foreground">שלח לכל לקוח תזכורת ב-WhatsApp, כדי שלא ישכח את התור של {formatDate(data.tomorrow)}.</p>
           {data.reminders.map((r) => (
             <ListRow key={r.id}>
-              <span className="w-12 shrink-0 text-sm font-semibold tabular">
+              <span className="w-12 shrink-0 text-sm font-semibold num">
                 <Ltr>{time(r.date)}</Ltr>
               </span>
               <div className="min-w-0 flex-1">

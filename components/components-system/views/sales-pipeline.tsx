@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Handshake, Upload, X } from "lucide-react";
+import { Handshake, UploadSimple, X } from "@phosphor-icons/react";
 import { PipelineBoard, STAGE_LABELS } from "@/components/business/pipeline-board";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,7 +27,7 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
             <NewRecordButton entity="deals" size="sm" />
             <Button asChild size="sm" variant="outline">
               <Link href="/data/import">
-                <Upload />
+                <UploadSimple />
                 העלה קובץ
               </Link>
             </Button>

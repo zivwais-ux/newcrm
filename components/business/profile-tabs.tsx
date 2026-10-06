@@ -23,7 +23,7 @@ export function ProfileTabs({ tabs, children }: { tabs: { value: string; label: 
         {tabs.map((t) => (
           <TabsTrigger key={t.value} value={t.value}>
             {t.label}
-            {t.count !== undefined && <span className="text-xs font-normal text-muted-foreground tabular">{t.count}</span>}
+            {t.count !== undefined && <span className="text-xs font-normal text-muted-foreground num">{t.count}</span>}
           </TabsTrigger>
         ))}
       </TabsList>

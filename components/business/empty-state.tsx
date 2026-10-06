@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Upload } from "lucide-react";
+import { UploadSimple } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { EmptyState as BaseEmptyState } from "@/components/ui/empty-state";
 
@@ -37,7 +37,7 @@ export function EmptyState({
             {importCta && (
               <Button asChild size="sm">
                 <Link href="/data/import">
-                  <Upload />
+                  <UploadSimple />
                   העלה קובץ אקסל
                 </Link>
               </Button>

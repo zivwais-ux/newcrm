@@ -4,22 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ClipboardPaste,
-  Contact,
-  FileSpreadsheet,
-  Link2,
-  Loader2,
-  Plus,
-  Sparkles,
-  UploadCloud,
-  XCircle,
-} from "lucide-react";
+import { AddressBook, ArrowLeft, CaretDown, Check, CheckCircle, CircleNotch, ClipboardText, CloudArrowUp, FileXls, LinkSimple, Plus, Sparkle, Warning, XCircle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -162,7 +147,7 @@ function Stepper({ step }: { step: Step }) {
         <li key={s.id} className="flex items-center gap-2">
           <span
             className={cn(
-              "grid size-6 place-items-center rounded-full text-[11px] font-semibold tabular transition-colors",
+              "grid size-6 place-items-center rounded-full text-[11px] font-semibold num transition-colors",
               i < at ? "bg-brand text-white" : i === at ? "bg-brand-soft text-brand ring-1 ring-brand/30" : "bg-muted text-muted-foreground",
             )}
           >
@@ -180,7 +165,7 @@ function Stepper({ step }: { step: Step }) {
 function Fact({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div className="rounded-lg bg-muted/60 px-3 py-2.5">
-      <p className="text-lg font-bold leading-tight tabular">{value}</p>
+      <p className="text-lg font-bold leading-tight num">{value}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   );
@@ -473,9 +458,9 @@ export function ImportWizard({
           <div className="inline-flex rounded-lg bg-muted p-1 text-[13px]" role="tablist">
             {(
               [
-                ["file", "קובץ", UploadCloud],
-                ["paste", "הדבקת טבלה", ClipboardPaste],
-                ["gsheet", "Google Sheets", Link2],
+                ["file", "קובץ", CloudArrowUp],
+                ["paste", "הדבקת טבלה", ClipboardText],
+                ["gsheet", "Google Sheets", LinkSimple],
               ] as const
             ).map(([id, label, Icon]) => (
               <button
@@ -518,17 +503,17 @@ export function ImportWizard({
               )}
             >
               <span className="grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand ring-1 ring-brand/10 transition-transform group-hover:-translate-y-0.5">
-                <UploadCloud className="size-6" />
+                <CloudArrowUp className="size-6" />
               </span>
               <p className="mt-4 text-[15px] font-semibold">גרור לכאן קובץ, או לחץ לבחירה</p>
               <p className="mt-1 text-[13px] text-muted-foreground">אקסל (xlsx, xls), ‏CSV, ‏Google Sheets, ‏Numbers, ‏ODS או אנשי קשר מהטלפון (vcf) · עד 10MB</p>
               <div className="mt-4 flex flex-wrap justify-center gap-1.5 text-[11px] text-muted-foreground">
                 {[
-                  [FileSpreadsheet, "כמה גיליונות בקובץ אחד"],
-                  [Sparkles, "מזהה עמודות בעברית"],
-                  [Contact, "אנשי קשר מהנייד"],
+                  [FileXls, "כמה גיליונות בקובץ אחד"],
+                  [Sparkle, "מזהה עמודות בעברית"],
+                  [AddressBook, "אנשי קשר מהנייד"],
                 ].map(([Icon, label]) => {
-                  const I = Icon as typeof FileSpreadsheet;
+                  const I = Icon as typeof FileXls;
                   return (
                     <span key={label as string} className="inline-flex items-center gap-1 rounded-sm border bg-surface px-2 py-0.5">
                       <I className="size-3" />
@@ -602,8 +587,8 @@ export function ImportWizard({
       {step === "reading" && (
         <div className="flex flex-col items-center py-20 text-center">
           <span className="relative grid size-14 place-items-center rounded-2xl bg-brand-soft text-brand">
-            <Sparkles className="size-6" />
-            <Loader2 className="absolute -end-1 -bottom-1 size-5 animate-spin rounded-full bg-surface p-0.5 text-brand" />
+            <Sparkle className="size-6" />
+            <CircleNotch className="absolute -end-1 -bottom-1 size-5 animate-spin rounded-full bg-surface p-0.5 text-brand" />
           </span>
           <p className="mt-5 text-[15px] font-semibold">קורא את {sourceName || file?.name || "הנתונים"}…</p>
           <p className="mt-1 text-[13px] text-muted-foreground">מזהה גיליונות, עמודות ותאריכים, ומבין מה כל עמודה אומרת.</p>
@@ -614,7 +599,7 @@ export function ImportWizard({
         <div className="space-y-5">
           <div className="flex items-start gap-3">
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand">
-              <Sparkles className="size-4" />
+              <Sparkle className="size-4" />
             </span>
             <div>
               <h2 className="text-lg font-bold">הנה מה שמצאנו ב־{sourceName}</h2>
@@ -636,7 +621,7 @@ export function ImportWizard({
                   {plans.length > 1 && (
                     <Checkbox checked={plan.include} onCheckedChange={(c) => updatePlan(plan.id, { include: c === true })} aria-label={`ייבא את ${plan.sheet.sheetName}`} />
                   )}
-                  <FileSpreadsheet className="size-4 text-muted-foreground" />
+                  <FileXls className="size-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{plan.sheet.sheetName ?? sourceName}</p>
                     <p className="text-xs text-muted-foreground">
@@ -673,11 +658,11 @@ export function ImportWizard({
                         onClick={() => setIssuesFor(issuesFor === plan.id ? null : plan.id)}
                         className="flex w-full items-center gap-2 rounded-lg bg-warning-soft px-3 py-2 text-start text-[13px] text-warning cursor-pointer"
                       >
-                        <AlertTriangle className="size-4 shrink-0" />
+                        <Warning className="size-4 shrink-0" />
                         <span className="flex-1">
                           נדלג על {formatNumber(skipped)} שורות{v.duplicates ? ` (מתוכן ${formatNumber(v.duplicates)} כפולות)` : ""} — לחץ לפירוט
                         </span>
-                        <ChevronDown className={cn("size-4 transition-transform", issuesFor === plan.id && "rotate-180")} />
+                        <CaretDown className={cn("size-4 transition-transform", issuesFor === plan.id && "rotate-180")} />
                       </button>
                     )}
                     {issuesFor === plan.id && v.rowIssues.length > 0 && (
@@ -693,7 +678,7 @@ export function ImportWizard({
                           <TableBody>
                             {v.rowIssues.slice(0, 150).map((ri) => (
                               <TableRow key={ri.rowIndex}>
-                                <TableCell className="ps-3 text-muted-foreground tabular">{ri.rowIndex + 2}</TableCell>
+                                <TableCell className="ps-3 text-muted-foreground num">{ri.rowIndex + 2}</TableCell>
                                 <TableCell>
                                   {ri.issues.map((i: IssueType) => (
                                     <Badge key={i} variant={i === "duplicate" ? "default" : "warning"} className="me-1">
@@ -726,7 +711,7 @@ export function ImportWizard({
                       onClick={() => updatePlan(plan.id, { showMapping: !plan.showMapping })}
                       className="flex items-center gap-1.5 text-[13px] font-medium text-brand cursor-pointer"
                     >
-                      <ChevronDown className={cn("size-4 transition-transform", plan.showMapping && "rotate-180")} />
+                      <CaretDown className={cn("size-4 transition-transform", plan.showMapping && "rotate-180")} />
                       {plan.showMapping ? "הסתר את התאמת העמודות" : "בדוק התאמת עמודות"}
                       {!plan.showMapping && needsReview(plan, v) && <Badge variant="warning">כדאי לבדוק</Badge>}
                     </button>
@@ -787,7 +772,7 @@ export function ImportWizard({
                                     {m.source === "user" ? (
                                       <span className="text-xs text-muted-foreground">נבחר על ידך</span>
                                     ) : (
-                                      <Badge variant={confidenceVariant(m.confidence)} className="tabular" title={m.reason}>
+                                      <Badge variant={confidenceVariant(m.confidence)} className="num" title={m.reason}>
                                         <Ltr>{Math.round(m.confidence * 100)}%</Ltr>
                                       </Badge>
                                     )}
@@ -831,7 +816,7 @@ export function ImportWizard({
           <p className="text-[15px] font-semibold">מייבא ופורס את הנתונים לכלים שלך…</p>
           <p className="mt-1 text-[13px] text-muted-foreground">יוצר לקוחות, מכירות ושירותים. השאר את החלון פתוח.</p>
           <Progress value={progress} className="mt-6" />
-          <p className="mt-2 text-xs text-muted-foreground tabular">
+          <p className="mt-2 text-xs text-muted-foreground num">
             <Ltr>{progress}%</Ltr>
           </p>
         </div>
@@ -841,7 +826,7 @@ export function ImportWizard({
         <div className={cn("mx-auto space-y-6", compact ? "" : "max-w-2xl")}>
           <div className="text-center">
             <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-positive-soft text-positive ring-1 ring-positive/15">
-              <CheckCircle2 className="size-7" />
+              <CheckCircle className="size-7" />
             </span>
             <h2 className="mt-4 text-xl font-bold">הנתונים נפרסו במסך העבודה שלך</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -901,7 +886,7 @@ export function ImportWizard({
                     ) : (
                       spread.canManage && (
                         <Button size="xs" variant="outline" onClick={() => addToCanvas(u.type)} disabled={adding === u.type}>
-                          {adding === u.type ? <Loader2 className="animate-spin" /> : <Plus />}
+                          {adding === u.type ? <CircleNotch className="animate-spin" /> : <Plus />}
                           הוסף למסך
                         </Button>
                       )

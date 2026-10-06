@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { MagnifyingGlassMinus } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
       <EmptyState
-        icon={<SearchX />}
+        icon={<MagnifyingGlassMinus />}
         title="לא מצאנו את מה שחיפשת"
         description="ייתכן שזה נמחק, או שזה שייך לחשבון שאין לך גישה אליו."
         action={

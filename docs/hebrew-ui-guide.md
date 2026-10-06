@@ -88,10 +88,16 @@ followup-radar → "למי לחזור" · tasks → "משימות"
 - Product rule: NO synthetic/demo data is ever inserted. Don't add sample data.
 - The drag-and-drop empty canvas is the CORE of the product (not "just another CRM"). Don't remove or hide it.
 
-## Visual style
-- Font: **Rubik** (Hebrew + Latin, `--font-rubik`), body weight 450, headings 700, buttons 600.
-- Corners: **2px** everywhere — every `rounded-*` token resolves to `--radius: 2px`. Use `rounded-sm` for chips/pills; `rounded-full` only for avatars, status dots, check circles and the mobile + button.
-- Keep the existing color tokens (brand indigo, zinc neutrals). Shadows are short and crisp to match square corners.
+## Visual language: "modular studio"
+- **Table and modules.** The app is a table (`bg-background`/`bg-table`, dot-grid + `.grain` on the home canvas) with white modules on it. Every surface is a `<Module>` with a `<ModuleRail>` (mono index 01/02, brand icon, 14px semibold title, actions at the end) — see `components/ui/module.tsx`.
+- **No sidebar.** Navigation lives in a floating dock at the bottom (same on phone and desktop). The top strip holds the business name, the command bar (⌘K) and the account menu.
+- **Command bar** understands short Hebrew sentences (`lib/command/parse.ts`): "מכירה 250 לדנה", "תור ליוסי מחר ב-10", "לקוח חדש …", "משימה …", "הוסף מודול …", "פתח לקוחות"; questions go to the advisor, anything else is search.
+- **Flow lines.** Modules show in/out ports; lines run through the gutters between modules from the one that sets a filter to the ones that react to it, and carry a moving dash while that filter is active.
+- **Type.** IBM Plex Sans Hebrew (300–700) for text, IBM Plex Mono via `.num` for numbers (amounts, counts, times). Use `.num` only on numeric strings — Plex Mono has no Hebrew glyphs.
+- **Color.** One accent: indigo `brand`. Positive/negative/warning only for status. Stone neutrals; warm-tinted shadows (`shadow-block` for modules).
+- **Shape.** 2px everywhere. `rounded-full` only for avatars, status dots and check circles. No pills, no eyebrows.
+- **Icons.** `@phosphor-icons/react` only (regular; `weight="fill"` for active). Server components import from `@phosphor-icons/react/dist/ssr`.
+- **Motion.** Only when it explains something: module entry stagger, dock active bar, drawer slide, flow dashes. Everything respects `prefers-reduced-motion`.
 
 ## Quick entry terms
 | English | Hebrew |

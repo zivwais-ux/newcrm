@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ListPlus, TrendingDown } from "lucide-react";
+import { ListPlus, TrendDown } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -36,7 +36,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
     return (
       <EmptyState
         compact
-        icon={<TrendingDown />}
+        icon={<TrendDown />}
         title="אין לקוחות בסיכון"
         description={`${data.scopedTo ? `מבין הלקוחות של ${data.scopedTo}, אף אחד` : "אף לקוח"} לא נעלם ליותר מ-${threshold} ימים ולא הוריד את ההוצאה ב-${drop}% או יותר. כשזה יקרה תראה אותו כאן, ותוכל לשלוח לו WhatsApp או ליצור משימה.`}
       />
@@ -50,7 +50,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
     <div>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground tabular">{formatNumber(data.total)}</span>{" "}
+          <span className="font-medium text-foreground num">{formatNumber(data.total)}</span>{" "}
           {data.total === 1 ? "לקוח צריך" : "לקוחות צריכים"} תשומת לב{data.scopedTo ? ` · ${data.scopedTo}` : ""}
         </p>
         <div className="flex gap-0.5">
@@ -72,7 +72,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
             <p className="text-xs font-medium text-negative">{reasonText(c)}</p>
             <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
               {c.change_pct !== null && c.change_pct < 0 && (
-                <span className="tabular">
+                <span className="num">
                   ההוצאה ירדה ב-<Ltr>{Math.abs(c.change_pct)}%</Ltr> לעומת התקופה הקודמת
                 </span>
               )}

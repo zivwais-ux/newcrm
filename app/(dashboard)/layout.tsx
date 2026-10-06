@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { getMembers, requireOrg } from "@/lib/supabase/server";
 import { WorkspaceProvider } from "@/components/layout/workspace-provider";
-import { SidebarNav } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { CreateProvider } from "@/components/layout/create-provider";
+import { Dock } from "@/components/layout/dock";
+import { TopStrip } from "@/components/layout/top-strip";
 import { loadTemplates } from "@/lib/whatsapp-server";
 
 // Server actions on these pages (import chunks) can take longer than the default.
@@ -24,15 +25,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         templates,
       }}
     >
-      <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-e bg-sidebar lg:block">
-          <SidebarNav />
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar />
-          <main className="flex-1 pb-24 lg:pb-0">{children}</main>
+      <CreateProvider>
+        <div className="flex min-h-[100dvh] flex-col">
+          <TopStrip />
+          {/* Bottom room so content never hides under the floating dock. */}
+          <main className="flex-1 pb-28">{children}</main>
+          <Dock />
         </div>
-      </div>
+      </CreateProvider>
     </WorkspaceProvider>
   );
 }

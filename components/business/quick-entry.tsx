@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarPlus, Loader2, Receipt, UserPlus, X } from "lucide-react";
+import { CalendarPlus, CircleNotch, Receipt, UserPlus, X } from "@phosphor-icons/react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,8 @@ function CustomerField({
   onChange: (v: CustomerValue) => void;
   optional?: boolean;
 }) {
-  const [isNew, setIsNew] = useState(false);
+  // A name without an id (e.g. from the command bar) starts in "new customer" mode.
+  const [isNew, setIsNew] = useState(!value.id && !!value.name);
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -85,7 +86,7 @@ function ServiceChips({
       <Label>שירות או מוצר</Label>
       {chips === null ? (
         <div className="flex h-8 items-center gap-1.5 text-xs text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" /> טוען…
+          <CircleNotch className="size-3.5 animate-spin" /> טוען…
         </div>
       ) : (
         <div className="flex flex-wrap gap-1.5">
@@ -145,6 +146,11 @@ function useServiceChips(open: boolean) {
   return chips;
 }
 
+/** A customer to prefill: an existing one (id) or a new name typed elsewhere (id null). */
+export type CustomerPrefill = { id: string | null; name: string };
+const fromPrefill = (c?: CustomerPrefill): CustomerValue =>
+  !c ? EMPTY_CUSTOMER : c.id ? { ...EMPTY_CUSTOMER, id: c.id, label: c.name } : { ...EMPTY_CUSTOMER, name: c.name };
+
 const customerPayload = (c: CustomerValue) =>
   c.id || c.name.trim() ? { id: c.id, name: c.name.trim(), phone: c.phone.trim() } : null;
 
@@ -152,18 +158,22 @@ export function QuickSaleDialog({
   open,
   onOpenChange,
   customer,
+  amount: initialAmount,
+  service: initialService,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Prefill when opened from a customer's page. */
-  customer?: { id: string; name: string };
+  /** Prefill from a customer's page or the command bar. */
+  customer?: CustomerPrefill;
+  amount?: number | null;
+  service?: string | null;
 }) {
   const router = useRouter();
   const currency = useMoney();
   const chips = useServiceChips(open);
-  const [cust, setCust] = useState<CustomerValue>(customer ? { ...EMPTY_CUSTOMER, id: customer.id, label: customer.name } : EMPTY_CUSTOMER);
-  const [amount, setAmount] = useState("");
-  const [service, setService] = useState("");
+  const [cust, setCust] = useState<CustomerValue>(() => fromPrefill(customer));
+  const [amount, setAmount] = useState(initialAmount ? String(initialAmount) : "");
+  const [service, setService] = useState(initialService ?? "");
   const [date, setDate] = useState(() => israelToday());
   const [paid, setPaid] = useState(true);
   const [more, setMore] = useState(false);
@@ -255,7 +265,7 @@ export function QuickSaleDialog({
               ביטול
             </Button>
             <Button type="submit" variant="brand" disabled={pending || !amount}>
-              {pending && <Loader2 className="animate-spin" />}
+              {pending && <CircleNotch className="animate-spin" />}
               שמור מכירה
             </Button>
           </DialogFooter>
@@ -275,17 +285,23 @@ export function QuickAppointmentDialog({
   open,
   onOpenChange,
   customer,
+  date: initialDate,
+  time: initialTime,
+  service: initialService,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  customer?: { id: string; name: string };
+  customer?: CustomerPrefill;
+  date?: string | null;
+  time?: string | null;
+  service?: string | null;
 }) {
   const router = useRouter();
   const chips = useServiceChips(open);
-  const [cust, setCust] = useState<CustomerValue>(customer ? { ...EMPTY_CUSTOMER, id: customer.id, label: customer.name } : EMPTY_CUSTOMER);
-  const [date, setDate] = useState(() => israelToday());
-  const [time, setTime] = useState(nextRoundHour);
-  const [service, setService] = useState("");
+  const [cust, setCust] = useState<CustomerValue>(() => fromPrefill(customer));
+  const [date, setDate] = useState(() => initialDate ?? israelToday());
+  const [time, setTime] = useState(() => initialTime ?? nextRoundHour());
+  const [service, setService] = useState(initialService ?? "");
   const [notes, setNotes] = useState("");
   const [pending, start] = useTransition();
 
@@ -333,7 +349,7 @@ export function QuickAppointmentDialog({
               ביטול
             </Button>
             <Button type="submit" variant="brand" disabled={pending}>
-              {pending && <Loader2 className="animate-spin" />}
+              {pending && <CircleNotch className="animate-spin" />}
               קבע תור
             </Button>
           </DialogFooter>

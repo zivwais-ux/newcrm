@@ -400,6 +400,7 @@ export function resolveConfig(def: ComponentDefinition, saved: Record<string, un
   config.size = size === "sm" || size === "md" || size === "lg" ? size : def.defaultSize;
   const w = saved?.w;
   config.w = typeof w === "string" && (WIDTHS as readonly string[]).includes(w) ? (w as ComponentWidth) : SIZE_TO_WIDTH[config.size];
+  config.h = saved?.h === "tall" ? "tall" : "regular";
   return config;
 }
 

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -96,7 +96,7 @@ export function ComponentConfigSheet({
             ביטול
           </Button>
           <Button onClick={save} disabled={pending}>
-            {pending && <Loader2 className="animate-spin" />}
+            {pending && <CircleNotch className="animate-spin" />}
             שמור
           </Button>
         </SheetFooter>

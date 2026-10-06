@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, X } from "lucide-react";
+import { Users, X } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { getCustomerRevenue, getCustomersAtRisk, getOverdueCustomers } from "@/lib/analytics/queries";
 import { PageContainer, PageHeader } from "@/components/layout/page";
@@ -8,6 +8,7 @@ import { FilterTabs, Pagination, SearchInput } from "@/components/business/list-
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { Button } from "@/components/ui/button";
+import { LiveDot, Module, ModuleFlush, ModuleRail } from "@/components/ui/module";
 import { pageParam, param, searchTerm, uuidList, type SearchParams } from "@/lib/params";
 import { formatNumber, plural } from "@/lib/utils";
 
@@ -100,32 +101,41 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
         actions={<NewRecordButton entity="customers" />}
       />
       {!totalCustomers ? (
-        <EmptyState
-          icon={Users}
-          title="אין עדיין לקוחות"
-          description="העלה קובץ אקסל עם רשימת הלקוחות שלך, או הוסף לקוח ראשון — הם יופיעו כאן."
-          importCta
-          action={<NewRecordButton entity="customers" variant="outline" />}
-        />
+        <Module>
+          <ModuleRail icon={<Users />} title="הלקוחות שלי" />
+          <EmptyState
+            icon={Users}
+            title="אין עדיין לקוחות"
+            description="העלה קובץ אקסל עם רשימת הלקוחות שלך, או הוסף לקוח ראשון — הם יופיעו כאן."
+            importCta
+            action={<NewRecordButton entity="customers" variant="outline" />}
+          />
+        </Module>
       ) : (
-        <>
+        <Module>
+          <ModuleRail
+            icon={<Users />}
+            title={segmented ? (title ?? "לקוחות נבחרים") : "הלקוחות שלי"}
+            meta={<span className="num">{formatNumber(count)}</span>}
+            actions={
+              segmented ? (
+                <Button asChild size="xs" variant="ghost">
+                  <Link href="/customers">
+                    <X />
+                    נקה
+                  </Link>
+                </Button>
+              ) : (
+                <LiveDot state={q || status ? "filtered" : "live"} label={q || status ? "מסונן" : undefined} />
+              )
+            }
+          />
           {segmented && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand/15 bg-brand-soft/60 px-4 py-3 shadow-xs">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{title ?? "לקוחות נבחרים"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {plural(count, "לקוח", "לקוחות")} בתצוגה הזו. סמן לקוחות כדי ליצור להם משימות מעקב.
-                </p>
-              </div>
-              <Button asChild size="xs" variant="ghost">
-                <Link href="/customers">
-                  <X />
-                  נקה
-                </Link>
-              </Button>
-            </div>
+            <p className="border-b border-border bg-brand-soft/50 px-3.5 py-2 text-xs text-muted-foreground">
+              {plural(count, "לקוח", "לקוחות")} בתצוגה הזו. סמן לקוחות כדי ליצור להם משימות מעקב.
+            </p>
           )}
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 border-b border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <SearchInput placeholder="חיפוש לפי שם, אימייל, טלפון או חברה…" />
             <FilterTabs
               param="status"
@@ -142,10 +152,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
           ) : rows.length === 0 ? (
             <EmptyState compact icon={Users} title="לא נמצאו לקוחות" description="נסה חיפוש אחר או סינון אחר." />
           ) : (
-            <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle="לחזור ללקוח" />
+            <ModuleFlush>
+              <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle="לחזור ללקוח" />
+            </ModuleFlush>
           )}
           <Pagination page={page} pageSize={PAGE_SIZE} total={count} />
-        </>
+        </Module>
       )}
     </PageContainer>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { ArrowClockwise, Sparkle } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { Brief } from "@/lib/analytics/brief";
@@ -33,12 +33,12 @@ export function BriefCard({ initial }: { initial: Brief }) {
     <section className="rounded-xl border bg-surface p-5 shadow-sm" aria-label="הסיכום היומי של היועץ">
       <div className="mb-3 flex items-center gap-2">
         <span className="grid size-7 place-items-center rounded-lg bg-brand-soft text-brand">
-          <Sparkles className="size-3.5" />
+          <Sparkle className="size-3.5" />
         </span>
         <h2 className="text-[15px] font-semibold">הסיכום היומי</h2>
         <span className="text-xs text-muted-foreground">· {formatDate(brief.generatedAt)}</span>
         <Button variant="ghost" size="icon-sm" className="ms-auto text-muted-foreground" onClick={refresh} disabled={loading} aria-label="רענן סיכום">
-          <RefreshCw className={cn(loading && "animate-spin")} />
+          <ArrowClockwise className={cn(loading && "animate-spin")} />
         </Button>
       </div>
       <div className={cn("max-w-3xl space-y-2.5 text-[15px] leading-relaxed text-zinc-700 transition-opacity", loading && "opacity-50")}>

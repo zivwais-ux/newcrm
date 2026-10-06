@@ -3,7 +3,7 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BarChart3, Loader2 } from "lucide-react";
+import { ChartBar, CircleNotch } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stat } from "@/components/business/stat";
@@ -79,7 +79,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
             ))}
           </SelectContent>
         </Select>
-        {pending && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
+        {pending && <CircleNotch className="size-4 animate-spin text-muted-foreground" />}
         {data.rangeFromWorkspace && <span className="text-xs text-muted-foreground">טווח של כל המסך: {RANGE_PRESETS[data.rangePreset]}</span>}
         {data.service && <span className="text-xs font-medium text-brand">מוצג רק: {data.service}</span>}
       </div>
@@ -96,7 +96,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
       </div>
       {summary.pending_total > 0 && (
         <p className="-mt-3 text-xs text-muted-foreground">
-          ממתין לתשלום: <Ltr className="tabular">{formatCurrency(summary.pending_total, currency)}</Ltr> · לא נכלל בהכנסות עד שישולם ·{" "}
+          ממתין לתשלום: <Ltr className="num">{formatCurrency(summary.pending_total, currency)}</Ltr> · לא נכלל בהכנסות עד שישולם ·{" "}
           <Link href="/transactions" className="font-medium hover:text-foreground hover:underline">
             למכירות ←
           </Link>
@@ -106,7 +106,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
       {summary.sale_count === 0 && summary.total === 0 ? (
         <EmptyState
           compact
-          icon={<BarChart3 />}
+          icon={<ChartBar />}
           title="אין הכנסות בטווח התאריכים הזה"
           description="כאן יופיע גרף ההכנסות שלך לפי חודש ולפי שירות. רק מכירות ששולמו נספרות. נסה טווח תאריכים רחב יותר."
           action={
@@ -162,10 +162,10 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                       return (
                         <div dir="rtl" className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
                           <p className="font-medium">{formatMonth(p.month.slice(0, 7) + "-01", true)}</p>
-                          <p className="mt-1 text-sm font-semibold tabular">
+                          <p className="mt-1 text-sm font-semibold num">
                             <Ltr>{formatCurrency(p.revenue, currency)}</Ltr>
                           </p>
-                          <p className="text-muted-foreground tabular">
+                          <p className="text-muted-foreground num">
                             {plural(p.tx_count, "מכירה", "מכירות", "מכירה אחת")} · {plural(p.customers, "לקוח", "לקוחות")}
                           </p>
                           <p className="mt-1 text-muted-foreground">לחץ לרשימת המכירות</p>
@@ -196,7 +196,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     <li key="__other" className="px-1.5 py-1" title="כל שאר השירותים יחד">
                       <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px] text-muted-foreground">
                         <span className="truncate">{s.name}</span>
-                        <Ltr className="shrink-0 tabular">{formatCurrency(s.revenue, currency, true)}</Ltr>
+                        <Ltr className="shrink-0 num">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
                       <div className="h-1.5 rounded-sm bg-muted">
                         <div className="h-full rounded-sm bg-muted-foreground/40" style={{ width: `${Math.max(2, Math.min(100, (s.revenue / maxService) * 100))}%` }} />
@@ -214,7 +214,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     >
                       <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
                         <span className={cn("truncate", selected && "font-medium text-brand")}>{s.name}</span>
-                        <Ltr className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</Ltr>
+                        <Ltr className="shrink-0 num text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
                       <div className="h-1.5 rounded-sm bg-muted">
                         <div className="h-full rounded-sm bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />

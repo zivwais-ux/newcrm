@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, Mail, MapPin, MessageCircle, MoreHorizontal, NotebookPen, Pencil, Phone, Trash2, Users } from "lucide-react";
+import { CalendarDots, ChatCircle, DotsThree, Envelope, MapPin, NotePencil, PencilSimple, Phone, Trash, Users } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { RecordFormDialog } from "./record-form";
@@ -14,13 +14,13 @@ import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import { ACTIVITY_TYPE_LABELS } from "./labels";
 
-const ICON = { appointment: CalendarClock, call: Phone, meeting: Users, email: Mail, note: NotebookPen, visit: MapPin, whatsapp: MessageCircle } as const;
+const ICON = { appointment: CalendarDots, call: Phone, meeting: Users, email: Envelope, note: NotePencil, visit: MapPin, whatsapp: ChatCircle } as const;
 
 export function ActivityItem({ activity, showCustomer = true }: { activity: Activity; showCustomer?: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
-  const Icon = ICON[activity.type] ?? NotebookPen;
+  const Icon = ICON[activity.type] ?? NotePencil;
   const future = new Date(activity.date) > new Date();
 
   return (
@@ -52,12 +52,12 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="icon-sm" variant="ghost" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100" aria-label="פעולות על הפעילות">
-            <MoreHorizontal />
+            <DotsThree />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setEditing(true)}>
-            <Pencil />
+            <PencilSimple />
             ערוך
           </DropdownMenuItem>
           <DropdownMenuItem
@@ -71,7 +71,7 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
               })
             }
           >
-            <Trash2 />
+            <Trash />
             מחק
           </DropdownMenuItem>
         </DropdownMenuContent>

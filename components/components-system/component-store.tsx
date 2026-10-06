@@ -5,22 +5,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Activity,
-  BarChart3,
+  ChartLineUp,
   Check,
+  CircleNotch,
+  Crosshair,
   Handshake,
-  Loader2,
-  Plus,
-  Radar,
-  Repeat,
-  ShieldAlert,
-  Sparkles,
-  TrendingDown,
-  Upload,
-  Users,
   ListChecks,
-  Sun,
-} from "lucide-react";
+  Plus,
+  Pulse,
+  Repeat,
+  ShieldWarning,
+  Sparkle,
+  SunHorizon,
+  TrendDown,
+  UploadSimple,
+  Users,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addComponent, addRecommendedComponents } from "@/lib/actions/components";
@@ -31,16 +31,16 @@ import { cn, formatNumber } from "@/lib/utils";
 
 export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "customer-hub": Users,
-  "revenue-intelligence": BarChart3,
-  "ai-analyst": Sparkles,
+  "revenue-intelligence": ChartLineUp,
+  "ai-analyst": Sparkle,
   "repeat-customers": Repeat,
-  "customer-risk": TrendingDown,
-  activities: Activity,
+  "customer-risk": TrendDown,
+  activities: Pulse,
   "sales-pipeline": Handshake,
-  "deal-risk": ShieldAlert,
-  "followup-radar": Radar,
+  "deal-risk": ShieldWarning,
+  "followup-radar": Crosshair,
   tasks: ListChecks,
-  today: Sun,
+  today: SunHorizon,
 };
 
 const ENTITY_COUNT_LABELS: Record<string, string> = {
@@ -73,7 +73,7 @@ function ComponentCard({
   adding: boolean;
   highlight: boolean;
 }) {
-  const Icon = COMPONENT_ICONS[entry.definition.id] ?? Sparkles;
+  const Icon = COMPONENT_ICONS[entry.definition.id] ?? Sparkle;
   return (
     <div
       id={`c-${entry.definition.id}`}
@@ -105,7 +105,7 @@ function ComponentCard({
         ) : (
           canManage && (
             <Button size="xs" variant={entry.recommended ? "default" : "outline"} onClick={onAdd} disabled={adding}>
-              {adding ? <Loader2 className="animate-spin" /> : <Plus />}
+              {adding ? <CircleNotch className="animate-spin" /> : <Plus />}
               הוסף למסך
             </Button>
           )
@@ -189,7 +189,7 @@ export function ComponentStore({
           </div>
           {canManage && recommended.length > 1 && (
             <Button onClick={addAllRecommended} disabled={bulkPending}>
-              {bulkPending ? <Loader2 className="animate-spin" /> : <Plus />}
+              {bulkPending ? <CircleNotch className="animate-spin" /> : <Plus />}
               הוסף את כל המומלצים ({formatNumber(recommended.length)})
             </Button>
           )}
@@ -217,7 +217,7 @@ export function ComponentStore({
             {!Object.values(counts).some(Boolean) && (
               <Button asChild size="sm">
                 <Link href="/data/import">
-                  <Upload />
+                  <UploadSimple />
                   העלה קובץ
                 </Link>
               </Button>
@@ -262,7 +262,7 @@ export function ComponentStore({
             </Button>
             <Button asChild>
               <Link href="/data/import">
-                <Upload />
+                <UploadSimple />
                 העלה קובץ
               </Link>
             </Button>

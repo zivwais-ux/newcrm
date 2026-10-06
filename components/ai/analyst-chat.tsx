@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowUp, Database, Filter, ListPlus, Loader2, RotateCcw, Sparkles, Upload, Users, X } from "lucide-react";
+import { ArrowCounterClockwise, ArrowUp, CircleNotch, Database, Funnel, ListPlus, Sparkle, UploadSimple, Users, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BulkTaskDialog } from "@/components/business/bulk-task-dialog";
@@ -177,7 +177,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
     <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-3xl flex-col px-4 py-6 sm:px-8 sm:py-8">
       <div className="mb-5 flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-soft text-brand ring-1 ring-brand/10">
-          <Sparkles className="size-5" />
+          <Sparkle className="size-5" />
         </span>
         <div className="min-w-0">
           <h1 className="text-[24px] font-bold leading-tight tracking-tight">היועץ החכם</h1>
@@ -189,7 +189,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
         {chips.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5 sm:px-6">
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Filter className="size-3" />
+              <Funnel className="size-3" />
               שואל בתוך הסינון:
             </span>
             {chips.map((k) => (
@@ -218,7 +218,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                   <p>עדיין אין נתוני עסק. העלה קובץ לקוחות או מכירות, והיועץ יענה לפיו.</p>
                   <Button asChild size="sm" variant="brand">
                     <Link href="/data/import">
-                      <Upload />
+                      <UploadSimple />
                       העלה קובץ
                     </Link>
                   </Button>
@@ -249,7 +249,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                       </div>
                       {m.error && i === messages.length - 1 && (
                         <Button size="sm" variant="outline" className="rounded-sm" onClick={retry} disabled={loading}>
-                          <RotateCcw />
+                          <ArrowCounterClockwise />
                           נסה שוב
                         </Button>
                       )}
@@ -269,7 +269,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                       {m.notice && <p className="text-xs text-muted-foreground">{m.notice}</p>}
                     </div>
                     <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand">
-                      <Sparkles className="size-3.5" />
+                      <Sparkle className="size-3.5" />
                     </span>
                   </div>
                 ),
@@ -278,7 +278,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                 <div className="flex items-center justify-end gap-2.5 text-sm text-muted-foreground">
                   בודק את הנתונים שלך…
                   <span className="grid size-7 place-items-center rounded-lg bg-brand-soft text-brand">
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <CircleNotch className="size-3.5 animate-spin" />
                   </span>
                 </div>
               )}

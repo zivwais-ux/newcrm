@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ListChecks } from "lucide-react";
+import { ListChecks } from "@phosphor-icons/react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatNumber } from "@/lib/utils";
 import { TaskList } from "@/components/business/task-list";
@@ -14,7 +14,7 @@ export function TasksView({ data }: ViewProps<TasksData>) {
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground tabular">{formatNumber(data.openCount)}</span> פתוחות
+          <span className="font-medium text-foreground num">{formatNumber(data.openCount)}</span> פתוחות
           {data.overdueCount > 0 && <span className="font-medium text-negative"> · {formatNumber(data.overdueCount)} באיחור</span>}
         </p>
         <NewRecordButton entity="tasks" variant="outline" size="xs">

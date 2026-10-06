@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
+import { CalendarDots } from "@phosphor-icons/react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityItem } from "@/components/business/activity-list";
 import { NewRecordButton } from "@/components/business/record-form";
@@ -29,7 +29,7 @@ export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
       {empty ? (
         <EmptyState
           compact
-          icon={<CalendarClock />}
+          icon={<CalendarDots />}
           title="עדיין אין פעילות"
           description="כאן יופיעו התורים, השיחות והביקורים שלך — מה שמחכה היום ובהמשך, ומה שהיה לאחרונה. רשום את הפעילות הראשונה."
           action={

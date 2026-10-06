@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Check, ChevronsUpDown, UserPlus, X } from "lucide-react";
+import { CaretUpDown, Check, UserPlus, X } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -85,7 +85,7 @@ export function EntityPicker({
                 <X className="size-3.5" />
               </span>
             )}
-            <ChevronsUpDown className="size-4 text-muted-foreground" />
+            <CaretUpDown className="size-4 text-muted-foreground" />
           </span>
         </button>
       </PopoverTrigger>

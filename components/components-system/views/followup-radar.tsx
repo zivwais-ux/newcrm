@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Check, PhoneCall, Radar } from "lucide-react";
+import { Check, Crosshair, PhoneCall } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -45,7 +45,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
     return (
       <EmptyState
         compact
-        icon={<Radar />}
+        icon={<Crosshair />}
         title="אין למי לחזור כרגע"
         description="כאן יופיעו משימות באיחור, עסקאות שאף אחד לא נגע בהן ופניות שמחכות לתשובה. כרגע הכל מטופל."
       />
@@ -60,7 +60,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
           { label: "פניות שמחכות", value: leadCount },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-muted/30 px-2 py-3">
-            <p className="text-xl font-semibold tabular">{formatNumber(s.value)}</p>
+            <p className="text-xl font-semibold num">{formatNumber(s.value)}</p>
             <p className="text-[11px] text-muted-foreground">{s.label}</p>
           </div>
         ))}

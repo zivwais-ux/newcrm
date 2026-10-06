@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle, CircleNotch } from "@phosphor-icons/react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +64,7 @@ export function BulkTaskDialog({
       <DialogContent className="sm:max-w-md">
         {created !== null ? (
           <div className="flex flex-col items-center py-4 text-center">
-            <CheckCircle2 className="size-8 text-positive" />
+            <CheckCircle className="size-8 text-positive" />
             <DialogTitle className="mt-3">{created === 1 ? "נוצרה משימת מעקב אחת" : `נוצרו ${formatNumber(created)} משימות מעקב`}</DialogTitle>
             <DialogDescription className="mt-1">הן כבר משויכות, ומופיעות בכרטיס של כל לקוח ובעמוד המשימות.</DialogDescription>
             <div className="mt-6 flex gap-2">
@@ -123,7 +123,7 @@ export function BulkTaskDialog({
                 ביטול
               </Button>
               <Button onClick={confirm} disabled={pending || !count || !title.trim()}>
-                {pending && <Loader2 className="animate-spin" />}
+                {pending && <CircleNotch className="animate-spin" />}
                 צור {tasksLabel(count)}
               </Button>
             </DialogFooter>

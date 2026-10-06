@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Receipt, X } from "lucide-react";
+import { Receipt, X } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { FilterTabs, Pagination, SearchInput } from "@/components/business/list-controls";
@@ -8,8 +8,9 @@ import { NewRecordButton } from "@/components/business/record-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
+import { LiveDot, Module, ModuleRail } from "@/components/ui/module";
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, label } from "@/components/business/labels";
 import { pageParam, param, searchTerm, type SearchParams } from "@/lib/params";
 import type { Transaction } from "@/types/domain";
@@ -45,58 +46,66 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
   const rows = (data ?? []) as Transaction[];
   const { count: total } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("organization_id", org.id);
 
+  const filtered = Boolean(q || type || from || to);
+
   return (
     <PageContainer>
       <PageHeader title="כסף ומכירות" description="כל המכירות, התשלומים וההחזרים במקום אחד." actions={<NewRecordButton entity="transactions" />} />
-      {!total ? (
-        <EmptyState
-          icon={Receipt}
-          title="אין עדיין מכירות"
-          description="כאן יופיעו כל המכירות והתשלומים. העלה קובץ אקסל עם המכירות שלך, ותקבל מיד תמונה של ההכנסות."
-          importCta
-          action={<NewRecordButton entity="transactions" variant="outline" />}
+      <Module>
+        <ModuleRail
+          icon={<Receipt />}
+          title="מכירות"
+          meta={total ? <span className="num">{formatNumber(count ?? 0)}</span> : undefined}
+          actions={total ? <LiveDot state={filtered ? "filtered" : "live"} label={filtered ? "מסונן" : undefined} /> : undefined}
         />
-      ) : (
-        <>
-          {(from || to) && (
-            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-brand/15 bg-brand-soft/60 px-4 py-3 shadow-xs">
-              <p className="min-w-0 flex-1 text-sm font-medium">
-                {from && to ? (
-                  <>
-                    מכירות מ-<Ltr>{formatDate(from)}</Ltr> עד <Ltr>{formatDate(to)}</Ltr>
-                  </>
-                ) : from ? (
-                  <>
-                    מכירות מ-<Ltr>{formatDate(from)}</Ltr> והלאה
-                  </>
-                ) : (
-                  <>
-                    מכירות עד <Ltr>{formatDate(to)}</Ltr>
-                  </>
-                )}
-              </p>
-              <Button asChild size="xs" variant="ghost">
-                <Link href="/transactions">
-                  <X />
-                  כל התאריכים
-                </Link>
-              </Button>
+        {!total ? (
+          <EmptyState
+            icon={Receipt}
+            title="אין עדיין מכירות"
+            description="כאן יופיעו כל המכירות והתשלומים. העלה קובץ אקסל עם המכירות שלך, ותקבל מיד תמונה של ההכנסות."
+            importCta
+            action={<NewRecordButton entity="transactions" variant="outline" />}
+          />
+        ) : (
+          <>
+            {(from || to) && (
+              <div className="flex flex-wrap items-center gap-3 border-b border-border bg-brand-soft/50 px-3.5 py-2">
+                <p className="min-w-0 flex-1 text-[13px] font-medium">
+                  {from && to ? (
+                    <>
+                      מכירות מ-<Ltr>{formatDate(from)}</Ltr> עד <Ltr>{formatDate(to)}</Ltr>
+                    </>
+                  ) : from ? (
+                    <>
+                      מכירות מ-<Ltr>{formatDate(from)}</Ltr> והלאה
+                    </>
+                  ) : (
+                    <>
+                      מכירות עד <Ltr>{formatDate(to)}</Ltr>
+                    </>
+                  )}
+                </p>
+                <Button asChild size="xs" variant="ghost">
+                  <Link href="/transactions">
+                    <X />
+                    כל התאריכים
+                  </Link>
+                </Button>
+              </div>
+            )}
+            <div className="flex flex-col gap-2 border-b border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+              <SearchInput placeholder="חיפוש לפי מוצר, שירות או עובד…" />
+              <FilterTabs
+                param="type"
+                options={[
+                  { value: "", label: "הכל" },
+                  { value: "sale", label: "מכירות" },
+                  { value: "subscription", label: "מנויים" },
+                  { value: "refund", label: "החזרים" },
+                ]}
+              />
             </div>
-          )}
-          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <SearchInput placeholder="חיפוש לפי מוצר, שירות או עובד…" />
-            <FilterTabs
-              param="type"
-              options={[
-                { value: "", label: "הכל" },
-                { value: "sale", label: "מכירות" },
-                { value: "subscription", label: "מנויים" },
-                { value: "refund", label: "החזרים" },
-              ]}
-            />
-          </div>
-          {rows.length ? (
-            <div className="overflow-hidden rounded-xl border bg-surface shadow-sm">
+            {rows.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -111,7 +120,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 <TableBody>
                   {rows.map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="ps-4 text-muted-foreground tabular">{formatDate(t.date)}</TableCell>
+                      <TableCell className="ps-4 text-[13px] text-muted-foreground tabular">{formatDate(t.date)}</TableCell>
                       <TableCell className="max-w-[220px]">
                         {t.customer_id ? (
                           <Link href={`/customers/${t.customer_id}`} className="block truncate font-medium hover:text-brand">
@@ -124,24 +133,24 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                       <TableCell className="hidden md:table-cell">{t.product_or_service ?? "—"}</TableCell>
                       <TableCell className="hidden text-muted-foreground lg:table-cell">{t.owner_name ?? "—"}</TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={t.type === "refund" ? "negative" : t.status === "pending" ? "warning" : "default"} >
+                        <Badge variant={t.type === "refund" ? "negative" : t.status === "pending" ? "warning" : "default"}>
                           {t.type === "refund" ? TRANSACTION_TYPE_LABELS.refund : label(TRANSACTION_STATUS_LABELS, t.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="pe-4 text-end font-medium tabular">
+                      <TableCell className="num pe-4 text-end font-medium">
                         <Ltr>{formatCurrency(t.type === "refund" ? -t.amount : t.amount, org.currency)}</Ltr>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <EmptyState compact icon={Receipt} title="לא נמצאו מכירות" description="נסה חיפוש אחר או סינון אחר." />
-          )}
-          <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
-        </>
-      )}
+            ) : (
+              <EmptyState compact icon={Receipt} title="לא נמצאו מכירות" description="נסה חיפוש אחר או סינון אחר." />
+            )}
+            <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
+          </>
+        )}
+      </Module>
     </PageContainer>
   );
 }

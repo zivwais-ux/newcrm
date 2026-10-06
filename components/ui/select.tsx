@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Select as SelectPrimitive } from "radix-ui";
-import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { CaretDown, Check } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
@@ -18,7 +18,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-lg border border-input bg-surface px-3 text-sm shadow-xs whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:truncate cursor-pointer",
+        "flex w-full items-center justify-between gap-2 rounded-sm border border-input bg-module px-3 text-sm whitespace-nowrap transition-[border-color,box-shadow] hover:border-border-strong focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/15 data-[state=open]:border-brand data-[state=open]:ring-2 data-[state=open]:ring-brand/15 disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:truncate cursor-pointer",
         size === "sm" ? "h-8 text-[13px]" : "h-9",
         className,
       )}
@@ -26,7 +26,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+        <CaretDown className="size-3.5 shrink-0 text-muted-foreground" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -43,7 +43,7 @@ function SelectContent({
       <SelectPrimitive.Content
         position={position}
         className={cn(
-          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0",
+          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-sm border border-border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0",
           position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1",
           className,
         )}
@@ -56,21 +56,21 @@ function SelectContent({
 }
 
 function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
-  return <SelectPrimitive.Label className={cn("px-2 py-1.5 text-xs font-medium text-muted-foreground", className)} {...props} />;
+  return <SelectPrimitive.Label className={cn("px-2 py-1.5 text-[11px] font-medium text-muted-foreground", className)} {...props} />;
 }
 
 function SelectItem({ className, children, ...props }: React.ComponentProps<typeof SelectPrimitive.Item>) {
   return (
     <SelectPrimitive.Item
       className={cn(
-        "relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pe-8 ps-2 text-sm outline-none select-none focus:bg-accent data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        "relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pe-8 ps-2 text-sm outline-none select-none focus:bg-muted data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       {...props}
     >
       <span className="absolute end-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <Check weight="bold" className="size-3.5 text-brand" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

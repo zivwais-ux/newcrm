@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, MailCheck } from "lucide-react";
+import { CircleNotch, EnvelopeSimpleOpen } from "@phosphor-icons/react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,7 +70,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     return (
       <div className="space-y-3">
         <span className="grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand">
-          <MailCheck className="size-5" />
+          <EnvelopeSimpleOpen className="size-5" />
         </span>
         <h1 className="text-2xl font-bold tracking-tight">בדוק את האימייל שלך</h1>
         <p className="text-[15px] leading-relaxed text-muted-foreground">שלחנו לך קישור לאישור. לחץ עליו כדי לסיים לפתוח את החשבון.</p>
@@ -117,7 +117,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </p>
         )}
         <Button type="submit" size="lg" className="w-full" disabled={loading}>
-          {loading && <Loader2 className="animate-spin" />}
+          {loading && <CircleNotch className="animate-spin" />}
           {mode === "signup" ? "פתח חשבון" : "כניסה"}
         </Button>
       </form>

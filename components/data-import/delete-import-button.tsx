@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
+import { CircleNotch, Trash } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -61,7 +61,7 @@ export function DeleteImportButton({ id, fileName }: { id: string; fileName: str
   return (
     <>
       <Button size="icon-sm" variant="ghost" aria-label={`מחק את ${fileName}`} title="מחק קובץ" onClick={() => setOpen(true)}>
-        <Trash2 />
+        <Trash />
       </Button>
       <Dialog open={open} onOpenChange={(v) => !pending && setOpen(v)}>
         <DialogContent>
@@ -76,7 +76,7 @@ export function DeleteImportButton({ id, fileName }: { id: string; fileName: str
                 <span>לא הצלחנו לחשב מה יימחק.</span>
               ) : !impact ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <Loader2 className="size-3.5 animate-spin" /> בודקים מה יימחק…
+                  <CircleNotch className="size-3.5 animate-spin" /> בודקים מה יימחק…
                 </span>
               ) : items.length ? (
                 <span>
@@ -98,7 +98,7 @@ export function DeleteImportButton({ id, fileName }: { id: string; fileName: str
               ביטול
             </Button>
             <Button variant="destructive" onClick={confirm} disabled={pending}>
-              {pending ? <Loader2 className="animate-spin" /> : <Trash2 />}
+              {pending ? <CircleNotch className="animate-spin" /> : <Trash />}
               {withData ? "מחק קובץ ונתונים" : "הסר מהרשימה"}
             </Button>
           </DialogFooter>

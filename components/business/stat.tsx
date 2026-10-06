@@ -1,4 +1,4 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Minus } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
 export function Delta({ value, suffix = "", invert = false, className }: { value: number | null; suffix?: string; invert?: boolean; className?: string }) {
@@ -10,12 +10,12 @@ export function Delta({ value, suffix = "", invert = false, className }: { value
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 text-xs font-medium tabular",
+        "num inline-flex items-center gap-0.5 text-xs font-medium",
         flat ? "text-muted-foreground" : good ? "text-positive" : "text-negative",
         className,
       )}
     >
-      <Icon className="size-3.5" />
+      <Icon className="size-3.5" weight="bold" />
       {Math.abs(rounded)}
       {suffix || "%"}
     </span>
@@ -37,8 +37,8 @@ export function Stat({
 }) {
   return (
     <div className={cn("min-w-0 space-y-1", className)}>
+      <p className="num truncate text-[26px] leading-none font-medium tracking-tight">{value}</p>
       <p className="truncate text-xs text-muted-foreground">{label}</p>
-      <p className="truncate text-xl font-semibold tracking-tight tabular">{value}</p>
       {(delta !== undefined || hint) && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           {delta !== undefined && <Delta value={delta} />}

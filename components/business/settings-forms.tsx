@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { CircleNotch } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,7 +70,7 @@ export function WorkspaceSettingsForm({
       </div>
       {canManage ? (
         <Button type="submit" size="sm" disabled={pending}>
-          {pending && <Loader2 className="animate-spin" />}
+          {pending && <CircleNotch className="animate-spin" />}
           שמור שינויים
         </Button>
       ) : (
@@ -102,7 +102,7 @@ export function ProfileForm({ name }: { name: string }) {
         <Input id="p-name" dir="auto" value={value} onChange={(e) => setValue(e.target.value)} />
       </div>
       <Button type="submit" size="default" variant="outline" disabled={pending}>
-        {pending && <Loader2 className="animate-spin" />}
+        {pending && <CircleNotch className="animate-spin" />}
         שמור
       </Button>
     </form>

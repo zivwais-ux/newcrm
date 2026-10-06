@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Sparkles } from "lucide-react";
+import { ArrowUp, Sparkle } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import type { ViewProps } from "../shared";
 import type { AIAnalystData } from "@/lib/components/loaders";
@@ -37,7 +37,7 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
         }}
         className="flex items-center gap-2 rounded-lg border bg-surface py-1 pe-1 ps-3 focus-within:ring-2 focus-within:ring-ring/30"
       >
-        <Sparkles className="size-4 shrink-0 text-brand" />
+        <Sparkle className="size-4 shrink-0 text-brand" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

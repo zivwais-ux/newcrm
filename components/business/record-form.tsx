@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus } from "lucide-react";
+import { CircleNotch, Plus } from "@phosphor-icons/react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -287,7 +287,7 @@ export function RecordFormDialog({
               ביטול
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending && <Loader2 className="animate-spin" />}
+              {pending && <CircleNotch className="animate-spin" />}
               {recordId ? "שמור שינויים" : form.createLabel}
             </Button>
           </DialogFooter>

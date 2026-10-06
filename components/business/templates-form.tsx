@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { CircleNotch, Plus, Trash } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +31,7 @@ export function TemplatesForm({ initial, canManage }: { initial: MessageTemplate
               <Input value={t.name} onChange={(e) => update(i, { name: e.target.value })} disabled={!canManage} placeholder="שם התבנית" className="h-8 flex-1 text-[13px] font-medium" maxLength={60} />
               {canManage && items.length > 1 && (
                 <Button variant="ghost" size="icon-sm" onClick={() => setItems((l) => l.filter((_, j) => j !== i))} aria-label="מחק תבנית">
-                  <Trash2 className="text-muted-foreground" />
+                  <Trash className="text-muted-foreground" />
                 </Button>
               )}
             </div>
@@ -56,7 +56,7 @@ export function TemplatesForm({ initial, canManage }: { initial: MessageTemplate
               })
             }
           >
-            {pending && <Loader2 className="animate-spin" />}
+            {pending && <CircleNotch className="animate-spin" />}
             שמור תבניות
           </Button>
         </div>

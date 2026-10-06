@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CalendarRange, Link2, X } from "lucide-react";
+import { CalendarBlank, X } from "@phosphor-icons/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RANGE_PRESETS } from "@/lib/analytics/dates";
 import { activeFilterKeys, filterLabel, parseFilters, type WorkspaceFilters } from "@/lib/components/filters";
@@ -74,8 +74,8 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Select value={f.range ?? "component"} onValueChange={(v) => setParams({ range: v === "component" ? null : v })}>
-        <SelectTrigger size="sm" className="w-auto min-w-44 bg-surface" aria-label="טווח תאריכים לכל המסך">
-          <CalendarRange className="size-3.5 text-muted-foreground" />
+        <SelectTrigger size="sm" className="w-auto min-w-44 bg-module" aria-label="טווח תאריכים לכל המסך">
+          <CalendarBlank className="size-3.5 text-muted-foreground" />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -88,11 +88,11 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
         </SelectContent>
       </Select>
       {chips.map((k) => (
-        <span key={k} className="inline-flex items-center gap-1.5 rounded-sm border border-brand/30 bg-brand-soft py-1 pe-1 ps-2.5 text-xs font-medium text-brand">
-          <Link2 className="size-3" />
+        <span key={k} className="inline-flex h-8 items-center gap-1.5 border border-brand bg-brand-soft pe-1 ps-2.5 text-xs font-medium text-brand">
+          <span className="size-1.5 rounded-full bg-brand" />
           {filterLabel(k, f[k] as string)}
-          <button onClick={() => setParams({ [k]: null })} className="rounded-sm p-0.5 hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
-            <X className="size-3" />
+          <button onClick={() => setParams({ [k]: null })} className="grid size-6 place-items-center hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
+            <X className="size-3" weight="bold" />
           </button>
         </span>
       ))}
@@ -102,7 +102,7 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
         </button>
       )}
       {chips.length === 0 && (
-        <span className="hidden text-xs text-muted-foreground md:inline">טיפ: לחיצה על שירות או על שלב עסקה מסננת את כל הכלים המחוברים.</span>
+        <span className="hidden text-xs text-muted-foreground md:inline">לחיצה על שירות או על שלב עסקה מסננת את כל המודולים המחוברים.</span>
       )}
     </div>
   );

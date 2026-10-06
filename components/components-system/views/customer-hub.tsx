@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Upload, UserPlus, Users } from "lucide-react";
+import { MagnifyingGlass, UploadSimple, UserPlus, Users } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -55,7 +55,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
         action={
           <Button asChild size="sm">
             <Link href="/data/import">
-              <Upload />
+              <UploadSimple />
               העלה קובץ
             </Link>
           </Button>
@@ -95,7 +95,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
             router.push(customersHref({ q: q.trim() }));
           }}
         >
-          <Search className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <MagnifyingGlass className="pointer-events-none absolute top-1/2 start-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -158,7 +158,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
                     <Badge variant={c.status === "active" ? "positive" : "default"}>{label(CUSTOMER_STATUS_LABELS, c.status)}</Badge>
                   </td>
                   <td className="hidden px-1 py-2 text-muted-foreground md:table-cell">{c.last_purchase ? relativeDays(c.last_purchase) : "עוד לא קנה"}</td>
-                  <td className="px-1 py-2 text-end tabular">
+                  <td className="px-1 py-2 text-end num">
                     <Ltr>{formatCurrency(c.revenue, currency)}</Ltr>
                   </td>
                   <td className="px-1 py-2 text-end">

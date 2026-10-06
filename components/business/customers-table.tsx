@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ListPlus, X } from "lucide-react";
+import { ListPlus, X } from "@phosphor-icons/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function CustomersTable({
     <div>
       {selected.size > 0 && (
         <div className="sticky top-16 z-20 mb-3 flex flex-wrap items-center gap-2 rounded-xl border bg-surface px-3 py-2 shadow-md">
-          <span className="text-sm font-medium tabular">{plural(selected.size, "נבחר", "נבחרו", "נבחר אחד")}</span>
+          <span className="text-sm font-medium num">{plural(selected.size, "נבחר", "נבחרו", "נבחר אחד")}</span>
           {allIds && allIds.length > selected.size && (
             <Button size="xs" variant="ghost" onClick={() => setSelected(new Set(allIds))}>
               בחר את כל ה־{formatNumber(allIds.length)}
@@ -127,8 +127,8 @@ export function CustomersTable({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden text-muted-foreground lg:table-cell">{relativeDays(r.last_purchase)}</TableCell>
-                <TableCell className="hidden text-end tabular lg:table-cell">{formatNumber(r.purchases)}</TableCell>
-                <TableCell className="pe-4 text-end font-medium tabular">
+                <TableCell className="hidden text-end num lg:table-cell">{formatNumber(r.purchases)}</TableCell>
+                <TableCell className="pe-4 text-end font-medium num">
                   <Ltr>{formatCurrency(r.revenue, currency)}</Ltr>
                 </TableCell>
               </TableRow>

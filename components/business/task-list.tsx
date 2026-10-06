@@ -3,7 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarClock, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { CalendarDots, DotsThree, PencilSimple, Trash } from "@phosphor-icons/react";
 import { israelToday } from "@/lib/analytics/dates";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -105,7 +105,7 @@ export function TaskList({ tasks, showCustomer = true, actions = true }: { tasks
                 <DropdownMenu dir="rtl">
                   <DropdownMenuTrigger asChild>
                     <Button size="icon-sm" variant="ghost" className="-my-1 shrink-0 text-muted-foreground" aria-label={`פעולות למשימה "${t.title}"`}>
-                      <MoreHorizontal />
+                      <DotsThree />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -115,17 +115,17 @@ export function TaskList({ tasks, showCustomer = true, actions = true }: { tasks
                           run({ kind: "due", id: t.id, due_date: tomorrowYmd() }, () => postponeTaskToTomorrow(t.id), "המשימה נדחתה למחר")
                         }
                       >
-                        <CalendarClock />
+                        <CalendarDots />
                         דחה למחר
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onSelect={() => setEditing(t)}>
-                      <Pencil />
+                      <PencilSimple />
                       ערוך
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(t)}>
-                      <Trash2 />
+                      <Trash />
                       מחק
                     </DropdownMenuItem>
                   </DropdownMenuContent>

@@ -14,7 +14,7 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { PartyPopper, Plus } from "lucide-react";
+import { Confetti, Plus } from "@phosphor-icons/react";
 import { RecordFormDialog } from "./record-form";
 import { WhatsAppButton } from "./whatsapp-button";
 import { useWorkspace } from "@/components/layout/workspace-provider";
@@ -73,7 +73,7 @@ function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () =
         )}
       </div>
       <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-        <Ltr className="font-semibold tabular">{formatCurrency(deal.value, org.currency)}</Ltr>
+        <Ltr className="font-semibold num">{formatCurrency(deal.value, org.currency)}</Ltr>
         <span className={cn("truncate text-muted-foreground", open && idle >= 14 && "text-warning")}>
           {open ? (idle <= 0 ? "עודכנה היום" : `${plural(idle, "יום", "ימים")} בלי תזוזה`) : owner ?? ""}
         </span>
@@ -125,9 +125,9 @@ function Column({
         )}
       >
         <span className={cn("text-[13px] font-medium", collapsed && "text-muted-foreground")}>
-          {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground tabular">{formatNumber(count)}</span>
+          {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground num">{formatNumber(count)}</span>
         </span>
-        <Ltr className="text-xs text-muted-foreground tabular">{formatCurrency(total, org.currency, true)}</Ltr>
+        <Ltr className="text-xs text-muted-foreground num">{formatCurrency(total, org.currency, true)}</Ltr>
       </button>
       <div
         ref={setNodeRef}
@@ -292,7 +292,7 @@ export function PipelineBoard({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <PartyPopper className="size-5 text-positive" />
+              <Confetti className="size-5 text-positive" />
               העסקה נסגרה בהצלחה!
             </DialogTitle>
             <DialogDescription>

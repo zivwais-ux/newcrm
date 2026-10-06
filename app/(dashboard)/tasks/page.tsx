@@ -1,12 +1,14 @@
-import { ListChecks } from "lucide-react";
+import { ListChecks } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { FilterTabs, Pagination } from "@/components/business/list-controls";
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { TaskList } from "@/components/business/task-list";
+import { Module, ModuleRail } from "@/components/ui/module";
 import { israelToday } from "@/lib/analytics/dates";
 import { pageParam, param, type SearchParams } from "@/lib/params";
+import { formatNumber } from "@/lib/utils";
 import type { Task } from "@/types/domain";
 
 export const metadata = { title: "משימות" };
@@ -32,30 +34,37 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   return (
     <PageContainer className="max-w-3xl">
       <PageHeader title="משימות" description="למי לחזור ומה צריך לעשות — שלך ושל הצוות." actions={<NewRecordButton entity="tasks" />} />
-      <div className="mb-4">
-        <FilterTabs
-          param="view"
-          options={[
-            { value: "", label: "פתוחות" },
-            { value: "mine", label: "שלי" },
-            { value: "overdue", label: "באיחור" },
-            { value: "done", label: "בוצעו" },
-          ]}
+      <Module>
+        <ModuleRail
+          icon={<ListChecks />}
+          title="משימות"
+          meta={<span className="num">{formatNumber(count ?? 0)}</span>}
+          actions={
+            <FilterTabs
+              param="view"
+              options={[
+                { value: "", label: "פתוחות" },
+                { value: "mine", label: "שלי" },
+                { value: "overdue", label: "באיחור" },
+                { value: "done", label: "בוצעו" },
+              ]}
+            />
+          }
         />
-      </div>
-      {tasks.length ? (
-        <div className="rounded-xl border bg-surface px-4 shadow-sm">
-          <TaskList tasks={tasks} />
-        </div>
-      ) : (
-        <EmptyState
-          icon={ListChecks}
-          title={view === "done" ? "עוד לא סיימת משימות" : "אין משימות פתוחות — כל הכבוד!"}
-          description="כאן יופיעו משימות שתוסיף, או שתאשר מההצעות של היועץ החכם."
-          action={view === "done" ? undefined : <NewRecordButton entity="tasks" variant="outline" />}
-        />
-      )}
-      <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
+        {tasks.length ? (
+          <div className="px-4">
+            <TaskList tasks={tasks} />
+          </div>
+        ) : (
+          <EmptyState
+            icon={ListChecks}
+            title={view === "done" ? "עוד לא סיימת משימות" : "אין משימות פתוחות"}
+            description="כאן יופיעו משימות שתוסיף, או שתאשר מההצעות של היועץ החכם."
+            action={view === "done" ? undefined : <NewRecordButton entity="tasks" variant="outline" />}
+          />
+        )}
+        <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
+      </Module>
     </PageContainer>
   );
 }

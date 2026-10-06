@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MessageCircle, Send } from "lucide-react";
+import { PaperPlaneTilt, WhatsappLogo } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -80,7 +80,7 @@ export function WhatsAppButton({
         <Tooltip>
           <TooltipTrigger asChild>
             <span className={cn("inline-grid size-8 place-items-center rounded-lg text-zinc-300", className)} aria-label="אין מספר טלפון">
-              <MessageCircle className="size-4" />
+              <WhatsappLogo className="size-4" />
             </span>
           </TooltipTrigger>
           <TooltipContent>אין מספר טלפון ללקוח הזה</TooltipContent>
@@ -89,7 +89,7 @@ export function WhatsAppButton({
     }
     return (
       <Button variant="outline" size="sm" disabled className={className}>
-        <MessageCircle />
+        <WhatsappLogo />
         אין טלפון
       </Button>
     );
@@ -109,14 +109,14 @@ export function WhatsAppButton({
               className={cn("inline-grid size-8 place-items-center rounded-lg transition-colors hover:bg-[#25d366]/10 cursor-pointer", WA, className)}
               aria-label={`שלח WhatsApp ל${name}`}
             >
-              <MessageCircle className="size-4" />
+              <WhatsappLogo className="size-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent>שלח WhatsApp ל{name}</TooltipContent>
         </Tooltip>
       ) : (
         <Button variant="outline" size="sm" onClick={openDialog} className={cn(WA, className)} disabled={pending}>
-          <MessageCircle />
+          <WhatsappLogo />
           {label}
         </Button>
       )}
@@ -151,7 +151,7 @@ export function WhatsAppButton({
               ביטול
             </Button>
             <Button onClick={send} disabled={!text.trim()} className="bg-[#25d366] text-white hover:bg-[#1fb958]">
-              <Send className="rtl:-scale-x-100" />
+              <PaperPlaneTilt className="rtl:-scale-x-100" />
               פתח ב-WhatsApp
             </Button>
           </DialogFooter>

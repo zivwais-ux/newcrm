@@ -7,12 +7,12 @@ import {
   ArrowRight,
   Briefcase,
   Check,
-  FileSpreadsheet,
-  Layers,
-  Loader2,
-  Store,
-  Sprout,
-} from "lucide-react";
+  FileXls,
+  Stack,
+  CircleNotch,
+  Storefront,
+  Plant,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,14 +22,14 @@ import { completeOnboarding, createOrganization } from "@/lib/actions/org";
 import type { BusinessType } from "@/types/domain";
 
 const BUSINESS_TYPES: { value: BusinessType; title: string; description: string; icon: React.ElementType }[] = [
-  { value: "service", title: "אני נותן שירות", description: "מספרה, קליניקה, סטודיו, ניקיון, תיקונים, שירותים מקומיים", icon: Store },
+  { value: "service", title: "אני נותן שירות", description: "מספרה, קליניקה, סטודיו, ניקיון, תיקונים, שירותים מקומיים", icon: Storefront },
   { value: "sales", title: "אני מוכר", description: "סוכנות, מכירות לעסקים, צוות מכירות, נדל״ן", icon: Briefcase },
-  { value: "both", title: "גם וגם", description: "נותן שירות, ויש גם תהליך מכירה", icon: Layers },
+  { value: "both", title: "גם וגם", description: "נותן שירות, ויש גם תהליך מכירה", icon: Stack },
 ];
 
 const DATA_SOURCES = [
-  { value: "excel", title: "יש לי קובץ", description: "אקסל, CSV או ייצוא מתוכנה אחרת — נעלה אותו עכשיו", icon: FileSpreadsheet },
-  { value: "none", title: "מתחילים עם מסך ריק", description: "אוסיף לקוחות בעצמי, או אעלה קובץ אחר כך", icon: Sprout },
+  { value: "excel", title: "יש לי קובץ", description: "אקסל, CSV או ייצוא מתוכנה אחרת — נעלה אותו עכשיו", icon: FileXls },
+  { value: "none", title: "מתחילים עם מסך ריק", description: "אוסיף לקוחות בעצמי, או אעלה קובץ אחר כך", icon: Plant },
 ] as const;
 
 type DataSource = (typeof DATA_SOURCES)[number]["value"];
@@ -161,7 +161,7 @@ export function OnboardingFlow({
             ))}
           </fieldset>
           <Button type="submit" size="lg" className="w-full" disabled={pending || !businessName.trim() || !businessType}>
-            {pending ? <Loader2 className="animate-spin" /> : null}
+            {pending ? <CircleNotch className="animate-spin" /> : null}
             המשך
             {!pending && <ArrowRight className="rtl:-scale-x-100" />}
           </Button>
@@ -187,7 +187,7 @@ export function OnboardingFlow({
             ))}
           </div>
           <Button size="lg" className="w-full" onClick={submitData} disabled={pending || !source}>
-            {pending ? <Loader2 className="animate-spin" /> : null}
+            {pending ? <CircleNotch className="animate-spin" /> : null}
             {source === "excel" ? "המשך להעלאת הקובץ" : "קח אותי למסך העבודה"}
             {!pending && <ArrowRight className="rtl:-scale-x-100" />}
           </Button>

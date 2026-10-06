@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Mail, Phone, Building2, CalendarClock, ListChecks, Receipt, Handshake } from "lucide-react";
+import { AddressBook, Buildings, CalendarDots, CaretLeft, ChartBar, Envelope, Handshake, ListChecks, Phone, Receipt, Tag } from "@phosphor-icons/react/dist/ssr";
 import { z } from "zod";
 import { requireOrg } from "@/lib/supabase/server";
 import { PageContainer } from "@/components/layout/page";
@@ -16,6 +16,7 @@ import { Stat } from "@/components/business/stat";
 import { STAGE_LABELS } from "@/components/business/pipeline-board";
 import { formatCurrency, formatDate, formatNumber, plural, relativeDays } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
+import { Module, ModuleBody, ModuleRail } from "@/components/ui/module";
 import { CUSTOMER_STATUS_LABELS, TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, label } from "@/components/business/labels";
 import type { Activity, Customer, Deal, Task, Transaction } from "@/types/domain";
 
@@ -59,22 +60,23 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   return (
     <PageContainer>
       <Link href="/customers" className="mb-5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="size-3.5 rtl:-scale-x-100" />
+        <CaretLeft className="size-3.5 rtl:-scale-x-100" />
         לקוחות
       </Link>
 
-      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0 space-y-2">
-          <h1 className="text-[26px] font-bold tracking-tight">{c.name}</h1>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant={c.status === "active" ? "positive" : c.status === "churned" ? "negative" : "default"} >
+            <Badge variant={c.status === "active" ? "positive" : c.status === "churned" ? "negative" : "default"}>
               לקוח {label(CUSTOMER_STATUS_LABELS, c.status)}
             </Badge>
             {segment && <Badge variant="outline">{segment}</Badge>}
+            <span className="text-muted-foreground">·</span>
+            <span className="text-[13px] text-muted-foreground">
+              <Ltr className="num font-medium text-foreground">{money(totalRevenue)}</Ltr> סה״כ הכנסות
+            </span>
           </div>
-          <p className="text-lg font-medium tabular">
-            <Ltr>{money(totalRevenue)}</Ltr> <span className="text-sm font-normal text-muted-foreground">סה״כ הכנסות</span>
-          </p>
         </div>
         <CustomerActions customer={c} />
       </div>
@@ -89,81 +91,104 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
         ]}
       >
         <TabsContent value="overview">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div className="space-y-8 lg:col-span-2">
-              <div className="grid grid-cols-2 gap-5 rounded-xl border bg-surface p-5 shadow-sm sm:grid-cols-4">
-                <Stat label="קניות" value={formatNumber(purchases.length)} />
-                <Stat label="קנייה ממוצעת" value={<Ltr>{money(purchases.length ? totalRevenue / purchases.length : 0)}</Ltr>} />
-                <Stat label="קנייה אחרונה" value={lastPurchase ? relativeDays(lastPurchase) : "—"} hint={lastPurchase ? formatDate(lastPurchase) : undefined} />
-                <Stat label="חוזר בדרך כלל כל" value={usualInterval ? plural(usualInterval, "יום", "ימים") : "—"} />
-              </div>
+          <div className="grid items-start gap-6 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <Module>
+                <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4 [&>*]:bg-module [&>*]:p-4">
+                  <Stat label="קניות" value={formatNumber(purchases.length)} />
+                  <Stat label="קנייה ממוצעת" value={<Ltr>{money(purchases.length ? totalRevenue / purchases.length : 0)}</Ltr>} />
+                  <Stat label="קנייה אחרונה" value={lastPurchase ? relativeDays(lastPurchase) : "—"} hint={lastPurchase ? formatDate(lastPurchase) : undefined} />
+                  <Stat label="חוזר בדרך כלל כל" value={usualInterval ? plural(usualInterval, "יום", "ימים") : "—"} />
+                </div>
+              </Module>
               {topServices.length > 0 && (
-                <div>
-                  <h3 className="mb-3 text-sm font-semibold">מה הוא קונה</h3>
-                  <ul className="space-y-2">
+                <Module>
+                  <ModuleRail icon={<ChartBar />} title="מה הוא קונה" />
+                  <ul className="divide-y divide-border/60">
                     {topServices.map(([name, amount]) => (
-                      <li key={name} className="flex items-center justify-between text-sm">
-                        <span>{name}</span>
-                        <Ltr className="tabular text-muted-foreground">{money(amount)}</Ltr>
+                      <li key={name} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-5">
+                        <span className="truncate">{name}</span>
+                        <Ltr className="num text-muted-foreground">{money(amount)}</Ltr>
                       </li>
                     ))}
                   </ul>
-                </div>
+                </Module>
               )}
-              <div>
-                <h3 className="mb-2 text-sm font-semibold">פעילות אחרונה</h3>
-                {activities.length ? (
-                  activities.slice(0, 4).map((a) => <ActivityItem key={a.id} activity={a} showCustomer={false} />)
-                ) : (
-                  <p className="text-sm text-muted-foreground">עוד לא נרשמה פעילות.</p>
-                )}
-              </div>
+              <Module>
+                <ModuleRail icon={<CalendarDots />} title="פעילות אחרונה" />
+                <div className="px-4 sm:px-5">
+                  {activities.length ? (
+                    activities.slice(0, 4).map((a) => <ActivityItem key={a.id} activity={a} showCustomer={false} />)
+                  ) : (
+                    <p className="py-4 text-sm text-muted-foreground">עוד לא נרשמה פעילות.</p>
+                  )}
+                </div>
+              </Module>
             </div>
             <aside className="space-y-6">
-              <div className="space-y-3 rounded-xl border bg-surface p-5 text-sm shadow-sm">
-                <h3 className="font-semibold">פרטי קשר</h3>
-                <p className="flex items-center gap-2 text-zinc-700">
-                  <Mail className="size-4 text-muted-foreground" />
-                  {c.email ? (
-                    <a href={`mailto:${c.email}`} dir="ltr" className="truncate hover:underline">
-                      {c.email}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
-                </p>
-                <p className="flex items-center gap-2 text-zinc-700">
-                  <Phone className="size-4 text-muted-foreground" />
-                  {c.phone ? <a href={`tel:${c.phone}`} dir="ltr" className="hover:underline">{c.phone}</a> : "—"}
-                </p>
-                <p className="flex items-center gap-2 text-zinc-700">
-                  <Building2 className="size-4 text-muted-foreground" />
-                  {c.company ?? "—"}
-                </p>
-                <p className="text-xs text-muted-foreground">לקוח מאז {formatDate(c.created_at)}</p>
-              </div>
+              <Module>
+                <ModuleRail icon={<AddressBook />} title="פרטי קשר" />
+                <ModuleBody className="space-y-3 text-sm">
+                  <p className="flex items-center gap-2 text-foreground/80">
+                    <Envelope className="size-4 shrink-0 text-muted-foreground" />
+                    {c.email ? (
+                      <a href={`mailto:${c.email}`} dir="ltr" className="truncate hover:underline">
+                        {c.email}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </p>
+                  <p className="flex items-center gap-2 text-foreground/80">
+                    <Phone className="size-4 shrink-0 text-muted-foreground" />
+                    {c.phone ? (
+                      <a href={`tel:${c.phone}`} dir="ltr" className="num hover:underline">
+                        {c.phone}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </p>
+                  <p className="flex items-center gap-2 text-foreground/80">
+                    <Buildings className="size-4 shrink-0 text-muted-foreground" />
+                    {c.company ?? "—"}
+                  </p>
+                  <p className="border-t border-border pt-3 text-xs text-muted-foreground">לקוח מאז {formatDate(c.created_at)}</p>
+                </ModuleBody>
+              </Module>
               {customFields.length > 0 && (
-                <div className="space-y-2 rounded-xl border bg-surface p-5 text-sm shadow-sm">
-                  <h3 className="font-semibold">פרטים נוספים</h3>
-                  {customFields.map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-3">
-                      <span className="capitalize text-muted-foreground">{k.replace(/_/g, " ")}</span>
-                      <span dir="auto" className="truncate text-end">{String(v)}</span>
-                    </div>
-                  ))}
-                </div>
+                <Module>
+                  <ModuleRail icon={<Tag />} title="פרטים נוספים" />
+                  <ModuleBody className="space-y-2 text-sm">
+                    {customFields.map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-3">
+                        <span className="capitalize text-muted-foreground">{k.replace(/_/g, " ")}</span>
+                        <span dir="auto" className="truncate text-end">
+                          {String(v)}
+                        </span>
+                      </div>
+                    ))}
+                  </ModuleBody>
+                </Module>
               )}
-              <div className="rounded-xl border bg-surface p-5 shadow-sm">
-                <h3 className="mb-1 text-sm font-semibold">משימות פתוחות</h3>
-                {openTasks.length ? <TaskList tasks={openTasks.slice(0, 5)} showCustomer={false} /> : <p className="text-sm text-muted-foreground">אין משימות פתוחות.</p>}
-              </div>
+              <Module>
+                <ModuleRail icon={<ListChecks />} title="משימות פתוחות" meta={openTasks.length ? <span className="num">{formatNumber(openTasks.length)}</span> : undefined} />
+                <div className="px-4 sm:px-5">
+                  {openTasks.length ? (
+                    <TaskList tasks={openTasks.slice(0, 5)} showCustomer={false} />
+                  ) : (
+                    <p className="py-4 text-sm text-muted-foreground">אין משימות פתוחות.</p>
+                  )}
+                </div>
+              </Module>
             </aside>
           </div>
         </TabsContent>
 
         <TabsContent value="transactions">
-          {transactions.length ? (
-            <div className="overflow-hidden rounded-xl border bg-surface shadow-sm">
+          <Module>
+            <ModuleRail icon={<Receipt />} title="מכירות" meta={<span className="num">{formatNumber(transactions.length)}</span>} />
+            {transactions.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -177,67 +202,76 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 <TableBody>
                   {transactions.map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="ps-4 text-muted-foreground tabular">{formatDate(t.date)}</TableCell>
+                      <TableCell className="ps-4 text-[13px] text-muted-foreground tabular">{formatDate(t.date)}</TableCell>
                       <TableCell>{t.product_or_service ?? "—"}</TableCell>
                       <TableCell className="hidden text-muted-foreground sm:table-cell">{t.owner_name ?? "—"}</TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        <Badge variant={t.status === "paid" ? "default" : t.status === "pending" ? "warning" : "negative"} >
+                        <Badge variant={t.status === "paid" ? "default" : t.status === "pending" ? "warning" : "negative"}>
                           {t.type === "refund" ? TRANSACTION_TYPE_LABELS.refund : label(TRANSACTION_STATUS_LABELS, t.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="pe-4 text-end font-medium tabular">
+                      <TableCell className="num pe-4 text-end font-medium">
                         <Ltr>{money(t.type === "refund" ? -t.amount : t.amount)}</Ltr>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <EmptyState compact icon={Receipt} title="עדיין אין מכירות" description="כאן יופיעו הקניות של הלקוח הזה." />
-          )}
+            ) : (
+              <EmptyState compact icon={Receipt} title="עדיין אין מכירות" description="כאן יופיעו הקניות של הלקוח הזה." />
+            )}
+          </Module>
         </TabsContent>
 
         <TabsContent value="activities">
-          {activities.length ? (
-            <div className="rounded-xl border bg-surface px-4 shadow-sm">
-              {activities.map((a) => (
-                <ActivityItem key={a.id} activity={a} showCustomer={false} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState compact icon={CalendarClock} title="עדיין אין פעילות" description="רשום תורים, שיחות וביקורים בעזרת הכפתורים למעלה." />
-          )}
+          <Module>
+            <ModuleRail icon={<CalendarDots />} title="פעילות" meta={<span className="num">{formatNumber(activities.length)}</span>} />
+            {activities.length ? (
+              <div className="px-4 sm:px-5">
+                {activities.map((a) => (
+                  <ActivityItem key={a.id} activity={a} showCustomer={false} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState compact icon={CalendarDots} title="עדיין אין פעילות" description="רשום תורים, שיחות וביקורים בעזרת הכפתורים למעלה." />
+            )}
+          </Module>
         </TabsContent>
 
         <TabsContent value="deals">
-          {deals.length ? (
-            <div className="divide-y overflow-hidden rounded-xl border bg-surface shadow-sm">
-              {deals.map((d) => (
-                <Link key={d.id} href={`/deals?deal=${d.id}`} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{d.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {STAGE_LABELS[d.stage]} · צפי לסגירה {formatDate(d.expected_close)}
-                    </p>
-                  </div>
-                  <Ltr className="text-sm font-medium tabular">{money(d.value)}</Ltr>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <EmptyState compact icon={Handshake} title="אין עסקאות" description="כאן יופיעו עסקאות שקשורות ללקוח הזה." />
-          )}
+          <Module>
+            <ModuleRail icon={<Handshake />} title="עסקאות" meta={<span className="num">{formatNumber(deals.length)}</span>} />
+            {deals.length ? (
+              <div className="divide-y divide-border/60">
+                {deals.map((d) => (
+                  <Link key={d.id} href={`/deals?deal=${d.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/50 sm:px-5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{d.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {STAGE_LABELS[d.stage]} · צפי לסגירה {formatDate(d.expected_close)}
+                      </p>
+                    </div>
+                    <Ltr className="num text-sm font-medium">{money(d.value)}</Ltr>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <EmptyState compact icon={Handshake} title="אין עסקאות" description="כאן יופיעו עסקאות שקשורות ללקוח הזה." />
+            )}
+          </Module>
         </TabsContent>
 
         <TabsContent value="tasks">
-          {tasks.length ? (
-            <div className="rounded-xl border bg-surface px-4 shadow-sm">
-              <TaskList tasks={tasks} showCustomer={false} />
-            </div>
-          ) : (
-            <EmptyState compact icon={ListChecks} title="אין משימות" description="צור משימה כדי לא לשכוח לחזור ללקוח הזה." />
-          )}
+          <Module>
+            <ModuleRail icon={<ListChecks />} title="משימות" meta={<span className="num">{formatNumber(tasks.length)}</span>} />
+            {tasks.length ? (
+              <div className="px-4 sm:px-5">
+                <TaskList tasks={tasks} showCustomer={false} />
+              </div>
+            ) : (
+              <EmptyState compact icon={ListChecks} title="אין משימות" description="צור משימה כדי לא לשכוח לחזור ללקוח הזה." />
+            )}
+          </Module>
         </TabsContent>
       </ProfileTabs>
     </PageContainer>

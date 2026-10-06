@@ -1,4 +1,4 @@
-import { AlertCircle, Database } from "lucide-react";
+import { Database, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { EmptyState } from "@/components/ui/empty-state";
 import { entitiesText, getDefinition, missingEntities, resolveConfig } from "@/lib/components/registry";
 import { COMPONENT_LOADERS, type LoaderContext } from "@/lib/components/loaders";
@@ -27,7 +27,7 @@ export async function ComponentBody({
   overrides?: Record<string, string>;
 }) {
   const def = getDefinition(type);
-  if (!def) return <EmptyState compact icon={<AlertCircle />} title="הכלי הזה כבר לא זמין" />;
+  if (!def) return <EmptyState compact icon={<WarningCircle />} title="הכלי הזה כבר לא זמין" />;
   const config = resolveConfig(def, { ...(savedConfig ?? {}), ...(overrides ?? {}) });
 
   const missing = missingEntities(def, counts);
@@ -52,7 +52,7 @@ export async function ComponentBody({
     return (
       <EmptyState
         compact
-        icon={<AlertCircle />}
+        icon={<WarningCircle />}
         title={`לא הצלחנו לטעון את "${def.name}"`}
         description="הנתונים שלך שמורים ולא נפגעו. נסה שוב בעוד רגע."
         action={<RetryButton />}

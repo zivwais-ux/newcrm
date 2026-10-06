@@ -1,4 +1,4 @@
-import { Handshake } from "lucide-react";
+import { Handshake, Kanban } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { getPipelineSummary } from "@/lib/analytics/queries";
 import { PageContainer, PageHeader } from "@/components/layout/page";
@@ -8,6 +8,7 @@ import { NewRecordButton } from "@/components/business/record-form";
 import { Stat } from "@/components/business/stat";
 import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
+import { Module, ModuleBody, ModuleRail } from "@/components/ui/module";
 import { param, type SearchParams } from "@/lib/params";
 import type { Deal } from "@/types/domain";
 
@@ -30,22 +31,32 @@ export default async function DealsPage({ searchParams }: { searchParams: Search
     <PageContainer className="max-w-none">
       <PageHeader title="עסקאות" description="גרור עסקה משלב לשלב. לחץ על עסקה כדי לערוך אותה." actions={<NewRecordButton entity="deals" />} />
       {!deals.length ? (
-        <EmptyState
-          icon={Handshake}
-          title="אין עדיין עסקאות"
-          description="כאן תראה את כל העסקאות שבתהליך, לפי שלבים. הוסף עסקה ראשונה או העלה קובץ אקסל."
-          importCta
-          action={<NewRecordButton entity="deals" variant="outline" />}
-        />
+        <Module>
+          <ModuleRail icon={<Kanban />} title="עסקאות בתהליך" />
+          <EmptyState
+            icon={Handshake}
+            title="אין עדיין עסקאות"
+            description="כאן תראה את כל העסקאות שבתהליך, לפי שלבים. הוסף עסקה ראשונה או העלה קובץ אקסל."
+            importCta
+            action={<NewRecordButton entity="deals" variant="outline" />}
+          />
+        </Module>
       ) : (
         <div className="space-y-6">
-          <div className="grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-sm sm:grid-cols-4 [&>*]:bg-surface [&>*]:p-4">
-            <Stat label="שווי עסקאות פתוחות" value={<Ltr>{formatCurrency(open.reduce((s, x) => s + x.value, 0), org.currency)}</Ltr>} />
-            <Stat label="עסקאות פתוחות" value={formatNumber(open.reduce((s, x) => s + x.deals, 0))} />
-            <Stat label="נסגרו בהצלחה" value={<Ltr>{formatCurrency(won?.value ?? 0, org.currency)}</Ltr>} hint={plural(won?.deals ?? 0, "עסקה", "עסקאות", "עסקה אחת")} />
-            <Stat label="אחוז הצלחה" value={winRate === null ? "—" : <Ltr>{winRate}%</Ltr>} />
-          </div>
-          <PipelineBoard deals={deals} summary={summary} focusDealId={param(params, "deal") ?? null} />
+          <Module className="max-w-4xl">
+            <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4 [&>*]:bg-module [&>*]:p-4">
+              <Stat label="שווי עסקאות פתוחות" value={<Ltr>{formatCurrency(open.reduce((s, x) => s + x.value, 0), org.currency)}</Ltr>} />
+              <Stat label="עסקאות פתוחות" value={formatNumber(open.reduce((s, x) => s + x.deals, 0))} />
+              <Stat label="נסגרו בהצלחה" value={<Ltr>{formatCurrency(won?.value ?? 0, org.currency)}</Ltr>} hint={plural(won?.deals ?? 0, "עסקה", "עסקאות", "עסקה אחת")} />
+              <Stat label="אחוז הצלחה" value={winRate === null ? "—" : <Ltr>{winRate}%</Ltr>} />
+            </div>
+          </Module>
+          <Module>
+            <ModuleRail icon={<Kanban />} title="עסקאות בתהליך" meta={<span className="num">{formatNumber(deals.length)}</span>} />
+            <ModuleBody className="p-3 sm:p-4">
+              <PipelineBoard deals={deals} summary={summary} focusDealId={param(params, "deal") ?? null} />
+            </ModuleBody>
+          </Module>
         </div>
       )}
     </PageContainer>

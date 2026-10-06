@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { HomeBuilder } from "@/components/components-system/home-builder";
 import { ComponentBody } from "@/components/components-system/component-body";
 import { CustomerSpotlight } from "@/components/components-system/customer-spotlight";
-import type { CanvasItem } from "@/components/components-system/canvas-frame";
+import { ModuleSkeleton, type CanvasItem } from "@/components/components-system/canvas-frame";
 import type { PaletteEntry } from "@/components/components-system/component-palette";
 import { BriefCard } from "@/components/ai/brief-card";
 import { param, type SearchParams } from "@/lib/params";
@@ -18,18 +18,6 @@ import type { InstalledComponent } from "@/types/domain";
 
 export const metadata = { title: "בית" };
 
-function BodySkeleton() {
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-4">
-        <Skeleton className="h-12" />
-        <Skeleton className="h-12" />
-        <Skeleton className="h-12" />
-      </div>
-      <Skeleton className="h-32" />
-    </div>
-  );
-}
 
 async function BriefSection({ org }: { org: { id: string; name: string; currency: string } }) {
   const { supabase } = await requireOrg();
@@ -72,12 +60,14 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
       name: def.name,
       description: def.description,
       w: config.w!,
+      h: config.h,
       config: config as Record<string, string>,
       configFields: def.configFields,
       consumes: def.consumes,
+      emits: def.emits,
     });
     bodies[c.id] = (
-      <Suspense key={`${c.id}-${JSON.stringify(filters)}`} fallback={<BodySkeleton />}>
+      <Suspense key={`${c.id}-${JSON.stringify(filters)}`} fallback={<ModuleSkeleton />}>
         <ComponentBody type={def.id} instanceId={c.id} savedConfig={c.config} counts={counts} ctx={ctx} />
       </Suspense>
     );
@@ -111,7 +101,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         activeFilters={activeFilterKeys(filters)}
         updated={(param(params, "updated") ?? "").split(",").filter(Boolean)}
         top={
-          <Suspense fallback={<Skeleton className="h-28 rounded-xl" />}>
+          <Suspense fallback={<Skeleton className="h-28" />}>
             <BriefSection org={{ id: org.id, name: org.name, currency: org.currency }} />
           </Suspense>
         }

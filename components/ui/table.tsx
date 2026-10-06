@@ -9,7 +9,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   );
 }
 function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
-  return <thead className={cn("bg-muted/60 [&_tr]:border-b [&_tr]:hover:bg-transparent", className)} {...props} />;
+  return <thead className={cn("bg-rail [&_tr]:border-b [&_tr]:border-border [&_tr]:hover:bg-transparent", className)} {...props} />;
 }
 function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
   return <tbody className={cn("[&_tr:last-child]:border-0", className)} {...props} />;
@@ -17,7 +17,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
   return (
     <tr
-      className={cn("border-b border-border/60 transition-colors hover:bg-muted/40 data-[state=selected]:bg-brand-soft/50", className)}
+      className={cn("border-b border-border/60 transition-colors hover:bg-muted/50 data-[state=selected]:bg-brand-soft/60", className)}
       {...props}
     />
   );
@@ -26,7 +26,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "sticky top-0 z-10 h-10 bg-muted/60 px-3 text-start align-middle text-xs font-semibold text-muted-foreground whitespace-nowrap backdrop-blur [&:has([role=checkbox])]:w-8",
+        "sticky top-0 z-10 h-9 bg-rail px-3.5 text-start align-middle text-[11px] font-medium text-muted-foreground whitespace-nowrap [&:has([role=checkbox])]:w-8",
         className,
       )}
       {...props}
@@ -34,7 +34,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   );
 }
 function TableCell({ className, ...props }: React.ComponentProps<"td">) {
-  return <td className={cn("px-3 py-3 align-middle whitespace-nowrap", className)} {...props} />;
+  return <td className={cn("h-12 px-3.5 py-2.5 align-middle whitespace-nowrap", className)} {...props} />;
 }
 
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };
