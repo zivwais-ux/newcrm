@@ -174,8 +174,8 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                         <span className={cn("truncate", selected && "font-medium text-brand")}>{s.name}</span>
                         <Ltr className="shrink-0 tabular text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
-                      <div className="h-1.5 rounded-full bg-muted">
-                        <div className="h-full rounded-full bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />
+                      <div className="h-1.5 rounded-sm bg-muted">
+                        <div className="h-full rounded-sm bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />
                       </div>
                     </button>
                   </li>

@@ -88,10 +88,10 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
         </SelectContent>
       </Select>
       {chips.map((k) => (
-        <span key={k} className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft py-1 pe-1 ps-2.5 text-xs font-medium text-brand">
+        <span key={k} className="inline-flex items-center gap-1.5 rounded-sm border border-brand/30 bg-brand-soft py-1 pe-1 ps-2.5 text-xs font-medium text-brand">
           <Link2 className="size-3" />
           {filterLabel(k, f[k] as string)}
-          <button onClick={() => setParams({ [k]: null })} className="rounded-full p-0.5 hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
+          <button onClick={() => setParams({ [k]: null })} className="rounded-sm p-0.5 hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
             <X className="size-3" />
           </button>
         </span>

@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { formatCurrency, formatNumber, isoDate, plural } from "@/lib/utils";
-import { lastTwoFullMonths, monthToDate, resolveRange } from "@/lib/analytics/dates";
+import { lastTwoFullMonths, monthToDate, resolveRange, israelToday } from "@/lib/analytics/dates";
 import {
   getCustomersAtRisk,
   getOverdueCustomers,
@@ -397,7 +397,7 @@ async function fallbackAnalyst(rawQuestion: string, ctx: ToolContext, notice: st
       if (error) throw error;
       type Row = { title: string; due_date: string | null; customers: { name: string } | { name: string }[] | null };
       const rows = (data ?? []) as unknown as Row[];
-      const today = isoDate(new Date());
+      const today = israelToday();
       const week = isoDate(new Date(Date.now() + 7 * 86_400_000));
       const overdue = rows.filter((t) => t.due_date && t.due_date < today);
       const dueToday = rows.filter((t) => t.due_date === today);

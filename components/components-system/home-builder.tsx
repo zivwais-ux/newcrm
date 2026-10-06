@@ -451,7 +451,7 @@ function EmptyCanvas({
       {/* Hint toward the library, which sits on the start side (right in RTL). */}
       <div className="pointer-events-none absolute top-6 start-4 hidden items-center gap-2 text-[13px] font-medium text-brand lg:flex" aria-hidden>
         <ArrowLeft className="bos-nudge size-5 rtl:-scale-x-100" />
-        <span className="rounded-full bg-brand-soft px-3 py-1 shadow-xs ring-1 ring-brand/15">הספרייה כאן — גרור ממנה כלי</span>
+        <span className="rounded-sm bg-brand-soft px-3 py-1 shadow-xs ring-1 ring-brand/15">הספרייה כאן — גרור ממנה כלי</span>
       </div>
 
       <div className="grid size-20 place-items-center rounded-2xl border-2 border-dashed border-brand/30 bg-surface shadow-sm">

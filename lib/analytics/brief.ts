@@ -1,4 +1,5 @@
 import "server-only";
+import { israelToday } from "@/lib/analytics/dates";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatCurrency, isoDate, plural } from "@/lib/utils";
 import { lastTwoFullMonths, monthToDate } from "./dates";
@@ -174,7 +175,7 @@ export async function getBrief(
   org: { id: string; name: string; currency: string },
   { refresh = false } = {},
 ): Promise<Brief> {
-  const today = isoDate(new Date());
+  const today = israelToday();
   if (!refresh) {
     const { data } = await supabase
       .from("ai_briefs")

@@ -5,7 +5,7 @@ import { FilterTabs, Pagination } from "@/components/business/list-controls";
 import { EmptyState } from "@/components/business/empty-state";
 import { NewRecordButton } from "@/components/business/record-form";
 import { TaskList } from "@/components/business/task-list";
-import { isoDate } from "@/lib/utils";
+import { israelToday } from "@/lib/analytics/dates";
 import { pageParam, param, type SearchParams } from "@/lib/params";
 import type { Task } from "@/types/domain";
 
@@ -21,7 +21,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
   let query = supabase.from("tasks").select("*, customers(name), deals(name)", { count: "exact" }).eq("organization_id", org.id);
   if (view === "" || view === "mine" || view === "overdue") query = query.eq("status", "open");
   if (view === "mine") query = query.eq("assigned_to", user.id);
-  if (view === "overdue") query = query.lt("due_date", isoDate(new Date()));
+  if (view === "overdue") query = query.lt("due_date", israelToday());
   if (view === "done") query = query.eq("status", "done");
   const { data, count } = await query
     .order("due_date", { ascending: view !== "done", nullsFirst: false })

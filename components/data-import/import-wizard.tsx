@@ -530,7 +530,7 @@ export function ImportWizard({
                 ].map(([Icon, label]) => {
                   const I = Icon as typeof FileSpreadsheet;
                   return (
-                    <span key={label as string} className="inline-flex items-center gap-1 rounded-full border bg-surface px-2 py-0.5">
+                    <span key={label as string} className="inline-flex items-center gap-1 rounded-sm border bg-surface px-2 py-0.5">
                       <I className="size-3" />
                       {label as string}
                     </span>

@@ -50,7 +50,7 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
           <button
             key={p}
             onClick={() => ask(p)}
-            className="rounded-full border bg-surface px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-zinc-300 hover:text-foreground cursor-pointer"
+            className="rounded-sm border bg-surface px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-zinc-300 hover:text-foreground cursor-pointer"
           >
             {p}
           </button>

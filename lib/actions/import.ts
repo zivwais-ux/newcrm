@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireOrg } from "@/lib/supabase/server";
+import { canManage, requireOrg } from "@/lib/supabase/server";
 import { buildBundle, CustomerResolver, type CanonicalRecord } from "@/lib/data-mapping/transform";
 import { getDataCounts } from "@/lib/analytics/queries";
 import { COMPONENT_REGISTRY, getDefinition, missingEntities } from "@/lib/components/registry";
@@ -370,6 +370,61 @@ export async function getSpreadSummary(): Promise<ActionResult<SpreadSummary>> {
   const unlocked = COMPONENT_REGISTRY.filter(
     (d) => !installedTypes.has(d.id) && d.requiredEntities.length > 0 && missingEntities(d, counts).length === 0 && d.recommendedFor.includes(org.business_type),
   ).map((d) => ({ type: d.id, name: d.name, description: d.description }));
-  const canManage = role === "owner" || role === "admin";
-  return ok({ onCanvas, unlocked, canManage });
+  return ok({ onCanvas, unlocked, canManage: canManage(role) });
+}
+
+export interface ImportImpact {
+  transactions: number;
+  activities: number;
+  deals: number;
+  leads: number;
+  customers: number;
+}
+
+const isMissingFunction = (code?: string) => code === "PGRST202" || code === "42883";
+
+/** What deleting a file together with its data would remove — shown before the user confirms. */
+export async function getImportImpact(importId: string): Promise<ActionResult<ImportImpact>> {
+  if (!z.string().uuid().safeParse(importId).success) return fail("קובץ לא תקין.");
+  const { supabase } = await requireOrg();
+  const { data, error } = await supabase.rpc("import_impact", { p_import: importId });
+  if (error) return fail(isMissingFunction(error.code) ? "לא הצלחנו לחשב מה יימחק." : friendlyError(error));
+  return ok(data as ImportImpact);
+}
+
+export interface DeleteImportResult extends ImportImpact {
+  customers_kept: number;
+  services: number;
+}
+
+/**
+ * Deletes an uploaded file. With `withData` it also removes every sale, appointment, deal and lead
+ * that came from it, and the customers it created that nothing else refers to.
+ */
+export async function deleteImport(importId: string, withData: boolean): Promise<ActionResult<DeleteImportResult>> {
+  if (!z.string().uuid().safeParse(importId).success) return fail("קובץ לא תקין.");
+  const { supabase, org, role } = await requireOrg();
+  if (!canManage(role)) return fail("רק בעלי החשבון או מנהלים יכולים למחוק קבצים.");
+
+  const { data, error } = await supabase.rpc("delete_import", { p_import: importId, p_with_data: withData });
+  if (error) {
+    if (isMissingFunction(error.code)) return fail("מחיקת קבצים עוד לא הופעלה בחשבון. נסה שוב מאוחר יותר.");
+    if (error.code === "P0002") return fail("הקובץ כבר נמחק.");
+    return fail(friendlyError(error));
+  }
+  const result = data as DeleteImportResult & { storage_path: string | null };
+  if (result.storage_path && result.storage_path.startsWith(`${org.id}/`)) {
+    const { error: storageError } = await supabase.storage.from("imports").remove([result.storage_path]);
+    if (storageError) console.error("[deleteImport] storage", storageError.message);
+  }
+  revalidatePath("/", "layout");
+  return ok({
+    transactions: result.transactions,
+    activities: result.activities,
+    deals: result.deals,
+    leads: result.leads,
+    customers: result.customers,
+    customers_kept: result.customers_kept,
+    services: result.services,
+  });
 }

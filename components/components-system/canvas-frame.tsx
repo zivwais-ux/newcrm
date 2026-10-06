@@ -231,7 +231,7 @@ export function CanvasFrame({
           aria-label={`שנה רוחב של ${item.name}`}
           title="גרור כדי לשנות רוחב"
         >
-          <span className="h-10 w-1 rounded-full bg-brand/50" />
+          <span className="h-10 w-1 rounded-sm bg-brand/50" />
         </div>
       )}
       {liveW && (

@@ -25,7 +25,7 @@ function Section({ icon, title, count, children }: { icon: React.ReactNode; titl
       <div className="mb-1 flex items-center gap-2">
         <span className="grid size-6 place-items-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5">{icon}</span>
         <SectionLabel>{title}</SectionLabel>
-        <span className="rounded-full bg-muted px-1.5 text-[11px] font-medium tabular text-muted-foreground">{formatNumber(count)}</span>
+        <span className="rounded-sm bg-muted px-1.5 text-[11px] font-medium tabular text-muted-foreground">{formatNumber(count)}</span>
       </div>
       <div>{children}</div>
     </section>

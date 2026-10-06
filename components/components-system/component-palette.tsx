@@ -173,8 +173,8 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
             {doneCount}/{steps.length}
           </span>
         </div>
-        <div className="mb-3 h-1.5 rounded-full bg-muted">
-          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        <div className="mb-3 h-1.5 rounded-sm bg-muted">
+          <div className="h-full rounded-sm bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
         </div>
         <ul className="space-y-2">
           {steps.map((s) => (

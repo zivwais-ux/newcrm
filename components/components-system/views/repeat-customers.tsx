@@ -22,7 +22,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
         <Stat label="קנו פעם אחת" value={formatNumber(stats.first_time)} />
       </div>
       <div>
-        <div className="flex h-2 overflow-hidden rounded-full bg-muted" role="img" aria-label={`${Math.round(repeatShare)}% לקוחות חוזרים`}>
+        <div className="flex h-2 overflow-hidden rounded-sm bg-muted" role="img" aria-label={`${Math.round(repeatShare)}% לקוחות חוזרים`}>
           <div className="h-full bg-chart-1" style={{ width: `${repeatShare}%` }} />
           <div className="h-full w-0.5 bg-surface" />
         </div>

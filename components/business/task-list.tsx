@@ -1,12 +1,13 @@
 "use client";
 
+import { israelToday } from "@/lib/analytics/dates";
 import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { setTaskStatus } from "@/lib/actions/records";
 import { useWorkspace } from "@/components/layout/workspace-provider";
 import { CustomerLink } from "@/components/components-system/workspace-filters";
-import { cn, formatDate, isoDate } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import type { Task } from "@/types/domain";
 
 export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCustomer?: boolean }) {
@@ -15,7 +16,7 @@ export function TaskList({ tasks, showCustomer = true }: { tasks: Task[]; showCu
   const [optimistic, setOptimistic] = useOptimistic(tasks, (state, update: { id: string; status: "open" | "done" }) =>
     state.map((t) => (t.id === update.id ? { ...t, status: update.status } : t)),
   );
-  const today = isoDate(new Date());
+  const today = israelToday();
 
   return (
     <div className="divide-y">

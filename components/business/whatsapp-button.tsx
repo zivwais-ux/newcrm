@@ -137,7 +137,7 @@ export function WhatsAppButton({
                   setText(fill(t.body));
                 }}
                 className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
+                  "rounded-sm border px-3 py-1 text-xs font-medium transition-colors cursor-pointer",
                   chosen.id === t.id ? "border-[#25d366]/40 bg-[#25d366]/10 text-[#0b6b39]" : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >

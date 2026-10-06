@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardPaste, Contact, Database, FileSpreadsheet, FileText, Link2, Upload } from "lucide-react";
-import { requireOrg } from "@/lib/supabase/server";
+import { canManage, requireOrg } from "@/lib/supabase/server";
+import { DeleteImportButton } from "@/components/data-import/delete-import-button";
 import { getDataCounts } from "@/lib/analytics/queries";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,8 @@ const WAYS = [
 ];
 
 export default async function DataPage() {
-  const { supabase, org } = await requireOrg();
+  const { supabase, org, role } = await requireOrg();
+  const manage = canManage(role);
   const [counts, { data: imports }] = await Promise.all([
     getDataCounts(supabase, org.id),
     supabase
@@ -97,7 +99,8 @@ export default async function DataPage() {
                 <TableHead>סטטוס</TableHead>
                 <TableHead className="hidden sm:table-cell">שורות</TableHead>
                 <TableHead className="hidden md:table-cell">מה יובא</TableHead>
-                <TableHead className="pe-4 text-end">תאריך</TableHead>
+                <TableHead className={manage ? "text-end" : "pe-4 text-end"}>תאריך</TableHead>
+                {manage && <TableHead className="w-12 pe-2"><span className="sr-only">פעולות</span></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,7 +124,12 @@ export default async function DataPage() {
                         ? `${formatNumber(stats.imported)} שורות · ${formatNumber(stats.customersCreated ?? 0)} לקוחות חדשים · ${formatNumber(stats.transactions ?? 0)} מכירות`
                         : "—"}
                     </TableCell>
-                    <TableCell className="pe-4 text-end text-muted-foreground">{formatDate(f.created_at)}</TableCell>
+                    <TableCell className={manage ? "text-end text-muted-foreground" : "pe-4 text-end text-muted-foreground"}>{formatDate(f.created_at)}</TableCell>
+                    {manage && (
+                      <TableCell className="pe-2 text-end">
+                        <DeleteImportButton id={f.id} fileName={f.file_name} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}

@@ -48,11 +48,11 @@ export function BriefCard({ initial }: { initial: Brief }) {
       </div>
       {brief.facts.hasData && (
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild size="sm" variant="outline" className="rounded-full">
+          <Button asChild size="sm" variant="outline" className="rounded-sm">
             <Link href={`/ai?q=${encodeURIComponent("מה השתנה החודש?")}`}>מה השתנה החודש?</Link>
           </Button>
           {highValueIds.length > 0 && (
-            <Button asChild size="sm" variant="ghost" className="rounded-full">
+            <Button asChild size="sm" variant="ghost" className="rounded-sm">
               <Link href={`/customers?ids=${highValueIds.join(",")}&title=${encodeURIComponent("לקוחות חשובים שצריכים תשומת לב")}`}>
                 הצג {plural(highValueIds.length, "לקוח חשוב", "לקוחות חשובים")}
               </Link>

@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { daysAgo, isoDate } from "@/lib/utils";
-import { resolveRange, type RangePreset } from "@/lib/analytics/dates";
+import { daysAgo } from "@/lib/utils";
+import { israelDay, israelNow, israelToday, resolveRange, type RangePreset } from "@/lib/analytics/dates";
 import {
   getCustomerRevenue,
   getCustomerStats,
@@ -96,10 +96,10 @@ export type CustomerHubData = Awaited<ReturnType<typeof customerHub>>;
 async function revenueIntelligence(ctx: LoaderContext, config: ComponentConfig) {
   const { supabase, org } = ctx;
   const f = filtersOf(ctx);
-  const all = await getRevenueSummary(supabase, org.id, "2000-01-01", isoDate(new Date()));
+  const all = await getRevenueSummary(supabase, org.id, "2000-01-01", israelToday());
   // A workspace-wide date range overrides the Component's own setting.
   const preset = (f.range ?? config.range ?? "12m") as RangePreset;
-  const range = resolveRange(preset, new Date(), all.first_date);
+  const range = resolveRange(preset, israelNow(), all.first_date);
   const [summary, monthly, byService] = await Promise.all([
     getRevenueSummaryFiltered(supabase, org.id, range.from, range.to, config.compare ?? "previous_year", f.service),
     getRevenueByMonthFiltered(supabase, org.id, range.from, range.to, f.service),
@@ -183,7 +183,7 @@ export type DealRiskData = Awaited<ReturnType<typeof dealRisk>>;
 async function followupRadar(ctx: LoaderContext, config: ComponentConfig) {
   const { supabase, org } = ctx;
   const { stage } = filtersOf(ctx);
-  const today = isoDate(new Date());
+  const today = israelToday();
   const leadCutoff = new Date(Date.now() - Number(config.leadDays ?? 7) * 86_400_000).toISOString();
   const [tasks, quietDeals, leads] = await Promise.all([
     supabase
@@ -227,21 +227,11 @@ async function tasks(ctx: LoaderContext, config: ComponentConfig) {
     .eq("status", "open");
   if (config.scope === "mine" && userId) q = q.eq("assigned_to", userId);
   const { data, count } = await q.order("due_date", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(8);
-  const today = isoDate(new Date());
+  const today = israelToday();
   const list = (data ?? []) as Task[];
   return { tasks: list, openCount: count ?? 0, overdueCount: list.filter((t) => t.due_date && t.due_date < today).length };
 }
 export type TasksData = Awaited<ReturnType<typeof tasks>>;
-
-/** Calendar day bounds in Israel time (the server runs in UTC). */
-export function israelDay(now = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit", timeZoneName: "longOffset" }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  const ymd = `${get("year")}-${get("month")}-${get("day")}`;
-  const offset = get("timeZoneName").replace("GMT", "") || "+00:00";
-  const start = new Date(`${ymd}T00:00:00${offset === "" ? "Z" : offset}`);
-  return { ymd, start: start.toISOString(), end: new Date(start.getTime() + 86_400_000).toISOString() };
-}
 
 type PersonRef = { name: string; phone: string | null } | null;
 

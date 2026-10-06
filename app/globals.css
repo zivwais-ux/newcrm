@@ -5,7 +5,7 @@
 
 /* Neutral, premium SaaS palette. One accent, warm off-white canvas. */
 :root {
-  --radius: 0.5rem;
+  --radius: 2px;
   --background: #fafaf9;
   --foreground: #18181b;
   --surface: #ffffff;
@@ -30,7 +30,7 @@
   --warning: #b45309;
   --warning-soft: #fffbeb;
   --destructive: #dc2626;
-  --border: #e7e5e4;
+  --border: #e4e2df;
   --input: #e4e4e7;
   --ring: #a1a1aa;
   --sidebar: #f5f5f4;
@@ -42,7 +42,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-heebo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -77,13 +77,17 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 2px);
+  /* Near-square everywhere: every radius step resolves to the same 2px. */
+  --radius-xs: var(--radius);
+  --radius-sm: var(--radius);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 4px);
-  --shadow-xs: 0 1px 2px rgb(24 24 27 / 0.04);
-  --shadow-sm: 0 1px 2px rgb(24 24 27 / 0.04), 0 1px 3px rgb(24 24 27 / 0.05);
-  --shadow-md: 0 2px 4px rgb(24 24 27 / 0.04), 0 4px 12px rgb(24 24 27 / 0.06);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: var(--radius);
+  --radius-3xl: var(--radius);
+  --shadow-xs: 0 1px 0 rgb(24 24 27 / 0.05);
+  --shadow-sm: 0 1px 0 rgb(24 24 27 / 0.05), 0 1px 3px rgb(24 24 27 / 0.06);
+  --shadow-md: 0 1px 0 rgb(24 24 27 / 0.05), 0 4px 10px rgb(24 24 27 / 0.08);
   --shadow-lg: 0 4px 8px rgb(24 24 27 / 0.04), 0 12px 32px rgb(24 24 27 / 0.1);
   --shadow-xl: 0 8px 16px rgb(24 24 27 / 0.06), 0 24px 56px rgb(24 24 27 / 0.16);
 }
@@ -99,6 +103,10 @@
   body {
     @apply bg-background text-foreground;
     line-height: 1.55;
+    font-weight: 450;
+  }
+  h1, h2, h3 {
+    font-weight: 700;
   }
   ::selection {
     background: var(--brand-soft);

@@ -47,7 +47,7 @@ function ActionButton({ action }: { action: AnalystAction }) {
   if (action.type === "view_customers" && action.customerIds?.length) {
     const href = `/customers?ids=${action.customerIds.join(",")}&title=${encodeURIComponent(action.title ?? action.label)}`;
     return (
-      <Button asChild size="sm" variant="outline" className="rounded-full">
+      <Button asChild size="sm" variant="outline" className="rounded-sm">
         <Link href={href}>
           <Users />
           {action.label}
@@ -58,7 +58,7 @@ function ActionButton({ action }: { action: AnalystAction }) {
   if (action.type === "create_tasks") {
     return (
       <>
-        <Button size="sm" variant="outline" className="rounded-full" onClick={() => setOpen(true)}>
+        <Button size="sm" variant="outline" className="rounded-sm" onClick={() => setOpen(true)}>
           <ListPlus />
           {action.label}
         </Button>
@@ -153,7 +153,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
               )}
               <div className="mt-8 flex flex-wrap justify-center gap-2">
                 {CHAT_PROMPTS.map((p) => (
-                  <Button key={p} type="button" variant="outline" size="sm" className="rounded-full text-zinc-600 hover:text-foreground" onClick={() => ask(p)}>
+                  <Button key={p} type="button" variant="outline" size="sm" className="rounded-sm text-zinc-600 hover:text-foreground" onClick={() => ask(p)}>
                     {p}
                   </Button>
                 ))}
