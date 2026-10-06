@@ -10,5 +10,7 @@ export default async function AIPage({ searchParams }: { searchParams: SearchPar
   const { supabase, org } = await requireOrg();
   const counts = await getDataCounts(supabase, org.id).catch(() => null);
   const q = param(params, "q")?.slice(0, 1000) ?? null;
-  return <AnalystChat key={q ?? "empty"} initialQuestion={q} hasData={!!counts && Object.values(counts).some((n) => n > 0)} />;
+  // Re-mount when the question or its filters change, so the chat starts fresh with the new filters.
+  const key = [q ?? "empty", ...["range", "service", "stage"].map((k) => param(params, k) ?? "")].join("|");
+  return <AnalystChat key={key} initialQuestion={q} hasData={!!counts && Object.values(counts).some((n) => n > 0)} />;
 }

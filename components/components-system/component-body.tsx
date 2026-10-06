@@ -5,6 +5,7 @@ import { COMPONENT_LOADERS, type LoaderContext } from "@/lib/components/loaders"
 import type { DataCounts } from "@/types/domain";
 import { ImportButton } from "@/components/data-import/import-button";
 import { ComponentView } from "./views";
+import { RetryButton } from "./canvas-frame";
 
 /**
  * Server Component: verifies the Component's required data, loads it from the
@@ -45,13 +46,16 @@ export async function ComponentBody({
   let data: unknown;
   try {
     data = await COMPONENT_LOADERS[def.id](ctx, config);
-  } catch {
+  } catch (error) {
+    // Never fall through to an empty "no data" view: the data exists, loading it failed.
+    console.error(`[component:${def.id}]`, error);
     return (
       <EmptyState
         compact
         icon={<AlertCircle />}
-        title="משהו השתבש בטעינת הכלי"
-        description="הנתונים שלך שמורים. רענן את העמוד בעוד רגע."
+        title={`לא הצלחנו לטעון את "${def.name}"`}
+        description="הנתונים שלך שמורים ולא נפגעו. נסה שוב בעוד רגע."
+        action={<RetryButton />}
       />
     );
   }

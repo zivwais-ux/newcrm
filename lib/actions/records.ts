@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireOrg } from "@/lib/supabase/server";
+import { canManage, requireOrg } from "@/lib/supabase/server";
 import { ACTIVITY_TYPES, DEAL_STAGES, type ActionResult } from "@/types/domain";
 import { fail, friendlyError, ok } from "./errors";
 
@@ -93,6 +93,22 @@ const PATHS: Record<RecordEntity, string[]> = {
   tasks: ["/tasks", "/home"],
 };
 
+type Supabase = Awaited<ReturnType<typeof requireOrg>>["supabase"];
+
+/** Marks a deal as just worked on. last_activity_at is timestamptz, so "now" is the same instant in Israel. */
+async function touchDeal(supabase: Supabase, orgId: string, dealId: string) {
+  const { error } = await supabase
+    .from("deals")
+    .update({ last_activity_at: new Date().toISOString() })
+    .eq("id", dealId)
+    .eq("organization_id", orgId);
+  // The main write already succeeded; a stale "last activity" is not worth failing it.
+  if (error) console.error("[touchDeal]", error.code, error.message);
+}
+
+// RLS: members may delete only activities and tasks; everything else needs owner/admin.
+const MEMBER_DELETABLE: RecordEntity[] = ["activities", "tasks"];
+
 function revalidate(entity: RecordEntity, customerId?: string | null) {
   for (const p of PATHS[entity]) revalidatePath(p);
   if (customerId) revalidatePath(`/customers/${customerId}`);
@@ -112,7 +128,7 @@ export async function createRecord<E extends RecordEntity>(entity: E, input: Rec
   if (error) return fail(friendlyError(error));
 
   if (entity === "activities" && values.deal_id) {
-    await supabase.from("deals").update({ last_activity_at: new Date().toISOString() }).eq("id", values.deal_id as string);
+    await touchDeal(supabase, org.id, values.deal_id as string);
   }
   revalidate(entity, values.customer_id as string | null);
   return ok({ id: data.id });
@@ -129,13 +145,15 @@ export async function updateRecord<E extends RecordEntity>(
   const { supabase, org } = await requireOrg();
   const values: Record<string, unknown> = { ...parsed.data };
   if (entity === "deals") values.last_activity_at = new Date().toISOString();
-  const { error, count } = await supabase
+  if (entity === "transactions" && values.type === "refund") values.status = "refunded";
+  const { data, error } = await supabase
     .from(entity)
-    .update(values, { count: "exact" })
+    .update(values)
     .eq("id", id)
-    .eq("organization_id", org.id);
+    .eq("organization_id", org.id)
+    .select("id");
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("לא מצאנו את הרשומה.");
+  if (!data?.length) return fail("לא מצאנו את הרשומה. ייתכן שהיא נמחקה — רענן את העמוד.");
   revalidate(entity, values.customer_id as string | null);
   if (entity === "customers") revalidatePath(`/customers/${id}`);
   return ok(null);
@@ -143,10 +161,11 @@ export async function updateRecord<E extends RecordEntity>(
 
 export async function deleteRecord(entity: RecordEntity, id: string): Promise<ActionResult<null>> {
   if (!z.string().uuid().safeParse(id).success) return fail("הרשומה לא תקינה.");
-  const { supabase, org } = await requireOrg();
-  const { error, count } = await supabase.from(entity).delete({ count: "exact" }).eq("id", id).eq("organization_id", org.id);
+  const { supabase, org, role } = await requireOrg();
+  if (!MEMBER_DELETABLE.includes(entity) && !canManage(role)) return fail("רק בעלים ומנהלים יכולים למחוק את הרשומה הזו.");
+  const { data, error } = await supabase.from(entity).delete().eq("id", id).eq("organization_id", org.id).select("id");
   if (error) return fail(friendlyError(error));
-  if (!count) return fail("אין לך הרשאה למחוק את הרשומה הזו.");
+  if (!data?.length) return fail("לא מצאנו את הרשומה. ייתכן שהיא כבר נמחקה — רענן את העמוד.");
   revalidate(entity);
   return ok(null);
 }
@@ -155,12 +174,14 @@ export async function moveDeal(id: string, stage: string): Promise<ActionResult<
   const parsed = z.object({ id: z.string().uuid(), stage: z.enum(DEAL_STAGES) }).safeParse({ id, stage });
   if (!parsed.success) return fail("השלב לא תקין.");
   const { supabase, org } = await requireOrg();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("deals")
     .update({ stage: parsed.data.stage, last_activity_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("organization_id", org.id);
+    .eq("organization_id", org.id)
+    .select("id");
   if (error) return fail(friendlyError(error));
+  if (!data?.length) return fail("לא מצאנו את העסקה. ייתכן שהיא נמחקה — רענן את העמוד.");
   revalidatePath("/deals");
   revalidatePath("/home");
   return ok(null);
@@ -170,10 +191,23 @@ export async function setTaskStatus(id: string, status: "open" | "done"): Promis
   const parsed = z.object({ id: z.string().uuid(), status: z.enum(["open", "done"]) }).safeParse({ id, status });
   if (!parsed.success) return fail("המשימה לא תקינה.");
   const { supabase, org } = await requireOrg();
-  const { error } = await supabase.from("tasks").update({ status }).eq("id", id).eq("organization_id", org.id);
+  const { data, error } = await supabase
+    .from("tasks")
+    .update({ status: parsed.data.status })
+    .eq("id", id)
+    .eq("organization_id", org.id)
+    .select("id, deal_id, customer_id");
   if (error) return fail(friendlyError(error));
+  const task = data?.[0];
+  if (!task) return fail("לא מצאנו את המשימה. ייתכן שהיא נמחקה — רענן את העמוד.");
+  // Completing a task is work on its deal: keep the deal off the "stuck deals" list.
+  if (parsed.data.status === "done" && task.deal_id) {
+    await touchDeal(supabase, org.id, task.deal_id);
+    revalidatePath("/deals");
+  }
   revalidatePath("/tasks");
   revalidatePath("/home");
+  if (task.customer_id) revalidatePath(`/customers/${task.customer_id}`);
   return ok(null);
 }
 

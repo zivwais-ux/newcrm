@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpRight, CalendarPlus, ListPlus, Mail, Phone } from "lucide-react";
+import { AlertCircle, ArrowUpRight, CalendarPlus, ChevronLeft, ListPlus, Loader2, Mail, Phone, RotateCw } from "lucide-react";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,30 +12,79 @@ import { TaskList } from "@/components/business/task-list";
 import { ActivityItem } from "@/components/business/activity-list";
 import { RecordFormDialog } from "@/components/business/record-form";
 import { STAGE_LABELS } from "@/components/business/pipeline-board";
-import type { SpotlightData } from "@/lib/components/spotlight";
+import type { SpotlightData, SpotlightResult } from "@/lib/components/spotlight";
 import type { RecordEntity } from "@/lib/actions/records";
 import { Ltr } from "@/components/ui/ltr";
 import { CUSTOMER_STATUS_LABELS, label } from "@/components/business/labels";
-import { formatCurrency, formatDate, formatNumber, plural, relativeDays } from "@/lib/utils";
+import { formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 
 /**
  * A customer, in context, without leaving the canvas. Opened from any Component
  * (?customer=<id>); every action here updates the Components behind it.
  */
-export function CustomerSpotlight({ data, currency }: { data: SpotlightData; currency: string }) {
+export function CustomerSpotlight({ data, currency }: { data: SpotlightResult; currency: string }) {
+  const close = useCloseSpotlight();
+  if (data.status === "error") return <SpotlightError message={data.message} onClose={close} />;
+  return <SpotlightSheet data={data} currency={currency} onClose={close} />;
+}
+
+function useCloseSpotlight() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const [dialog, setDialog] = useState<RecordEntity | null>(null);
-  const c = data.customer;
-  const money = (n: number) => formatCurrency(n, currency);
-
-  function close() {
+  return () => {
     const next = new URLSearchParams(params.toString());
     next.delete("customer");
     const qs = next.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }
+  };
+}
+
+/** "יום" in the Israel calendar: 0 → today, 1 → yesterday… */
+function daysAgoText(n: number) {
+  if (n <= 0) return "היום";
+  if (n === 1) return "אתמול";
+  if (n === 2) return "שלשום";
+  return `לפני ${formatNumber(n)} ימים`;
+}
+
+/** Loading the customer failed: say so (instead of the sheet silently not opening) and offer a retry. */
+function SpotlightError({ message, onClose }: { message: string; onClose: () => void }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle className="text-xl font-bold">פרטי הלקוח</SheetTitle>
+          <SheetDescription className="sr-only">שגיאה בטעינת פרטי הלקוח</SheetDescription>
+        </SheetHeader>
+        <SheetBody>
+          <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
+            <span className="grid size-10 place-items-center rounded-full bg-negative-soft text-negative">
+              <AlertCircle className="size-5" />
+            </span>
+            <p className="max-w-xs text-sm font-semibold">{message}</p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={pending} onClick={() => startTransition(() => router.refresh())}>
+                {pending ? <Loader2 className="animate-spin" /> : <RotateCw />}
+                נסה שוב
+              </Button>
+              <Button size="sm" variant="ghost" onClick={onClose}>
+                סגור
+              </Button>
+            </div>
+          </div>
+        </SheetBody>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightData; currency: string; onClose: () => void }) {
+  const [dialog, setDialog] = useState<RecordEntity | null>(null);
+  const c = data.customer;
+  const money = (n: number) => formatCurrency(n, currency);
 
   return (
     <Sheet open onOpenChange={(o) => !o && close()}>
@@ -86,11 +135,12 @@ export function CustomerSpotlight({ data, currency }: { data: SpotlightData; cur
             <StatTile label="מספר קניות" value={formatNumber(data.purchases)} />
             <StatTile
               label="קנייה אחרונה"
-              value={data.lastPurchase ? relativeDays(data.lastPurchase) : "—"}
+              value={data.daysSinceLastPurchase !== null ? daysAgoText(data.daysSinceLastPurchase) : "—"}
               hint={data.lastPurchase ? formatDate(data.lastPurchase) : undefined}
             />
             <StatTile label="חוזר בדרך כלל כל" value={data.usualInterval ? plural(data.usualInterval, "יום", "ימים") : "—"} />
           </div>
+          {data.truncated && <p className="-mt-4 text-xs text-muted-foreground">ללקוח הזה יש הרבה מכירות — הסיכום מחושב לפי האחרונות שבהן.</p>}
 
           <section>
             <h3 className="mb-1 text-sm font-semibold">משימות פתוחות</h3>
@@ -102,11 +152,17 @@ export function CustomerSpotlight({ data, currency }: { data: SpotlightData; cur
               <h3 className="mb-2 text-sm font-semibold">עסקאות פתוחות</h3>
               <ul className="divide-y rounded-lg border">
                 {data.deals.map((d) => (
-                  <li key={d.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                    <span className="truncate">{d.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {STAGE_LABELS[d.stage]} · <Ltr className="font-medium text-foreground tabular">{money(d.value)}</Ltr>
-                    </span>
+                  <li key={d.id}>
+                    <Link
+                      href={`/deals?deal=${d.id}`}
+                      className="group flex items-center justify-between gap-3 px-3 py-2 text-sm transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
+                    >
+                      <span className="truncate font-medium group-hover:text-brand">{d.name}</span>
+                      <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        {STAGE_LABELS[d.stage]} · <Ltr className="font-medium text-foreground tabular">{money(Number(d.value))}</Ltr>
+                        <ChevronLeft className="size-3.5" aria-hidden />
+                      </span>
+                    </Link>
                   </li>
                 ))}
               </ul>

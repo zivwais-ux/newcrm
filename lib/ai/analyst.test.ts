@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classifyIntent, parseQuestionContext } from "./analyst";
+import { classifyIntent, parseQuestionContext, previousPeriod } from "./analyst";
+import { ANALYST_MAX_MESSAGE_CHARS, ANALYST_MAX_MESSAGES, trimHistory } from "./limits";
 import { templateBrief, type BriefFacts } from "@/lib/analytics/brief";
 
 describe("analyst intent classification (fallback engine)", () => {
@@ -73,7 +74,32 @@ describe("question context (canvas filters)", () => {
     expect(classifyIntent(r.question)).toBe("revenue");
   });
   it("leaves plain questions alone", () => {
-    expect(parseQuestionContext("מה השירות הכי רווחי?")).toEqual({ question: "מה השירות הכי רווחי?", service: null });
+    expect(parseQuestionContext("מה השירות הכי רווחי?")).toEqual({ question: "מה השירות הכי רווחי?", service: null, range: null, stage: null });
+  });
+  it("reads the period and stage from a legacy context note", () => {
+    const r = parseQuestionContext('כמה הכנסתי? (התמקד ב: התקופה: 90 הימים האחרונים, עסקאות בשלב "הצעת מחיר".)');
+    expect(r.range).toBe("90d");
+    expect(r.stage).toBe("proposal");
+  });
+});
+
+describe("previous period", () => {
+  it("is the same length right before", () => {
+    expect(previousPeriod("2026-09-07", "2026-10-06")).toEqual({ from: "2026-08-08", to: "2026-09-06" });
+    expect(previousPeriod("2026-01-01", "2026-01-01")).toEqual({ from: "2025-12-31", to: "2025-12-31" });
+  });
+});
+
+describe("chat history limits", () => {
+  it("keeps only the last messages, each within the server limit", () => {
+    const turns = Array.from({ length: 30 }, (_, i) => ({ role: (i % 2 ? "assistant" : "user") as "user" | "assistant", content: `m${i} ${"x".repeat(i === 29 ? 9000 : 5)}` }));
+    const out = trimHistory(turns);
+    expect(out).toHaveLength(ANALYST_MAX_MESSAGES);
+    expect(out.at(-1)!.content.length).toBe(ANALYST_MAX_MESSAGE_CHARS);
+    expect(out[0].content.startsWith("m18")).toBe(true);
+  });
+  it("drops empty messages", () => {
+    expect(trimHistory([{ role: "assistant", content: "  " }, { role: "user", content: "שאלה" }])).toEqual([{ role: "user", content: "שאלה" }]);
   });
 });
 

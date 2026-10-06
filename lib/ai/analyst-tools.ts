@@ -320,12 +320,13 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
     case "search_customers": {
       const q = String(args.query ?? "").trim().slice(0, 80).replace(/[%,()]/g, " ");
       if (!q) return [];
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("customers")
         .select("id, name, email, company, status, created_at")
         .eq("organization_id", orgId)
         .or(`name.ilike.%${q}%,email.ilike.%${q}%,company.ilike.%${q}%`)
         .limit(8);
+      if (error) throw error;
       return data ?? [];
     }
     default:

@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Expand, GripVertical, Link2Off, Maximize2, MoreHorizontal, Plus, Settings2, Trash2 } from "lucide-react";
+import { Expand, GripVertical, Link2Off, Loader2, Maximize2, MoreHorizontal, Plus, RotateCw, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -276,5 +277,17 @@ export function DropPlaceholder({ w, name, innerRef }: { w: ComponentWidth; name
       <Plus className="size-4" />
       שחרר כאן כדי להוסיף את {name}
     </div>
+  );
+}
+
+/** "Try again" for a Component whose data failed to load: re-renders the page's server data. */
+export function RetryButton() {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <Button size="sm" variant="outline" disabled={pending} onClick={() => startTransition(() => router.refresh())}>
+      {pending ? <Loader2 className="animate-spin" /> : <RotateCw />}
+      נסה שוב
+    </Button>
   );
 }

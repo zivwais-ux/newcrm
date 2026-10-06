@@ -6,7 +6,7 @@ import { ArrowUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ViewProps } from "../shared";
 import type { AIAnalystData } from "@/lib/components/loaders";
-import { activeFilterKeys, describeFilters, filterLabel } from "@/lib/components/filters";
+import { activeFilterKeys, filterLabel } from "@/lib/components/filters";
 
 export const SUGGESTED_PROMPTS = [
   "למה המכירות ירדו?",
@@ -19,10 +19,14 @@ export const SUGGESTED_PROMPTS = [
 export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const context = data?.filters ? describeFilters(data.filters) : null;
-  // Questions asked from the canvas carry the filters the user is looking at.
-  const ask = (question: string) => router.push(`/ai?q=${encodeURIComponent(context ? `${question} (${context})` : question)}`);
   const chips = data?.filters ? activeFilterKeys(data.filters) : [];
+  // Questions asked from the canvas carry the filters the user is looking at as URL params;
+  // the chat shows them as chips and sends them to the analyst separately from the question.
+  const ask = (question: string) => {
+    const params = new URLSearchParams({ q: question });
+    for (const k of chips) params.set(k, String(data.filters[k]));
+    router.push(`/ai?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -57,7 +61,14 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
         ))}
       </div>
       {chips.length > 0 && (
-        <p className="text-xs text-brand">שואל בתוך הסינון: {chips.map((k) => filterLabel(k, data.filters[k] as string)).join(" · ")}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">שואל בתוך הסינון:</span>
+          {chips.map((k) => (
+            <span key={k} className="rounded-sm border border-brand/20 bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">
+              {filterLabel(k, data.filters[k] as string)}
+            </span>
+          ))}
+        </div>
       )}
       <p className="text-xs text-muted-foreground">התשובות מבוססות על הנתונים שלך בלבד. היועץ יכול לקרוא ולהמליץ, אבל אף פעם לא משנה נתונים בלי אישור שלך.</p>
     </div>

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Rubik } from "next/font/google";
 import { GeistMono } from "geist/font/mono";
 import { Toaster } from "sonner";
@@ -10,6 +10,15 @@ const rubik = Rubik({ subsets: ["hebrew", "latin"], variable: "--font-rubik", di
 export const metadata: Metadata = {
   title: { default: "Business OS", template: "%s · Business OS" },
   description: "כל העסק שלך במסך אחד — בונים את מסך העבודה בגרירה, והכלים עובדים יחד.",
+  applicationName: "Business OS",
+  appleWebApp: { capable: true, title: "Business OS", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#fafaf9",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

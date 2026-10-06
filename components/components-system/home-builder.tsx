@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -98,7 +98,29 @@ export function HomeBuilder({
   }, [flash]);
   const editable = canManage && !preview;
 
-  useEffect(() => setItems(initialItems), [initialItems]);
+  // Saves in flight. While any is running, fresh server props would wipe newer optimistic
+  // changes, so we defer them and refresh once everything has settled.
+  const inFlight = useRef(0);
+  const staleProps = useRef(false);
+  useEffect(() => {
+    if (inFlight.current > 0) staleProps.current = true;
+    else setItems(initialItems);
+  }, [initialItems]);
+
+  function track(op: () => Promise<void>) {
+    inFlight.current++;
+    startSaving(async () => {
+      try {
+        await op();
+      } finally {
+        inFlight.current--;
+        if (inFlight.current === 0 && staleProps.current) {
+          staleProps.current = false;
+          router.refresh();
+        }
+      }
+    });
+  }
   useEffect(() => {
     try {
       setPreview(localStorage.getItem("bos.preview") === "1");
@@ -161,6 +183,8 @@ export function HomeBuilder({
   async function add(type: string, index?: number) {
     const entry = entryById.get(type);
     if (!entry) return;
+    // Already on the canvas (or being added right now): ignore double clicks/drops.
+    if (items.some((i) => i.type === type)) return;
     const at = index ?? items.length;
     const temp: CanvasItem = {
       id: `pending-${type}`,
@@ -174,7 +198,7 @@ export function HomeBuilder({
       pending: true,
     };
     setItems((list) => [...list.slice(0, at), temp, ...list.slice(at)]);
-    startSaving(async () => {
+    track(async () => {
       const res = await addComponent(type, at);
       if (!res.ok) {
         setItems((list) => list.filter((i) => i.id !== temp.id));
@@ -241,37 +265,44 @@ export function HomeBuilder({
     const to = items.findIndex((i) => i.id === e.over!.id);
     if (from < 0 || to < 0) return;
     const next = arrayMove(items, from, to);
-    const previous = items;
+    const previousOrder = items.map((i) => i.id);
+    const movedOrder = next.map((i) => i.id);
     setItems(next);
-    startSaving(async () => {
+    track(async () => {
       const res = await reorderComponents(next.filter((i) => !i.pending).map((i) => i.id));
       if (!res.ok) {
         toast.error(res.error);
-        setItems(previous);
+        // Undo only this move, and only if nothing reordered the canvas since.
+        setItems((list) => (sameOrder(list, movedOrder) ? restoreOrder(list, previousOrder) : list));
       }
     });
   }
 
   function resize(id: string, w: ComponentWidth) {
-    const previous = items;
+    const previousW = items.find((i) => i.id === id)?.w;
+    if (!previousW || previousW === w) return;
     setItems((list) => list.map((i) => (i.id === id ? { ...i, w } : i)));
-    startSaving(async () => {
+    track(async () => {
       const res = await updateComponentConfig(id, { w });
       if (!res.ok) {
         toast.error(res.error);
-        setItems(previous);
+        // Roll back this Component's width only, unless it was resized again meanwhile.
+        setItems((list) => list.map((i) => (i.id === id && i.w === w ? { ...i, w: previousW } : i)));
       }
     });
   }
 
   function remove(id: string) {
-    const previous = items;
+    const index = items.findIndex((i) => i.id === id);
+    if (index < 0) return;
+    const removed = items[index];
     setItems((list) => list.filter((i) => i.id !== id));
-    startSaving(async () => {
+    track(async () => {
       const res = await removeComponent(id);
       if (!res.ok) {
         toast.error(res.error);
-        setItems(previous);
+        // Put back just this Component, where it was.
+        setItems((list) => (list.some((i) => i.id === id) ? list : [...list.slice(0, index), removed, ...list.slice(index)]));
       } else router.refresh();
     });
   }
@@ -410,6 +441,21 @@ export function HomeBuilder({
       <CanvasFileDrop onImported={(types) => setFlash(new Set(types))} />
     </DndContext>
   );
+}
+
+function sameOrder(list: CanvasItem[], order: string[]) {
+  const present = new Set(list.map((i) => i.id));
+  const expected = order.filter((id) => present.has(id));
+  const ids = list.filter((i) => order.includes(i.id)).map((i) => i.id);
+  return ids.length === expected.length && ids.every((id, k) => id === expected[k]);
+}
+
+/** Puts the Components that existed before a move back in their old order; others keep their slots. */
+function restoreOrder(list: CanvasItem[], order: string[]) {
+  const rank = new Map(order.map((id, k) => [id, k]));
+  const known = list.filter((i) => rank.has(i.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+  let k = 0;
+  return list.map((i) => (rank.has(i.id) ? known[k++] : i));
 }
 
 function PlaceholderSlot({ w, name }: { w: ComponentWidth; name: string }) {

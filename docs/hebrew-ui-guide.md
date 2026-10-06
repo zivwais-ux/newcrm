@@ -87,3 +87,18 @@ followup-radar → "למי לחזור" · tasks → "משימות"
   Empty states must TEACH: one sentence what appears here + one action button (e.g. "העלה קובץ" → /data/import).
 - Product rule: NO synthetic/demo data is ever inserted. Don't add sample data.
 - The drag-and-drop empty canvas is the CORE of the product (not "just another CRM"). Don't remove or hide it.
+
+## Visual style
+- Font: **Rubik** (Hebrew + Latin, `--font-rubik`), body weight 450, headings 700, buttons 600.
+- Corners: **2px** everywhere — every `rounded-*` token resolves to `--radius: 2px`. Use `rounded-sm` for chips/pills; `rounded-full` only for avatars, status dots, check circles and the mobile + button.
+- Keep the existing color tokens (brand indigo, zinc neutrals). Shadows are short and crisp to match square corners.
+
+## Quick entry terms
+| English | Hebrew |
+|---|---|
+| Quick sale | מכירה מהירה |
+| New appointment | תור חדש |
+| New customer (inline) | לקוח חדש / צור לקוח חדש |
+| Paid / Pending | שולם / ממתין לתשלום |
+| Delete file and its data | מחק קובץ ונתונים |
+| Remove from list only | הסר מהרשימה |

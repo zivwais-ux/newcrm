@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarPlus, Handshake, ListPlus, MoreHorizontal, Pencil, Receipt, Trash2 } from "lucide-react";
+import { CalendarPlus, Handshake, ListPlus, MoreHorizontal, NotebookPen, Pencil, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WhatsAppButton } from "./whatsapp-button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RecordFormDialog } from "./record-form";
+import { QuickAppointmentDialog, QuickSaleDialog } from "./quick-entry";
 import { useCanManage } from "@/components/layout/workspace-provider";
 import { deleteRecord, type RecordEntity } from "@/lib/actions/records";
 import type { Customer } from "@/types/domain";
@@ -25,7 +26,7 @@ import type { Customer } from "@/types/domain";
 export function CustomerActions({ customer }: { customer: Customer }) {
   const router = useRouter();
   const canManage = useCanManage();
-  const [dialog, setDialog] = useState<RecordEntity | "edit" | null>(null);
+  const [dialog, setDialog] = useState<RecordEntity | "edit" | "sale" | "appointment" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const labels = { customer_id: customer.name };
@@ -33,9 +34,13 @@ export function CustomerActions({ customer }: { customer: Customer }) {
   return (
     <div className="flex flex-wrap gap-2">
       <WhatsAppButton phone={customer.phone} name={customer.name} customerId={customer.id} variant="button" />
-      <Button size="sm" variant="outline" onClick={() => setDialog("activities")}>
+      <Button size="sm" variant="outline" onClick={() => setDialog("sale")}>
+        <Receipt />
+        מכירה
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => setDialog("appointment")}>
         <CalendarPlus />
-        רשום פעילות
+        תור
       </Button>
       <Button size="sm" onClick={() => setDialog("tasks")}>
         <ListPlus />
@@ -52,9 +57,9 @@ export function CustomerActions({ customer }: { customer: Customer }) {
             <Pencil />
             ערוך לקוח
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => setDialog("transactions")}>
-            <Receipt />
-            הוסף מכירה
+          <DropdownMenuItem onSelect={() => setDialog("activities")}>
+            <NotebookPen />
+            רשום שיחה או הערה
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("deals")}>
             <Handshake />
@@ -81,12 +86,14 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           initial={{ name: customer.name, email: customer.email, phone: customer.phone, company: customer.company, status: customer.status }}
         />
       )}
-      {dialog && dialog !== "edit" && (
+      {dialog === "sale" && <QuickSaleDialog open onOpenChange={(o) => !o && setDialog(null)} customer={customer} />}
+      {dialog === "appointment" && <QuickAppointmentDialog open onOpenChange={(o) => !o && setDialog(null)} customer={customer} />}
+      {dialog && dialog !== "edit" && dialog !== "sale" && dialog !== "appointment" && (
         <RecordFormDialog
           entity={dialog}
           open
           onOpenChange={(o) => !o && setDialog(null)}
-          initial={{ customer_id: customer.id, ...(dialog === "tasks" ? { title: `לחזור ל${customer.name}` } : {}) }}
+          initial={{ customer_id: customer.id, ...(dialog === "tasks" ? { title: `לחזור ל${customer.name}` } : dialog === "activities" ? { type: "call" } : {}) }}
           labels={labels}
         />
       )}

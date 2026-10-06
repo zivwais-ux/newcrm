@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarPlus, CheckSquare, Home, LogOut, Menu, MoreHorizontal, Plus, Receipt, Settings, Upload, UserPlus, Users } from "lucide-react";
+import { CalendarPlus, CheckSquare, Handshake, Home, Inbox, LogOut, Menu, MoreHorizontal, Plus, Receipt, Settings, Upload, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Ltr } from "@/components/ui/ltr";
 import { RecordFormDialog, RECORD_FORMS } from "@/components/business/record-form";
+import { QuickAppointmentDialog, QuickSaleDialog } from "@/components/business/quick-entry";
 import { GlobalSearch } from "./global-search";
 import { SidebarNav } from "./sidebar";
 import { useWorkspace } from "./workspace-provider";
@@ -23,18 +24,31 @@ import { signOut } from "@/lib/actions/org";
 import { cn, initials } from "@/lib/utils";
 import type { RecordEntity } from "@/lib/actions/records";
 
-const NEW_ITEMS: { entity: RecordEntity; icon: React.ElementType }[] = [
+type Creating = RecordEntity | "quick-sale" | "quick-appointment";
+
+const QUICK_ITEMS: { key: Creating; label: string; icon: React.ElementType }[] = [
+  { key: "quick-sale", label: "מכירה מהירה", icon: Receipt },
+  { key: "quick-appointment", label: "תור חדש", icon: CalendarPlus },
+];
+const MORE_ITEMS: { entity: RecordEntity; icon: React.ElementType }[] = [
   { entity: "customers", icon: UserPlus },
   { entity: "tasks", icon: CheckSquare },
-  { entity: "transactions", icon: Receipt },
-  { entity: "activities", icon: CalendarPlus },
+  { entity: "leads", icon: Inbox },
+  { entity: "deals", icon: Handshake },
 ];
 
-function NewMenuItems({ onCreate }: { onCreate: (e: RecordEntity) => void }) {
+function NewMenuItems({ onCreate }: { onCreate: (e: Creating) => void }) {
   return (
     <>
       <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">מה תרצה להוסיף?</DropdownMenuLabel>
-      {NEW_ITEMS.map(({ entity, icon: Icon }) => (
+      {QUICK_ITEMS.map(({ key, label, icon: Icon }) => (
+        <DropdownMenuItem key={key} onSelect={() => onCreate(key)} className="py-2 font-semibold">
+          <Icon className="text-brand" />
+          {label}
+        </DropdownMenuItem>
+      ))}
+      <DropdownMenuSeparator />
+      {MORE_ITEMS.map(({ entity, icon: Icon }) => (
         <DropdownMenuItem key={entity} onSelect={() => onCreate(entity)} className="py-2">
           <Icon />
           {RECORD_FORMS[entity].newLabel}
@@ -54,7 +68,7 @@ function NewMenuItems({ onCreate }: { onCreate: (e: RecordEntity) => void }) {
 export function Topbar() {
   const { user, org } = useWorkspace();
   const pathname = usePathname();
-  const [creating, setCreating] = useState<RecordEntity | null>(null);
+  const [creating, setCreating] = useState<Creating | null>(null);
   const [mobileNav, setMobileNav] = useState(false);
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -145,7 +159,13 @@ export function Topbar() {
         </ul>
       </nav>
 
-      {creating && <RecordFormDialog entity={creating} open onOpenChange={(o) => !o && setCreating(null)} />}
+      {creating === "quick-sale" ? (
+        <QuickSaleDialog open onOpenChange={(o) => !o && setCreating(null)} />
+      ) : creating === "quick-appointment" ? (
+        <QuickAppointmentDialog open onOpenChange={(o) => !o && setCreating(null)} />
+      ) : (
+        creating && <RecordFormDialog entity={creating} open onOpenChange={(o) => !o && setCreating(null)} />
+      )}
 
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
         <SheetContent side="left" className="w-72 bg-sidebar p-0">

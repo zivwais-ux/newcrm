@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, UserPlus, X } from "lucide-react";
+import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { searchCustomers, searchDeals } from "@/lib/actions/search";
+import { quickCreateCustomer } from "@/lib/actions/quick";
 
 type Option = { id: string; name: string; subtitle: string | null };
 
@@ -16,18 +18,22 @@ export function EntityPicker({
   initialLabel,
   onChange,
   placeholder,
+  allowCreate = kind === "customer",
 }: {
   kind: "customer" | "deal";
   value: string | null;
   initialLabel?: string | null;
   onChange: (id: string | null, label: string | null) => void;
   placeholder?: string;
+  /** Customers only: offer "create new customer" with the typed name. */
+  allowCreate?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<Option[]>([]);
   const [label, setLabel] = useState<string | null>(initialLabel ?? null);
   const [pending, startTransition] = useTransition();
+  const [creating, startCreate] = useTransition();
   const noun = kind === "customer" ? { pick: "בחר לקוח", search: "חיפוש לקוח…", none: "לא נמצאו לקוחות" } : { pick: "בחר עסקה", search: "חיפוש עסקה…", none: "לא נמצאו עסקאות" };
 
   useEffect(() => {
@@ -39,6 +45,19 @@ export function EntityPicker({
     }, 180);
     return () => clearTimeout(t);
   }, [open, query, kind]);
+
+  const typed = query.trim();
+  const canCreate = allowCreate && kind === "customer" && typed.length > 1 && !options.some((o) => o.name.trim() === typed);
+  const create = () =>
+    startCreate(async () => {
+      const res = await quickCreateCustomer(typed);
+      if (!res.ok) return void toast.error(res.error);
+      setLabel(res.data.name);
+      onChange(res.data.id, res.data.name);
+      toast.success(`הלקוח ${res.data.name} נוסף`);
+      setQuery("");
+      setOpen(false);
+    });
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -74,7 +93,7 @@ export function EntityPicker({
         <Command shouldFilter={false}>
           <CommandInput placeholder={noun.search} value={query} onValueChange={setQuery} />
           <CommandList>
-            <CommandEmpty>{pending ? "מחפש…" : noun.none}</CommandEmpty>
+            {!canCreate && <CommandEmpty>{pending ? "מחפש…" : noun.none}</CommandEmpty>}
             <CommandGroup>
               {options.map((o) => (
                 <CommandItem
@@ -93,6 +112,14 @@ export function EntityPicker({
                   </span>
                 </CommandItem>
               ))}
+              {canCreate && (
+                <CommandItem value="__create" onSelect={create} disabled={creating} className="text-brand">
+                  <UserPlus className="size-4" />
+                  <span className="truncate">
+                    צור לקוח חדש: <span className="font-semibold">{typed}</span>
+                  </span>
+                </CommandItem>
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

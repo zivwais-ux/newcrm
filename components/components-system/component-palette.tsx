@@ -237,6 +237,20 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
         </ul>
       </section>
 
+      <section className="space-y-2">
+        <h3 className="font-semibold">הזנה מהירה</h3>
+        <p className="text-muted-foreground">
+          <strong className="font-medium text-foreground">+ חדש</strong> למעלה (או + בתחתית המסך בנייד) ← &quot;מכירה מהירה&quot; או &quot;תור חדש&quot;. לקוח שעוד
+          לא קיים נוסף תוך כדי, עם שם וטלפון.
+        </p>
+        <p className="text-muted-foreground">
+          <strong className="font-medium text-foreground">בנייד:</strong> בתפריט הדפדפן בחר &quot;הוסף למסך הבית&quot;, והמערכת תיפתח כמו אפליקציה.
+        </p>
+        <p className="text-muted-foreground">
+          קובץ שהעלית בטעות? ב<Link href="/data" className="font-medium text-foreground hover:underline">הנתונים שלי</Link> אפשר למחוק אותו יחד עם מה שיובא ממנו.
+        </p>
+      </section>
+
       <Link
         href="/data/import"
         className="flex items-center gap-2 rounded-lg border border-dashed px-3 py-2.5 text-muted-foreground transition-colors hover:border-brand/40 hover:text-brand"
