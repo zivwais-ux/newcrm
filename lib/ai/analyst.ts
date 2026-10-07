@@ -248,8 +248,18 @@ export function parseQuestionContext(raw: string): {
   return { question: question.replace(/\s+/g, " ").trim(), service, range, stage };
 }
 
-export function classifyIntent(q: string): Intent {
-  const s = q.toLowerCase();
+/** Maps the business's own nouns back to the built-in ones so the intent rules below keep working. */
+function normalizeTerms(q: string, t?: Terms) {
+  if (!t) return q;
+  const pairs: [string, string][] = (["customers", "customer", "deals", "deal", "services", "service", "sales", "sale"] as const)
+    .map((k) => [t[k], DEFAULT_TERMS[k]] as [string, string])
+    .filter(([own, def]) => own && own !== def)
+    .sort((a, b) => b[0].length - a[0].length);
+  return pairs.reduce((s, [own, def]) => s.split(own).join(def), q);
+}
+
+export function classifyIntent(q: string, terms?: Terms): Intent {
+  const s = normalizeTerms(q, terms).toLowerCase();
   if (
     /(deal|pipeline|opportunit).*(risk|stall|stuck|attention|quiet)|at risk.*deal|stuck|stalled|עסק(אות|ה).*(סיכון|תקוע|נתקע|לא זז|שקט)|תקועות|תקועה/.test(s)
   )
@@ -294,7 +304,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
   /** "3 מטופלים" / "מטופל אחד" — counts of customers in the business's own word. */
   const pc = (count: number) => plural(count, t.customer, t.customers);
   const { service, range, stage } = filters;
-  const intent = classifyIntent(question);
+  const intent = classifyIntent(question, t);
   /** Selected period (or the given default) with its Hebrew "in the period" phrase. */
   const period = (fallback: RangePreset) => {
     const preset = range ?? fallback;
@@ -724,7 +734,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
           ...(range || service
             ? [`- ${period("12m").inText} ההכנסות${svcText} היו **${money(filteredRevenue?.total ?? 0)}**.`, ""]
             : []),
-          "אפשר לשאול למשל: “כמה הכנסתי החודש?”, “אילו ${t.customers} עלולים לעזוב?”, “מה מכניס הכי הרבה?” או “למי כדאי לחזור השבוע?”",
+          `אפשר לשאול למשל: “כמה הכנסתי החודש?”, “אילו ${t.customers} עלולים לעזוב?”, “מה מכניס הכי הרבה?” או “למי כדאי לחזור השבוע?”`,
         );
       }
     }

@@ -53,7 +53,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   return (
     <PageContainer>
-      <PageHeader title="כסף ומכירות" description={`כל ה${terms.sales}, התשלומים וההחזרים במקום אחד.`} actions={<NewRecordButton entity="transactions" />} />
+      <PageHeader title={`כסף ו${terms.sales}`} description={`כל ה${terms.sales}, התשלומים וההחזרים במקום אחד.`} actions={<NewRecordButton entity="transactions" />} />
       <Module>
         <ModuleRail
           icon={<Receipt />}

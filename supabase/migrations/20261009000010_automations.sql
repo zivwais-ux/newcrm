@@ -276,7 +276,7 @@ declare
   v_amount text;
   v_when timestamptz;
   v_org text;
-  out text := coalesce(p_text, '');
+  v_out text := coalesce(p_text, '');
 begin
   perform public.automation_internal_only();
   cust := public.automation_customer_id(p_org, p_entity, p_id);
@@ -304,20 +304,25 @@ begin
     select date into v_when from public.activities where id = p_id;
   end if;
 
-  out := replace(out, '{שם}', coalesce(split_part(v_name, ' ', 1), ''));
-  out := replace(out, '{שירות}', coalesce(v_service, ''));
-  out := replace(out, '{סכום}', coalesce(v_amount, ''));
-  out := replace(out, '{תאריך}', coalesce(to_char(v_when at time zone 'Asia/Jerusalem', 'DD/MM'), ''));
-  out := replace(out, '{שעה}', coalesce(to_char(v_when at time zone 'Asia/Jerusalem', 'HH24:MI'), ''));
-  out := replace(out, '{עסק}', coalesce(v_org, ''));
-  return regexp_replace(out, '\s+', ' ', 'g');
+  v_out := replace(v_out, '{שם}', coalesce(split_part(v_name, ' ', 1), ''));
+  v_out := replace(v_out, '{שירות}', coalesce(v_service, ''));
+  v_out := replace(v_out, '{סכום}', coalesce(v_amount, ''));
+  v_out := replace(v_out, '{תאריך}', coalesce(to_char(v_when at time zone 'Asia/Jerusalem', 'DD/MM'), ''));
+  v_out := replace(v_out, '{שעה}', coalesce(to_char(v_when at time zone 'Asia/Jerusalem', 'HH24:MI'), ''));
+  v_out := replace(v_out, '{עסק}', coalesce(v_org, ''));
+  return regexp_replace(v_out, '\s+', ' ', 'g');
 end;
 $$;
 
 -- ---------------------------------------------------------------------------
 -- Enqueue: record events from people (not from imports, not from automations themselves)
 
-create or replace function public.automation_enqueue(p_org uuid, p_entity text, p_id uuid, p_event text, p_dedupe text, p_context jsonb default '{}'::jsonb)
+create or replace function public.automation_enqueue(
+  p_org uuid, p_entity text, p_id uuid, p_event text, p_dedupe text,
+  p_context jsonb default '{}'::jsonb,
+  -- For the daily scan: only this automation.
+  p_only uuid default null
+)
 returns integer
 language plpgsql
 security definer
@@ -339,7 +344,7 @@ begin
         (p_event = 'created' and trigger->>'type' = 'record_created' and trigger->>'entity' = p_entity)
         or (p_event like 'stage:%' and p_entity = 'deals' and trigger->>'type' = 'deal_stage' and 'stage:' || (trigger->>'stage') = p_event)
         or (p_event like 'status:%' and trigger->>'type' = 'status_changed' and trigger->>'entity' = p_entity and 'status:' || (trigger->>'status') = p_event)
-        or (p_event = 'scan' )
+        or (p_event = 'scan' and id = p_only)
       )
   loop
     wait_interval := make_interval(days => coalesce((a.wait->>'days')::int, 0), hours => coalesce((a.wait->>'hours')::int, 0));
@@ -407,12 +412,12 @@ begin
 end;
 $$;
 
-create trigger automation_on_customers after insert on public.customers for each row execute function public.automation_on_change();
-create trigger automation_on_transactions after insert or update of status on public.transactions for each row execute function public.automation_on_change();
-create trigger automation_on_activities after insert on public.activities for each row execute function public.automation_on_change();
-create trigger automation_on_leads after insert or update of status on public.leads for each row execute function public.automation_on_change();
-create trigger automation_on_deals after insert or update of stage on public.deals for each row execute function public.automation_on_change();
-create trigger automation_on_tasks after insert on public.tasks for each row execute function public.automation_on_task();
+create or replace trigger automation_on_customers after insert on public.customers for each row execute function public.automation_on_change();
+create or replace trigger automation_on_transactions after insert or update of status on public.transactions for each row execute function public.automation_on_change();
+create or replace trigger automation_on_activities after insert on public.activities for each row execute function public.automation_on_change();
+create or replace trigger automation_on_leads after insert or update of status on public.leads for each row execute function public.automation_on_change();
+create or replace trigger automation_on_deals after insert or update of stage on public.deals for each row execute function public.automation_on_change();
+create or replace trigger automation_on_tasks after insert on public.tasks for each row execute function public.automation_on_task();
 
 -- ---------------------------------------------------------------------------
 -- Daily scan: date-based and inactivity triggers (runs each morning, Israel time)
@@ -450,7 +455,7 @@ begin
           group by t.customer_id
           having max(t.date) = target
         loop
-          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'lp:' || r.id || ':' || r.d);
+          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'lp:' || r.id || ':' || r.d, '{}'::jsonb, a.id);
         end loop;
 
       elsif a.trigger->>'anchor' = 'appointment' then
@@ -461,7 +466,7 @@ begin
             and ac.type in ('appointment', 'meeting', 'visit')
             and (ac.date at time zone 'Asia/Jerusalem')::date = target
         loop
-          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'appt:' || r.activity_id, jsonb_build_object('activity_id', r.activity_id));
+          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'appt:' || r.activity_id, jsonb_build_object('activity_id', r.activity_id), a.id);
         end loop;
 
       elsif a.trigger->>'anchor' = 'custom_date' and (a.trigger->>'field') ~ '^f_[a-z0-9_]{1,40}$' then
@@ -478,7 +483,7 @@ begin
                   and to_char((c.custom_fields->>k)::date, 'MM-DD') = to_char(target, 'MM-DD'))
             )
         loop
-          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'cd:' || r.id || ':' || target);
+          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'cd:' || r.id || ':' || target, '{}'::jsonb, a.id);
         end loop;
       end if;
 
@@ -491,7 +496,7 @@ begin
           where d.organization_id = a.organization_id
             and (d.last_activity_at at time zone 'Asia/Jerusalem')::date = target
         loop
-          n := n + public.automation_enqueue(a.organization_id, 'deals', r.id, 'scan', 'na:' || r.id || ':' || target);
+          n := n + public.automation_enqueue(a.organization_id, 'deals', r.id, 'scan', 'na:' || r.id || ':' || target, '{}'::jsonb, a.id);
         end loop;
       else
         for r in
@@ -503,7 +508,7 @@ begin
                 where x.customer_id = c.id and x.type <> 'whatsapp' and x.date <= now())
             ) = target
         loop
-          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'na:' || r.id || ':' || target);
+          n := n + public.automation_enqueue(a.organization_id, 'customers', r.id, 'scan', 'na:' || r.id || ':' || target, '{}'::jsonb, a.id);
         end loop;
       end if;
     end if;
@@ -526,8 +531,8 @@ declare
   a record;
   act jsonb;
   cust uuid;
-  phone text;
-  cname text;
+  v_phone text;
+  v_cname text;
   done_parts text[];
   n integer := 0;
   v_deal uuid;
@@ -576,14 +581,14 @@ begin
 
           when 'prepare_whatsapp' then
             if v_lead is not null then
-              select coalesce(nullif(trim(l.phone), ''), nullif(trim(c.phone), '')), l.name into phone, cname
+              select coalesce(nullif(trim(l.phone), ''), nullif(trim(c.phone), '')), l.name into v_phone, v_cname
               from public.leads l left join public.customers c on c.id = l.customer_id where l.id = v_lead;
             else
-              select nullif(trim(phone), ''), name into phone, cname from public.customers where id = cust;
+              select nullif(trim(cu.phone), ''), cu.name into v_phone, v_cname from public.customers cu where cu.id = cust;
             end if;
-            if phone is not null then
+            if v_phone is not null then
               insert into public.outbox_messages (organization_id, customer_id, lead_id, name, phone, body, automation_id)
-              values (q.organization_id, cust, v_lead, cname, phone,
+              values (q.organization_id, cust, v_lead, v_cname, v_phone,
                       left(public.automation_fill(act->>'body', q.organization_id, q.record_type, q.record_id, q.context), 1000), a.id);
               done_parts := done_parts || 'הודעה מוכנה';
             else

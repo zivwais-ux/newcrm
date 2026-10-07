@@ -11,7 +11,8 @@ import { RichText } from "./rich-text";
 import type { AnalystAction } from "@/lib/ai/analyst-tools";
 import { ANALYST_MAX_QUESTION_CHARS, trimHistory } from "@/lib/ai/limits";
 import { activeFilterKeys, filterLabel, parseFilters, type WorkspaceFilters } from "@/lib/components/filters";
-import { useStages } from "@/components/layout/workspace-provider";
+import { useStages, useTerms } from "@/components/layout/workspace-provider";
+import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import type { FilterKey } from "@/lib/components/types";
 
 interface Message {
@@ -35,32 +36,33 @@ function errorMessage(status: number | null, serverMessage?: string) {
   return "משהו השתבש והיועץ לא הצליח לענות כרגע. נסה שוב.";
 }
 
-/** Starter questions shown before the first message. */
-const CHAT_PROMPTS = [
+/** Starter questions shown before the first message, in the business's own words (gender-neutral when customized). */
+const chatPrompts = (t: Terms) => [
   "כמה הכנסתי החודש?",
-  "אילו לקוחות עלולים לעזוב?",
-  "מה השירות הכי רווחי?",
+  `אילו ${t.customers} עלולים לעזוב?`,
+  t.service === DEFAULT_TERMS.service ? "מה השירות הכי רווחי?" : `מה הכי מכניס מבין ה${t.services}?`,
   "למי כדאי לחזור השבוע?",
   "למה ההכנסות ירדו?",
-  "אילו עסקאות תקועות?",
+  t.deal === DEFAULT_TERMS.deal ? "אילו עסקאות תקועות?" : `אילו ${t.deals} נתקעו?`,
 ];
 
-const TOOL_LABELS: Record<string, string> = {
+const toolLabels = (t: Terms): Record<string, string> => ({
   get_business_overview: "תמונת מצב של העסק",
   compare_periods: "השוואת תקופות",
   get_revenue_trend: "הכנסות לאורך זמן",
-  get_revenue_by_service: "הכנסות לפי שירות",
-  get_top_customers: "לקוחות מובילים",
-  get_overdue_regulars: "קצב החזרה של לקוחות",
-  get_customers_at_risk: "לקוחות בסיכון",
-  get_deals_at_risk: "עסקאות תקועות",
-  get_pipeline_summary: "עסקאות בתהליך",
-  search_customers: "חיפוש לקוחות",
+  get_revenue_by_service: `הכנסות לפי ${t.service}`,
+  get_top_customers: `${t.customers} מובילים`,
+  get_overdue_regulars: `קצב החזרה של ${t.customers}`,
+  get_customers_at_risk: `${t.customers} בסיכון`,
+  get_deals_at_risk: `${t.deals} בלי תזוזה`,
+  get_pipeline_summary: `${t.deals} בתהליך`,
+  search_customers: `חיפוש ${t.customers}`,
   get_tasks: "משימות",
-};
+});
 
 function ActionButton({ action }: { action: AnalystAction }) {
   const [open, setOpen] = useState(false);
+  const terms = useTerms();
   if (action.type === "view_customers" && action.customerIds?.length) {
     const href = `/customers?ids=${action.customerIds.join(",")}&title=${encodeURIComponent(action.title ?? action.label)}`;
     return (
@@ -85,7 +87,7 @@ function ActionButton({ action }: { action: AnalystAction }) {
             onOpenChange={setOpen}
             customerIds={action.customerIds}
             dealIds={action.dealIds}
-            defaultTitle={action.taskTitle ?? "לחזור ללקוח"}
+            defaultTitle={action.taskTitle ?? `לחזור ל${terms.customer}`}
           />
         )}
       </>
@@ -106,6 +108,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
   const bottom = useRef<HTMLDivElement>(null);
   const chips = activeFilterKeys(filters);
   const stages = useStages();
+  const terms = useTerms();
 
   /** Sends `thread` (ending with the user's question) and appends the answer or an error. */
   async function send(thread: Message[]) {
@@ -183,7 +186,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
         </span>
         <div className="min-w-0">
           <h1 className="text-[24px] font-bold leading-tight tracking-tight">היועץ החכם</h1>
-          <p className="text-[14px] text-muted-foreground">התשובות מגיעות מהלקוחות, המכירות והעסקאות שלך — לא מידע כללי.</p>
+          <p className="text-[14px] text-muted-foreground">התשובות מגיעות מה{terms.customers}, ה{terms.sales} וה{terms.deals} שלך — לא מידע כללי.</p>
         </div>
       </div>
 
@@ -217,7 +220,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
               <p className="mt-1.5 max-w-md text-[14px] text-muted-foreground">בחר שאלה או כתוב שאלה משלך, בשפה פשוטה.</p>
               {!hasData && (
                 <div className="mt-6 flex max-w-md flex-col items-center gap-3 rounded-xl border border-dashed px-5 py-4 text-[14px] text-muted-foreground">
-                  <p>עדיין אין נתוני עסק. העלה קובץ לקוחות או מכירות, והיועץ יענה לפיו.</p>
+                  <p>עדיין אין נתוני עסק. העלה קובץ {terms.customers} או {terms.sales}, והיועץ יענה לפיו.</p>
                   <Button asChild size="sm" variant="brand">
                     <Link href="/data/import">
                       <UploadSimple />
@@ -227,7 +230,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                 </div>
               )}
               <div className="mt-8 flex flex-wrap justify-center gap-2">
-                {CHAT_PROMPTS.map((p) => (
+                {chatPrompts(terms).map((p) => (
                   <Button key={p} type="button" variant="outline" size="sm" className="rounded-sm text-zinc-600 hover:text-foreground" disabled={loading} onClick={() => ask(p)}>
                     {p}
                   </Button>
@@ -265,7 +268,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
                       {m.toolsUsed && m.toolsUsed.length > 0 && (
                         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Database className="size-3 shrink-0" />
-                          מבוסס על הנתונים שלך: {m.toolsUsed.map((t) => TOOL_LABELS[t] ?? t).join(", ")}
+                          מבוסס על הנתונים שלך: {m.toolsUsed.map((t) => toolLabels(terms)[t] ?? t).join(", ")}
                         </p>
                       )}
                       {m.notice && <p className="text-xs text-muted-foreground">{m.notice}</p>}

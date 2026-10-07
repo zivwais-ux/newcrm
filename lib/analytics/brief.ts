@@ -5,6 +5,7 @@ import { formatCurrency, isoDate, plural } from "@/lib/utils";
 import { lastTwoFullMonths, monthToDate } from "./dates";
 import { getCustomersAtRisk, getDataCounts, getDealsAtRisk, getOverdueCustomers, getRevenueSummary } from "./queries";
 import { aiModel, getOpenAI } from "@/lib/ai/openai";
+import { DEFAULT_TERMS, resolveTerms, type Terms } from "@/lib/terms";
 
 export interface BriefFacts {
   hasData: boolean;
@@ -104,7 +105,7 @@ export async function computeBriefFacts(supabase: SupabaseClient, orgId: string)
   };
 }
 
-export function templateBrief(f: BriefFacts, currency: string): string {
+export function templateBrief(f: BriefFacts, currency: string, t: Terms = DEFAULT_TERMS): string {
   if (!f.hasData) return "העלה את נתוני העסק שלך, והסיכום היומי יופיע כאן.";
   const money = (n: number) => formatCurrency(n, currency);
   const parts: string[] = [];
@@ -123,25 +124,28 @@ export function templateBrief(f: BriefFacts, currency: string): string {
   if (f.overdueRegulars) {
     const one = f.overdueRegulars === 1;
     parts.push(
-      `${parts.length ? "עם זאת, " : ""}${plural(f.overdueRegulars, "לקוח קבוע", "לקוחות קבועים")} עוד לא ${one ? "חזר" : "חזרו"} בזמן שבו ${one ? "הוא חוזר" : "הם חוזרים"} בדרך כלל.`,
+      `${parts.length ? "עם זאת, " : ""}${plural(f.overdueRegulars, `${t.customer} קבוע`, `${t.customers} קבועים`)} עוד לא ${one ? "חזר" : "חזרו"} בזמן שבו ${one ? "הוא חוזר" : "הם חוזרים"} בדרך כלל.`,
     );
   }
   if (f.highValueAtRisk.length) {
     const one = f.highValueAtRisk.length === 1;
-    parts.push(`${plural(f.highValueAtRisk.length, "לקוח חשוב", "לקוחות חשובים")} ${one ? "צריך" : "צריכים"} תשומת לב.`);
+    parts.push(`${plural(f.highValueAtRisk.length, `${t.customer} חשוב`, `${t.customers} חשובים`)} ${one ? "צריך" : "צריכים"} תשומת לב.`);
   }
   if (f.dealsAtRisk) {
     const one = f.dealsAtRisk === 1;
     parts.push(
-      `${plural(f.dealsAtRisk, "עסקה פתוחה", "עסקאות פתוחות", "עסקה פתוחה אחת")} בשווי ${money(f.dealsAtRiskValue)} ${one ? "לא זזה" : "לא זזו"} לאחרונה.`,
+      t.deal === DEFAULT_TERMS.deal
+        ? `${plural(f.dealsAtRisk, "עסקה פתוחה", "עסקאות פתוחות", "עסקה פתוחה אחת")} בשווי ${money(f.dealsAtRiskValue)} ${one ? "לא זזה" : "לא זזו"} לאחרונה.`
+        : // The business's own word may be masculine or feminine — keep the sentence neutral.
+          `${t.deals} בלי תזוזה לאחרונה: ${f.dealsAtRisk} בשווי ${money(f.dealsAtRiskValue)}.`,
     );
   }
   if (f.overdueTasks) parts.push(`יש לך ${plural(f.overdueTasks, "משימה", "משימות", "משימה אחת")} באיחור.`);
-  if (!parts.length) parts.push("הכל נראה יציב — אין כרגע לקוחות או עסקאות שדורשים תשומת לב.");
+  if (!parts.length) parts.push(`הכל נראה יציב — אין כרגע ${t.customers} או ${t.deals} שדורשים תשומת לב.`);
   return parts.join("\n\n");
 }
 
-async function aiBrief(f: BriefFacts, orgName: string, currency: string): Promise<string | null> {
+async function aiBrief(f: BriefFacts, orgName: string, currency: string, t: Terms = DEFAULT_TERMS): Promise<string | null> {
   const openai = getOpenAI();
   if (!openai || !f.hasData) return null;
   try {
@@ -157,7 +161,8 @@ async function aiBrief(f: BriefFacts, orgName: string, currency: string): Promis
             "Use clear, simple, everyday Hebrew with no jargon or English words. " +
             "Use ONLY the facts given; do not add numbers. Plain sentences, no headings, no bullet points, no greetings. " +
             `Currency is ${currency}; format money like ₪1,250 and percentages like 12%. Use correct Hebrew singular/plural forms. ` +
-            "Lead with revenue, then what needs attention, and finish with one short concrete suggestion when relevant.",
+            "Lead with revenue, then what needs attention, and finish with one short concrete suggestion when relevant. " +
+            `This business has its own words: say "${t.customer}"/"${t.customers}" for customers, "${t.deal}"/"${t.deals}" for deals, "${t.appointment}"/"${t.appointments}" for appointments and "${t.service}"/"${t.services}" for services, with correct Hebrew gender and number.`,
         },
         { role: "user", content: `Business: ${orgName}\nFacts: ${JSON.stringify(f)}` },
       ],
@@ -172,7 +177,7 @@ async function aiBrief(f: BriefFacts, orgName: string, currency: string): Promis
 /** Returns today's brief, generating and caching it once per org per day. */
 export async function getBrief(
   supabase: SupabaseClient,
-  org: { id: string; name: string; currency: string },
+  org: { id: string; name: string; currency: string; terms?: unknown },
   { refresh = false } = {},
 ): Promise<Brief> {
   const today = israelToday();
@@ -186,8 +191,10 @@ export async function getBrief(
     if (data?.content) return data.content as Brief;
   }
   const facts = await computeBriefFacts(supabase, org.id);
-  const text = (await aiBrief(facts, org.name, org.currency)) ?? templateBrief(facts, org.currency);
-  const brief: Brief = { text, facts, aiUsed: text !== templateBrief(facts, org.currency), generatedAt: new Date().toISOString() };
+  const terms = resolveTerms(org.terms);
+  const template = templateBrief(facts, org.currency, terms);
+  const text = (await aiBrief(facts, org.name, org.currency, terms)) ?? template;
+  const brief: Brief = { text, facts, aiUsed: text !== template, generatedAt: new Date().toISOString() };
   if (facts.hasData) {
     await supabase.from("ai_briefs").upsert({ organization_id: org.id, brief_date: today, content: brief });
   }

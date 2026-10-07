@@ -11,13 +11,14 @@ import { TemplatesForm } from "@/components/business/templates-form";
 import { TermsForm } from "@/components/settings/terms-form";
 import { StagesForm } from "@/components/settings/stages-form";
 import { loadTemplates } from "@/lib/whatsapp-server";
+import { resolveTerms } from "@/lib/terms";
 import { initials } from "@/lib/utils";
 
 export const metadata = { title: "הגדרות" };
 
 export default async function SettingsPage() {
   const { supabase, org, role, profile, user } = await requireOrg();
-  const [members, templates] = await Promise.all([getMembers(supabase, org.id), loadTemplates(supabase, org.id)]);
+  const [members, templates] = await Promise.all([getMembers(supabase, org.id), loadTemplates(supabase, org.id, resolveTerms(org.terms))]);
   const aiReady = isAIConfigured();
 
   return (
