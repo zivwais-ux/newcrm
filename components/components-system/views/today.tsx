@@ -3,7 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { BellRinging, CalendarDots, Check, CheckCircle, Handshake, ListChecks, Sun, UserCheck, UserMinus } from "@phosphor-icons/react";
+import { BellRinging, CalendarDots, Check, CheckCircle, Handshake, ListChecks, PaperPlaneTilt, Sun, UserCheck, UserMinus } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -12,6 +12,7 @@ import { activityLabel } from "@/components/business/labels";
 import { useTerms } from "@/components/layout/workspace-provider";
 import { reminderTemplate } from "@/lib/whatsapp";
 import { setAppointmentAttendance, setTaskDone } from "@/lib/actions/tools";
+import { OutboxList } from "@/components/automations/outbox-list";
 import { cn, formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 import type { TodayData } from "@/lib/components/loaders";
 import { CustomerLink } from "../workspace-filters";
@@ -47,7 +48,8 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
   const taskCount = Math.max(0, data.taskCount - (data.tasks.length - tasks.length));
   const openAppointments = appointments.filter((a) => !a.attendance).length;
   const pendingReminders = data.reminders.filter((r) => !r.sent).length;
-  const total = openAppointments + taskCount + data.comeBack.length + data.stuck.length + pendingReminders;
+  const outboxCount = data.outboxCount;
+  const total = openAppointments + taskCount + data.comeBack.length + data.stuck.length + pendingReminders + outboxCount;
 
   function attendance(id: string, value: "arrived" | "no_show") {
     start(async () => {
@@ -59,12 +61,12 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
     });
   }
 
-  if (!total && !appointments.length && !data.reminders.length)
+  if (!total && !appointments.length && !data.reminders.length && !data.outbox.length)
     return (
       <EmptyState
         compact
         icon={<Sun />}
-        title="אין שום דבר דחוף היום 🎉"
+        title="אין שום דבר דחוף היום"
         description={`כל בוקר יופיעו כאן ה${terms.appointments} של היום, משימות שהגיע זמנן, ${terms.customers} שכדאי להזכיר להם לחזור ו${terms.deals} שנתקעו — עם כפתור WhatsApp לכל אחד.`}
       />
     );
@@ -76,6 +78,12 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
         <span className="text-muted-foreground"> מחכים לך היום · {formatDate(data.today)}</span>
         {data.scopedTo && <span className="text-muted-foreground"> · רק {data.scopedTo}</span>}
       </p>
+
+      {data.outbox.length > 0 && (
+        <Section icon={<PaperPlaneTilt />} title="הודעות מוכנות לשליחה" count={outboxCount}>
+          <OutboxList rows={data.outbox} total={outboxCount} limit={5} compact />
+        </Section>
+      )}
 
       {appointments.length > 0 && (
         <Section icon={<CalendarDots />} title={`${terms.appointments} היום`} count={appointments.length}>
@@ -127,7 +135,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
                       markDone(t.id);
                       const res = await setTaskDone(t.id, true);
                       if (!res.ok) toast.error(res.error);
-                      else toast.success("כל הכבוד! המשימה סומנה כבוצעה");
+                      else toast.success("המשימה סומנה כבוצעה");
                       router.refresh();
                     })
                   }

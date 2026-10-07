@@ -10,6 +10,7 @@ import {
   Cube,
   Database,
   DotsThree,
+  FlowArrow,
   GearSix,
   Handshake,
   House,
@@ -31,9 +32,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { useCreate } from "./create-provider";
-import { useTerms } from "./workspace-provider";
+import { useTerms, useWorkspace } from "./workspace-provider";
 import type { Terms } from "@/lib/terms";
 
 export const OPEN_DRAWER_EVENT = "bos:open-drawer";
@@ -51,6 +52,7 @@ export const MORE = [
   { href: "/deals", label: "עסקאות", icon: Handshake },
   { href: "/leads", label: "פניות", icon: Tray },
   { href: "/activities", label: "יומן פעילות", icon: ListChecks },
+  { href: "/automations", label: "זרימות", icon: FlowArrow },
   { href: "/components", label: "ספריית המודולים", icon: Cube },
   { href: "/data", label: "הנתונים שלי", icon: Database },
   { href: "/settings", label: "הגדרות", icon: GearSix },
@@ -63,12 +65,27 @@ function navLabel(href: string, fallback: string, t: Terms) {
   return fallback;
 }
 
-function DockLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
+function DockLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  badge = 0,
+  badgeLabel,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
+  badge?: number;
+  badgeLabel?: string;
+}) {
   const reduce = useReducedMotion();
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
+      aria-label={badge > 0 && badgeLabel ? `${label}, ${badgeLabel}` : undefined}
       className={cn(
         "relative flex h-14 w-14 flex-col items-center justify-center gap-1 text-[10.5px] transition-colors active:translate-y-px sm:w-16",
         active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -81,7 +98,17 @@ function DockLink({ href, label, icon: Icon, active }: { href: string; label: st
           className="absolute inset-x-3 top-0 h-[2px] bg-brand"
         />
       )}
-      <Icon className={cn("size-[22px]", active && "text-brand")} weight={active ? "fill" : "regular"} />
+      <span className="relative">
+        <Icon className={cn("size-[22px]", active && "text-brand")} weight={active ? "fill" : "regular"} />
+        {badge > 0 && (
+          <span
+            aria-hidden
+            className="num absolute -top-1 -end-2 grid h-4 min-w-4 place-items-center rounded-sm bg-brand px-1 text-[10px] leading-none font-medium text-white"
+          >
+            {badge > 99 ? "99+" : formatNumber(badge)}
+          </span>
+        )}
+      </span>
       {label}
     </Link>
   );
@@ -92,6 +119,7 @@ export function Dock() {
   const pathname = usePathname();
   const create = useCreate();
   const t = useTerms();
+  const { pendingOutbox = 0 } = useWorkspace();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const moreActive = MORE.some((m) => isActive(m.href));
   const onHome = pathname === "/home";
@@ -103,7 +131,15 @@ export function Dock() {
     >
       <div className="pointer-events-auto flex items-center border border-border bg-module/92 px-1 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-module/80">
         {MAIN.map((i) => (
-          <DockLink key={i.href} {...i} label={navLabel(i.href, i.label, t)} active={isActive(i.href)} />
+          <DockLink
+            key={i.href}
+            {...i}
+            label={navLabel(i.href, i.label, t)}
+            active={isActive(i.href)}
+            // Today (and its prepared messages) lives on the home canvas.
+            badge={i.href === "/home" ? pendingOutbox : 0}
+            badgeLabel={`${formatNumber(pendingOutbox)} הודעות מחכות לשליחה`}
+          />
         ))}
 
         <DropdownMenu>

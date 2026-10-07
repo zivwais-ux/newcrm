@@ -18,6 +18,7 @@ import {
   getServiceCustomers,
 } from "@/lib/analytics/queries";
 import type { Activity, Deal, Task } from "@/types/domain";
+import type { OutboxRow } from "@/lib/actions/automations";
 import { loadStages } from "@/lib/stages";
 import { EMPTY_FILTERS, type WorkspaceFilters } from "./filters";
 import type { ComponentConfig } from "./types";
@@ -401,13 +402,32 @@ function parseAttendance(notes: string | null) {
   return { attendance: (m[1] === "הגיע" ? "arrived" : "no_show") as "arrived" | "no_show", notes: notes.slice(m[0].length).trim() || null };
 }
 
+/**
+ * Messages flows prepared and that wait for one tap (same query as listOutbox, oldest first).
+ * Never throws: a failure here must not take down the module that shows it.
+ */
+export async function loadPendingOutbox(supabase: SupabaseClient, orgId: string, limit = 30) {
+  const { data, count, error } = await supabase
+    .from("outbox_messages")
+    .select("id, customer_id, lead_id, name, phone, body, automation_id, created_at", { count: "exact" })
+    .eq("organization_id", orgId)
+    .eq("status", "pending")
+    .order("created_at", { ascending: true })
+    .limit(Math.min(Math.max(limit, 1), 100));
+  if (error) {
+    console.error("[outbox]", error);
+    return { rows: [] as OutboxRow[], total: 0 };
+  }
+  return { rows: (data ?? []) as OutboxRow[], total: count ?? data?.length ?? 0 };
+}
+
 async function today(ctx: LoaderContext, config: ComponentConfig) {
   const { supabase, org } = ctx;
   const day = israelDay();
   // Noon of the next Israel day — DST-safe way to get tomorrow's bounds.
   const tomorrow = israelDay(new Date(new Date(day.end).getTime() + 12 * 3_600_000));
   const scope = await serviceScope(ctx);
-  const [appointments, upcoming, tasks, overdue, deals] = await Promise.all([
+  const [appointments, upcoming, tasks, overdue, deals, pendingOutbox] = await Promise.all([
     supabase
       .from("activities")
       .select("id, type, date, notes, customer_id, customers(name, phone)")
@@ -436,6 +456,7 @@ async function today(ctx: LoaderContext, config: ComponentConfig) {
       .limit(8),
     getOverdueCustomers(supabase, org.id, Number(config.factor ?? 1.5), scope ? 200 : 20),
     getDealsAtRisk(supabase, org.id, TODAY_STUCK_DAYS, 50),
+    loadPendingOutbox(supabase, org.id, 5),
   ]);
   if (appointments.error) throw appointments.error;
   if (upcoming.error) throw upcoming.error;
@@ -497,9 +518,16 @@ async function today(ctx: LoaderContext, config: ComponentConfig) {
     comeBack,
     stuck: stuck.map((d) => ({ ...d, phone: d.customer_id ? phoneById.get(d.customer_id) ?? null : null })),
     scopedTo: filtersOf(ctx).service,
+    outbox: pendingOutbox.rows,
+    outboxCount: pendingOutbox.total,
   };
 }
 export type TodayData = Awaited<ReturnType<typeof today>>;
+
+async function outbox(ctx: LoaderContext) {
+  return loadPendingOutbox(ctx.supabase, ctx.org.id, 30);
+}
+export type OutboxData = Awaited<ReturnType<typeof outbox>>;
 
 async function aiAnalyst(ctx: LoaderContext) {
   return { filters: filtersOf(ctx) };
@@ -519,4 +547,5 @@ export const COMPONENT_LOADERS: Record<string, Loader> = {
   "followup-radar": followupRadar,
   tasks,
   today,
+  outbox,
 };

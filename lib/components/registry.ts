@@ -381,6 +381,26 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     emptyState: { title: "אין משימות פתוחות", description: "משימות שתיצור מכל כלי אחר יופיעו כאן." },
     href: "/tasks",
   },
+  {
+    id: "outbox",
+    name: "הודעות לשליחה",
+    description: "הודעות WhatsApp שהזרימות הכינו, כל אחת נשלחת בלחיצה אחת",
+    category: "operations",
+    requiredEntities: [],
+    recommendedFor: ["service", "sales", "both"],
+    defaultSize: "md",
+    visualization: "רשימת הודעות מוכנות, לכל אחת כפתור WhatsApp",
+    configFields: [],
+    actions: [
+      { id: "whatsapp", label: "שלח WhatsApp" },
+      { id: "dismiss", label: "דלג על הודעה" },
+    ],
+    permissions: MANAGERS,
+    consumes: [],
+    emits: [],
+    emptyState: { title: "אין הודעות שמחכות", description: "כשזרימה מכינה הודעת WhatsApp, היא מחכה כאן ללחיצה אחת שלך." },
+    href: "/automations",
+  },
 ];
 
 export const REGISTRY_BY_ID = new Map(COMPONENT_REGISTRY.map((c) => [c.id, c]));

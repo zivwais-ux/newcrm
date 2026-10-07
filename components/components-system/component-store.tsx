@@ -11,6 +11,7 @@ import {
   Crosshair,
   Handshake,
   ListChecks,
+  PaperPlaneTilt,
   Plus,
   Pulse,
   Repeat,
@@ -41,6 +42,7 @@ export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   "followup-radar": Crosshair,
   tasks: ListChecks,
   today: SunHorizon,
+  outbox: PaperPlaneTilt,
 };
 
 const ENTITY_COUNT_LABELS: Record<string, string> = {

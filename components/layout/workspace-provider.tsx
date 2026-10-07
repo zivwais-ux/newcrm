@@ -6,6 +6,7 @@ import type { MessageTemplate } from "@/lib/whatsapp";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { DEFAULT_STAGES, stageLabel } from "@/lib/stages";
 import type { FieldDef, FieldEntity } from "@/lib/fields";
+import type { NotificationRow } from "@/lib/actions/automations";
 
 export interface WorkspaceContextValue {
   org: { id: string; name: string; business_type: BusinessType; currency: string };
@@ -20,6 +21,10 @@ export interface WorkspaceContextValue {
   stages?: StageDef[];
   /** Fields the business defined itself, all entities. */
   fields?: FieldDef[];
+  /** Messages flows prepared that still wait to be sent. */
+  pendingOutbox?: number;
+  /** Newest notifications (bell), loaded with the page. */
+  notifications?: NotificationRow[];
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
