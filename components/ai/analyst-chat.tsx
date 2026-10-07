@@ -11,6 +11,7 @@ import { RichText } from "./rich-text";
 import type { AnalystAction } from "@/lib/ai/analyst-tools";
 import { ANALYST_MAX_QUESTION_CHARS, trimHistory } from "@/lib/ai/limits";
 import { activeFilterKeys, filterLabel, parseFilters, type WorkspaceFilters } from "@/lib/components/filters";
+import { useStages } from "@/components/layout/workspace-provider";
 import type { FilterKey } from "@/lib/components/types";
 
 interface Message {
@@ -104,6 +105,7 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
   const asked = useRef(false);
   const bottom = useRef<HTMLDivElement>(null);
   const chips = activeFilterKeys(filters);
+  const stages = useStages();
 
   /** Sends `thread` (ending with the user's question) and appends the answer or an error. */
   async function send(thread: Message[]) {
@@ -194,13 +196,13 @@ export function AnalystChat({ initialQuestion, hasData }: { initialQuestion: str
             </span>
             {chips.map((k) => (
               <span key={k} className="inline-flex items-center gap-1 rounded-sm border border-brand/20 bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">
-                {filterLabel(k, filters[k] as string)}
+                {filterLabel(k, filters[k] as string, stages)}
                 <button
                   type="button"
                   onClick={() => removeFilter(k)}
                   disabled={loading}
                   className="cursor-pointer rounded-sm opacity-70 hover:opacity-100 disabled:cursor-not-allowed"
-                  aria-label={`הסר סינון ${filterLabel(k, filters[k] as string)}`}
+                  aria-label={`הסר סינון ${filterLabel(k, filters[k] as string, stages)}`}
                 >
                   <X className="size-3" />
                 </button>

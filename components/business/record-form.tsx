@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EntityPicker } from "./entity-picker";
-import { useWorkspace } from "@/components/layout/workspace-provider";
+import { useStages, useTerms, useWorkspace } from "@/components/layout/workspace-provider";
+import type { Terms } from "@/lib/terms";
 import { createRecord, updateRecord, type RecordEntity } from "@/lib/actions/records";
 import { ACTIVITY_TYPES, DEAL_STAGES } from "@/types/domain";
 import { isoDate } from "@/lib/utils";
@@ -148,6 +149,37 @@ export const RECORD_FORMS: Record<RecordEntity, FormSpec> = {
   },
 };
 
+/**
+ * The form spec in the business's own words ("מטופל", "טיפול"…). Phrasing stays gender-neutral
+ * ("הוספת X", "עריכת X") because the business's noun can be masculine or feminine.
+ */
+export function recordForm(entity: RecordEntity, t: Terms): FormSpec {
+  const base = RECORD_FORMS[entity];
+  const named = (noun: string, toast: string, description = base.description): Partial<FormSpec> => ({
+    singular: noun,
+    newLabel: `הוספת ${noun}`,
+    editLabel: `עריכת ${noun}`,
+    createLabel: `הוסף ${noun}`,
+    createdToast: toast,
+    description,
+  });
+  const relabel = (f: Field): Field => {
+    if (f.type === "customer") return { ...f, label: t.customer };
+    if (f.name === "product_or_service") return { ...f, label: t.service === "שירות" ? f.label : t.service };
+    if (entity === "activities" && f.name === "type") return { ...f, optionLabels: { ...f.optionLabels, appointment: t.appointment } };
+    if (entity === "deals" && f.name === "name") return { ...f, label: "שם" };
+    return f;
+  };
+  const words: Partial<Record<RecordEntity, Partial<FormSpec>>> = {
+    customers: named(t.customer, "נוסף לרשימה"),
+    leads: { description: `מישהו שהתעניין ועוד לא נהיה ${t.customer}.` },
+    deals: named(t.deal, "נשמר"),
+    transactions: named(t.sale, "נשמר", `${t.sale}, תשלום או החזר כספי.`),
+    activities: { description: `${t.appointment}, שיחה, פגישה או הערה.` },
+  };
+  return { ...base, ...words[entity], fields: base.fields.map(relabel) };
+}
+
 function defaults(entity: RecordEntity): Record<string, string> {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -186,7 +218,13 @@ export function RecordFormDialog({
 }) {
   const router = useRouter();
   const { members, user } = useWorkspace();
-  const form = RECORD_FORMS[entity];
+  const form = recordForm(entity, useTerms());
+  // Deal stages are the business's own (order + names), not the built-in defaults.
+  const stages = useStages();
+  const stageOptions = stages.map((s) => s.key);
+  const stageLabels = Object.fromEntries(stages.map((s) => [s.key, s.label]));
+  const optionsFor = (f: Field) => (entity === "deals" && f.name === "stage" ? stageOptions : f.options ?? []);
+  const labelsFor = (f: Field) => (entity === "deals" && f.name === "stage" ? stageLabels : f.optionLabels);
   const [values, setValues] = useState<Record<string, string>>(() => {
     const base = defaults(entity);
     for (const [k, v] of Object.entries(initial ?? {})) if (v !== null && v !== undefined) base[k] = String(v);
@@ -235,9 +273,9 @@ export function RecordFormDialog({
                     <SelectValue placeholder="בחר" />
                   </SelectTrigger>
                   <SelectContent>
-                    {f.options!.map((o) => (
+                    {optionsFor(f).map((o) => (
                       <SelectItem key={o} value={o}>
-                        {f.optionLabels?.[o] ?? o}
+                        {labelsFor(f)?.[o] ?? o}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -314,13 +352,14 @@ export function NewRecordButton({
   size?: "sm" | "default" | "xs";
 }) {
   const [open, setOpen] = useState(false);
+  const terms = useTerms();
   return (
     <>
       <Button variant={variant} size={size} onClick={() => setOpen(true)}>
         {children ?? (
           <>
             <Plus />
-            {RECORD_FORMS[entity].newLabel}
+            {recordForm(entity, terms).newLabel}
           </>
         )}
       </Button>

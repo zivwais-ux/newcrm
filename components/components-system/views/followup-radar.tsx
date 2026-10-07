@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { LEAD_STATUS_LABELS, label } from "@/components/business/labels";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
-import { STAGE_NAMES } from "@/lib/components/filters";
+import { useStageLabel, useTerms } from "@/components/layout/workspace-provider";
 import { BulkTaskDialog } from "@/components/business/bulk-task-dialog";
 import { markLeadContacted, setTaskDone } from "@/lib/actions/tools";
 import { formatCurrency, relativeDays, formatDate, formatNumber, plural } from "@/lib/utils";
@@ -21,6 +21,8 @@ type Removal = { kind: "task" | "lead"; id: string };
 
 export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
   const router = useRouter();
+  const stageName = useStageLabel();
+  const terms = useTerms();
   const [bulk, setBulk] = useState(false);
   const [, start] = useTransition();
   const [removed, remove] = useOptimistic<Removal[], Removal>([], (state, r) => [...state, r]);
@@ -47,7 +49,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
         compact
         icon={<Crosshair />}
         title="אין למי לחזור כרגע"
-        description="כאן יופיעו משימות באיחור, עסקאות שאף אחד לא נגע בהן ופניות שמחכות לתשובה. כרגע הכל מטופל."
+        description={`כאן יופיעו משימות באיחור, ${terms.deals} שאף אחד לא נגע בהן ופניות שמחכות לתשובה. כרגע הכל מטופל.`}
       />
     );
 
@@ -56,7 +58,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
       <div className="grid grid-cols-3 gap-2 text-center">
         {[
           { label: "משימות באיחור", value: taskCount },
-          { label: "עסקאות שקטות", value: data.quietDealCount },
+          { label: `${terms.deals} בלי מגע`, value: data.quietDealCount },
           { label: "פניות שמחכות", value: leadCount },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-muted/30 px-2 py-3">
@@ -103,7 +105,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
         <div>
           <div className="mb-1 flex items-center justify-between">
             <SectionLabel>
-              עסקאות בלי פעילות {data.idleDays} ימים ומעלה{data.stage ? ` · ${STAGE_NAMES[data.stage]}` : ""}
+              {terms.deals} בלי פעילות {data.idleDays} ימים ומעלה{data.stage ? ` · ${stageName(data.stage)}` : ""}
             </SectionLabel>
             <Button size="xs" variant="ghost" onClick={() => setBulk(true)}>
               צור משימות ({formatNumber(data.quietDealCount)})
@@ -156,7 +158,7 @@ export function FollowupRadarView({ data, currency }: ViewProps<RadarData>) {
           ))}
         </div>
       )}
-      {bulk && <BulkTaskDialog open onOpenChange={setBulk} dealIds={data.quietDealIds} defaultTitle="לחזור לגבי העסקה" />}
+      {bulk && <BulkTaskDialog open onOpenChange={setBulk} dealIds={data.quietDealIds} defaultTitle={`לחזור לגבי ה${terms.deal}`} />}
     </div>
   );
 }

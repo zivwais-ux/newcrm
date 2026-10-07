@@ -17,17 +17,15 @@ import {
 import { Confetti, Plus } from "@phosphor-icons/react";
 import { RecordFormDialog } from "./record-form";
 import { WhatsAppButton } from "./whatsapp-button";
-import { useWorkspace } from "@/components/layout/workspace-provider";
+import { useStages, useWorkspace } from "@/components/layout/workspace-provider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { moveDeal } from "@/lib/actions/records";
 import { israelToday } from "@/lib/analytics/dates";
 import { cn, daysAgo, formatCurrency, formatNumber, plural } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
-import { DEAL_STAGES, type Deal, type DealStage } from "@/types/domain";
-import { STAGE_LABELS } from "./labels";
-
-export { STAGE_LABELS };
+import type { Deal, DealStage } from "@/types/domain";
+import { stageLabel } from "@/lib/stages";
 
 /** Per-stage totals computed in SQL (pipeline_summary RPC). */
 export interface StageTotals {
@@ -46,8 +44,9 @@ function DealCard({ deal, onOpen, overlay = false }: { deal: Deal; onOpen?: () =
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: deal.id, data: { stage: deal.stage } });
   const owner =
     (deal.custom_fields?.owner_name as string | undefined) ?? members.find((m) => m.user_id === deal.owner_id)?.full_name ?? null;
+  const stages = useStages();
   const idle = daysAgo(deal.last_activity_at) ?? 0;
-  const open = deal.stage !== "won" && deal.stage !== "lost";
+  const open = (stages.find((s) => s.key === deal.stage)?.kind ?? "open") === "open";
   const phone = deal.customers?.phone;
   return (
     <div
@@ -108,6 +107,7 @@ function Column({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: stage });
   const { org } = useWorkspace();
+  const stages = useStages();
   const visible = collapsed ? [] : limit ? deals.slice(0, limit) : deals;
   const hidden = Math.max(0, count - visible.length);
   return (
@@ -125,7 +125,7 @@ function Column({
         )}
       >
         <span className={cn("text-[13px] font-medium", collapsed && "text-muted-foreground")}>
-          {STAGE_LABELS[stage]} <span className="font-normal text-muted-foreground num">{formatNumber(count)}</span>
+          {stageLabel(stage, stages)} <span className="font-normal text-muted-foreground num">{formatNumber(count)}</span>
         </span>
         <Ltr className="text-xs text-muted-foreground num">{formatCurrency(total, org.currency, true)}</Ltr>
       </button>
@@ -178,6 +178,7 @@ export function PipelineBoard({
 }) {
   const router = useRouter();
   const { org } = useWorkspace();
+  const stages = useStages();
   const [deals, setDeals] = useState(initial);
   const [summary, setSummary] = useState(initialSummary);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -195,10 +196,10 @@ export function PipelineBoard({
   }, [focusDealId, initial]);
 
   const byStage = useMemo(() => {
-    const map = new Map<DealStage, Deal[]>(DEAL_STAGES.map((s) => [s, []]));
+    const map = new Map<DealStage, Deal[]>(stages.map((s) => [s.key, []]));
     for (const d of deals) map.get(d.stage)?.push(d);
     return map;
-  }, [deals]);
+  }, [deals, stages]);
 
   /** Moves one deal's count/value between stages in the local SQL totals (optimistic). */
   function shiftTotals(from: DealStage, to: DealStage, value: number) {
@@ -230,8 +231,8 @@ export function PipelineBoard({
       shiftTotals(to, from, value);
       return;
     }
-    if (to === "won") setWonDeal({ ...deal, stage: to });
-    else toast.success(`הועברה לשלב "${STAGE_LABELS[to]}"`);
+    if (stages.find((s) => s.key === to)?.kind === "won") setWonDeal({ ...deal, stage: to });
+    else toast.success(`הועברה לשלב "${stageLabel(to, stages)}"`);
     router.refresh();
   }
 
@@ -245,7 +246,7 @@ export function PipelineBoard({
     <>
       <DndContext id={boardId} sensors={sensors} onDragStart={(e) => setActiveId(String(e.active.id))} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
         <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2">
-          {DEAL_STAGES.map((stage) => {
+          {stages.map(({ key: stage }) => {
             const list = byStage.get(stage) ?? [];
             const { count, total } = totalsFor(stage, list);
             const collapsed = Boolean(selectedStage) && selectedStage !== stage;

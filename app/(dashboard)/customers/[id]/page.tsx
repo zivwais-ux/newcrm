@@ -13,17 +13,20 @@ import { ActivityItem } from "@/components/business/activity-list";
 import { TaskList } from "@/components/business/task-list";
 import { EmptyState } from "@/components/business/empty-state";
 import { Stat } from "@/components/business/stat";
-import { STAGE_LABELS } from "@/components/business/pipeline-board";
+import { StageName } from "@/components/business/stage-name";
 import { formatCurrency, formatDate, formatNumber, plural, relativeDays } from "@/lib/utils";
 import { Ltr } from "@/components/ui/ltr";
 import { Module, ModuleBody, ModuleRail } from "@/components/ui/module";
 import { CUSTOMER_STATUS_LABELS, TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, label } from "@/components/business/labels";
 import type { Activity, Customer, Deal, Task, Transaction } from "@/types/domain";
+import { resolveTerms } from "@/lib/terms";
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!z.string().uuid().safeParse(id).success) notFound();
   const { supabase, org } = await requireOrg();
+  const terms = resolveTerms(org.terms);
+  const serviceHead = terms.service === "שירות" ? "מוצר / שירות" : terms.service;
 
   const { data: customer } = await supabase.from("customers").select("*").eq("id", id).eq("organization_id", org.id).maybeSingle();
   if (!customer) notFound();
@@ -61,7 +64,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
     <PageContainer>
       <Link href="/customers" className="mb-5 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
         <CaretLeft className="size-3.5 rtl:-scale-x-100" />
-        לקוחות
+        {terms.customers}
       </Link>
 
       <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -69,7 +72,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{c.name}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Badge variant={c.status === "active" ? "positive" : c.status === "churned" ? "negative" : "default"}>
-              לקוח {label(CUSTOMER_STATUS_LABELS, c.status)}
+              {label(CUSTOMER_STATUS_LABELS, c.status)}
             </Badge>
             {segment && <Badge variant="outline">{segment}</Badge>}
             <span className="text-muted-foreground">·</span>
@@ -84,9 +87,9 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
       <ProfileTabs
         tabs={[
           { value: "overview", label: "סקירה" },
-          { value: "transactions", label: "מכירות", count: history.length },
+          { value: "transactions", label: terms.sales, count: history.length },
           { value: "activities", label: "פעילות", count: activities.length },
-          { value: "deals", label: "עסקאות", count: deals.length },
+          { value: "deals", label: terms.deals, count: deals.length },
           { value: "tasks", label: "משימות", count: openTasks.length },
         ]}
       >
@@ -153,7 +156,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                     <Buildings className="size-4 shrink-0 text-muted-foreground" />
                     {c.company ?? "—"}
                   </p>
-                  <p className="border-t border-border pt-3 text-xs text-muted-foreground">לקוח מאז {formatDate(c.created_at)}</p>
+                  <p className="border-t border-border pt-3 text-xs text-muted-foreground">{terms.customer} מאז {formatDate(c.created_at)}</p>
                 </ModuleBody>
               </Module>
               {customFields.length > 0 && (
@@ -187,13 +190,13 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
 
         <TabsContent value="transactions">
           <Module>
-            <ModuleRail icon={<Receipt />} title="מכירות" meta={<span className="num">{formatNumber(transactions.length)}</span>} />
+            <ModuleRail icon={<Receipt />} title={terms.sales} meta={<span className="num">{formatNumber(transactions.length)}</span>} />
             {transactions.length ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="ps-4">תאריך</TableHead>
-                    <TableHead>מוצר / שירות</TableHead>
+                    <TableHead>{serviceHead}</TableHead>
                     <TableHead className="hidden sm:table-cell">טופל על ידי</TableHead>
                     <TableHead className="hidden sm:table-cell">סטטוס</TableHead>
                     <TableHead className="pe-4 text-end">סכום</TableHead>
@@ -218,7 +221,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState compact icon={Receipt} title="עדיין אין מכירות" description="כאן יופיעו הקניות של הלקוח הזה." />
+              <EmptyState compact icon={Receipt} title={`עדיין אין ${terms.sales}`} description="כאן יופיעו הקניות שנרשמו בכרטיס הזה." />
             )}
           </Module>
         </TabsContent>
@@ -233,14 +236,14 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 ))}
               </div>
             ) : (
-              <EmptyState compact icon={CalendarDots} title="עדיין אין פעילות" description="רשום תורים, שיחות וביקורים בעזרת הכפתורים למעלה." />
+              <EmptyState compact icon={CalendarDots} title="עדיין אין פעילות" description={`רשום ${terms.appointments}, שיחות והערות בעזרת הכפתורים למעלה.`} />
             )}
           </Module>
         </TabsContent>
 
         <TabsContent value="deals">
           <Module>
-            <ModuleRail icon={<Handshake />} title="עסקאות" meta={<span className="num">{formatNumber(deals.length)}</span>} />
+            <ModuleRail icon={<Handshake />} title={terms.deals} meta={<span className="num">{formatNumber(deals.length)}</span>} />
             {deals.length ? (
               <div className="divide-y divide-border/60">
                 {deals.map((d) => (
@@ -248,7 +251,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{d.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {STAGE_LABELS[d.stage]} · צפי לסגירה {formatDate(d.expected_close)}
+                        <StageName stage={d.stage} /> · צפי לסגירה {formatDate(d.expected_close)}
                       </p>
                     </div>
                     <Ltr className="num text-sm font-medium">{money(d.value)}</Ltr>
@@ -256,7 +259,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 ))}
               </div>
             ) : (
-              <EmptyState compact icon={Handshake} title="אין עסקאות" description="כאן יופיעו עסקאות שקשורות ללקוח הזה." />
+              <EmptyState compact icon={Handshake} title={`אין ${terms.deals}`} description={`${terms.deals} שנפתחו בכרטיס הזה יופיעו כאן.`} />
             )}
           </Module>
         </TabsContent>
@@ -269,7 +272,7 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                 <TaskList tasks={tasks} showCustomer={false} />
               </div>
             ) : (
-              <EmptyState compact icon={ListChecks} title="אין משימות" description="צור משימה כדי לא לשכוח לחזור ללקוח הזה." />
+              <EmptyState compact icon={ListChecks} title="אין משימות" description="צור משימה כדי לא לשכוח לחזור אליו." />
             )}
           </Module>
         </TabsContent>

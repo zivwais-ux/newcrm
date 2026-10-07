@@ -10,6 +10,7 @@ import { BulkTaskDialog } from "@/components/business/bulk-task-dialog";
 import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import type { RiskData } from "@/lib/components/loaders";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
+import { useTerms } from "@/components/layout/workspace-provider";
 import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 import { CustomerLink, useOpenCustomer } from "../workspace-filters";
 
@@ -29,6 +30,7 @@ const LINK_IDS = 300;
 
 export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
   const open = useOpenCustomer();
+  const terms = useTerms();
   const [bulkOpen, setBulkOpen] = useState(false);
   const { threshold, drop } = data;
 
@@ -37,13 +39,13 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
       <EmptyState
         compact
         icon={<TrendDown />}
-        title="אין לקוחות בסיכון"
-        description={`${data.scopedTo ? `מבין הלקוחות של ${data.scopedTo}, אף אחד` : "אף לקוח"} לא נעלם ליותר מ-${threshold} ימים ולא הוריד את ההוצאה ב-${drop}% או יותר. כשזה יקרה תראה אותו כאן, ותוכל לשלוח לו WhatsApp או ליצור משימה.`}
+        title={`אין ${terms.customers} בסיכון`}
+        description={`${data.scopedTo ? `מבין ה${terms.customers} של ${data.scopedTo}, אף אחד` : `אף ${terms.customer}`} לא נעלם ליותר מ-${threshold} ימים ולא הוריד את ההוצאה ב-${drop}% או יותר. כשזה יקרה תראה אותו כאן, ותוכל לשלוח לו WhatsApp או ליצור משימה.`}
       />
     );
 
   const allHref = data.scopedTo
-    ? `/customers?${new URLSearchParams({ ids: data.ids.slice(0, LINK_IDS).join(","), title: `לקוחות בסיכון · ${data.scopedTo}` })}`
+    ? `/customers?${new URLSearchParams({ ids: data.ids.slice(0, LINK_IDS).join(","), title: `${terms.customers} בסיכון · ${data.scopedTo}` })}`
     : `/customers?segment=at-risk&threshold=${threshold}&drop=${drop}`;
 
   return (
@@ -51,7 +53,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           <span className="font-medium text-foreground num">{formatNumber(data.total)}</span>{" "}
-          {data.total === 1 ? "לקוח צריך" : "לקוחות צריכים"} תשומת לב{data.scopedTo ? ` · ${data.scopedTo}` : ""}
+          {data.total === 1 ? `${terms.customer} צריך` : `${terms.customers} צריכים`} תשומת לב{data.scopedTo ? ` · ${data.scopedTo}` : ""}
         </p>
         <div className="flex gap-0.5">
           <Button size="xs" variant="outline" onClick={() => setBulkOpen(true)}>
@@ -83,7 +85,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
           </div>
           <div className="flex shrink-0 gap-0.5">
             <Button size="xs" variant="ghost" onClick={() => open(c.id)}>
-              צפה בלקוח
+              צפה בכרטיס
             </Button>
             <WhatsAppButton phone={c.phone} name={c.name} customerId={c.id} service={data.scopedTo} template="לא ראינו אותך מזמן" />
             <CreateTaskButton customerId={c.id} customerName={c.name} title={`לבדוק מה שלום ${c.name}`} />
@@ -91,7 +93,7 @@ export function CustomerRiskView({ data, currency }: ViewProps<RiskData>) {
         </ListRow>
       ))}
       {bulkOpen && (
-        <BulkTaskDialog open={bulkOpen} onOpenChange={setBulkOpen} customerIds={data.ids} defaultTitle="לבדוק מה שלום הלקוח" />
+        <BulkTaskDialog open={bulkOpen} onOpenChange={setBulkOpen} customerIds={data.ids} defaultTitle={`לבדוק מה שלום ה${terms.customer}`} />
       )}
     </div>
   );

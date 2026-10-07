@@ -21,11 +21,12 @@ import {
   getServiceCustomers,
   getTopCustomers,
 } from "@/lib/analytics/queries";
-import { ANALYST_TOOLS, dmy, runAnalystTool, stageLabel, type AnalystAction, type ToolContext } from "./analyst-tools";
+import { ANALYST_TOOLS, dmy, runAnalystTool, stageLabel, toolStages, type AnalystAction, type ToolContext } from "./analyst-tools";
 import { EMPTY_FILTERS, STAGE_NAMES, type WorkspaceFilters } from "@/lib/components/filters";
-import { DEAL_STAGES, type DealStage } from "@/types/domain";
+import { DEAL_STAGES, type DealStage, type StageDef } from "@/types/domain";
 import { ANALYST_MAX_MESSAGE_CHARS, ANALYST_MAX_MESSAGES } from "./limits";
 import { AI_FAILED_NOTICE, AI_UNAVAILABLE_NOTICE, aiModel, getOpenAI } from "./openai";
+import { DEFAULT_TERMS, resolveTerms, type Terms } from "@/lib/terms";
 
 export interface AnalystMessage {
   role: "user" | "assistant";
@@ -64,20 +65,25 @@ export function previousPeriod(from: string, to: string) {
 }
 
 /** Workspace filters as a note for the model (empty when nothing is filtered). */
-function filtersPrompt(f: WorkspaceFilters) {
+function filtersPrompt(f: WorkspaceFilters, stages?: StageDef[]) {
   const parts: string[] = [];
   if (f.service) parts.push(`only the service/product "${f.service}" (use per-service data)`);
   if (f.range) {
     const r = resolveRange(f.range);
     parts.push(f.range === "all" ? "the whole history" : `the period ${r.from}..${r.to} ("${RANGE_PRESETS[f.range]}") instead of the default periods`);
   }
-  if (f.stage) parts.push(`deals in stage "${f.stage}" (${STAGE_NAMES[f.stage]})`);
+  if (f.stage) parts.push(`deals in stage "${f.stage}" (${stageLabel(f.stage, stages)})`);
   return parts.length
     ? `- The user is looking at a filtered workspace. Focus on: ${parts.join("; ")}. If a number covers the whole business rather than the filter, say so clearly.`
     : null;
 }
 
-function systemPrompt(orgName: string, businessType: string, currency: string, filters: WorkspaceFilters) {
+/** Tells the model which words this business uses ("מטופלים", "טיפול"…) so answers sound like the owner. */
+function termsPrompt(t: Terms) {
+  return `- This business has its own words. In Hebrew answers say "${t.customer}" / "${t.customers}" for customer(s), "${t.appointment}" / "${t.appointments}" for appointment(s), "${t.service}" / "${t.services}" for service(s), "${t.deal}" / "${t.deals}" for deal(s) and "${t.sale}" / "${t.sales}" for sale(s). Keep Hebrew grammar (gender/number) correct for these words.`;
+}
+
+function systemPrompt(orgName: string, businessType: string, currency: string, filters: WorkspaceFilters, stages?: StageDef[], terms: Terms = DEFAULT_TERMS) {
   const today = israelToday();
   const months = lastTwoFullMonths();
   return [
@@ -89,13 +95,14 @@ function systemPrompt(orgName: string, businessType: string, currency: string, f
     `- Format money like ₪1,250 (currency symbol first, comma thousands separator, no decimals; currency ${currency}). Format percentages like 12%. Write dates to the user as DD/MM/YYYY (e.g. 05/10/2026); tool arguments still use ISO yyyy-mm-dd.`,
     "- When relevant, end with ONE concrete suggested next step on its own line, starting with '**מה כדאי לעשות:**' (e.g. who to call, which service to promote). Base it only on the data.",
     "- Use plain text with '- ' bullets and **bold** for key numbers. No tables, no headings.",
+    termsPrompt(terms),
     "Grounding rules:",
     "- Answer ONLY from tool results. Always call tools before answering a question about the business. Never invent numbers, customers or services.",
     "- For 'why did revenue/sales go down/up' or 'what changed', call compare_periods (default: last full month vs the month before) and look at lost customers, new customers, service changes and transaction counts. Consider get_overdue_regulars too.",
     "- The question may end with a context note in parentheses (e.g. 'התמקד ב: רק השירות/המוצר \"X\"' or 'Focus on only the service \"X\"'). Respect it: focus on that service, period or stage using the per-service data (get_revenue_by_service, the services in compare_periods). If a number covers the whole business rather than the filter, say so clearly.",
     "- If the data is insufficient, say exactly what is missing (e.g. 'אין מכירות לפני מרץ') and suggest importing it (העלאת נתונים).",
     "- You can only read data. You cannot create, edit or delete anything. If an action would help (e.g. follow-up tasks), say the user can do it with the buttons below your answer — nothing is changed until the user confirms.",
-    filtersPrompt(filters),
+    filtersPrompt(filters, stages),
   ]
     .filter(Boolean)
     .join("\n");
@@ -103,11 +110,13 @@ function systemPrompt(orgName: string, businessType: string, currency: string, f
 
 export async function runAnalyst(
   supabase: SupabaseClient,
-  org: { id: string; name: string; business_type: string; currency: string },
+  org: { id: string; name: string; business_type: string; currency: string; terms?: unknown },
   history: AnalystMessage[],
   workspaceFilters: WorkspaceFilters = EMPTY_FILTERS,
 ): Promise<AnalystResponse> {
   const ctx: ToolContext = { supabase, orgId: org.id, currency: org.currency, actions: [], toolsUsed: [] };
+  const terms = resolveTerms(org.terms);
+  const stages = await toolStages(ctx);
   const openai = getOpenAI();
   const question = history.filter((m) => m.role === "user").at(-1)?.content ?? "";
   // Structured filters win; a legacy note inside the question ("(התמקד ב: …)") fills the gaps.
@@ -118,10 +127,10 @@ export async function runAnalyst(
     stage: workspaceFilters.stage ?? legacy.stage,
   };
 
-  if (!openai) return fallbackAnalyst(legacy.question, ctx, AI_UNAVAILABLE_NOTICE, filters);
+  if (!openai) return fallbackAnalyst(legacy.question, ctx, AI_UNAVAILABLE_NOTICE, filters, terms);
 
   const messages: ChatCompletionMessageParam[] = [
-    { role: "system", content: systemPrompt(org.name, org.business_type, org.currency, filters) },
+    { role: "system", content: systemPrompt(org.name, org.business_type, org.currency, filters, stages, terms) },
     ...history
       .slice(-ANALYST_MAX_MESSAGES)
       .map((m) => ({ role: m.role, content: m.content.slice(0, ANALYST_MAX_MESSAGE_CHARS) }) as ChatCompletionMessageParam),
@@ -173,7 +182,7 @@ export async function runAnalyst(
     console.error("[ai] analyst failed", (error as Error).message);
     ctx.actions = [];
     ctx.toolsUsed = [];
-    return fallbackAnalyst(legacy.question, ctx, AI_FAILED_NOTICE, filters);
+    return fallbackAnalyst(legacy.question, ctx, AI_FAILED_NOTICE, filters, terms);
   }
 }
 
@@ -280,8 +289,10 @@ const pct = (cur: number, prev: number) => (prev ? Math.round(((cur - prev) / Ma
 const n = (v: number) => formatNumber(v);
 const NEXT = "**מה כדאי לעשות:**";
 
-async function fallbackAnalyst(question: string, ctx: ToolContext, notice: string, filters: WorkspaceFilters): Promise<AnalystResponse> {
+async function fallbackAnalyst(question: string, ctx: ToolContext, notice: string, filters: WorkspaceFilters, t: Terms = DEFAULT_TERMS): Promise<AnalystResponse> {
   const money = (v: number) => formatCurrency(v, ctx.currency);
+  /** "3 מטופלים" / "מטופל אחד" — counts of customers in the business's own word. */
+  const pc = (count: number) => plural(count, t.customer, t.customers);
   const { service, range, stage } = filters;
   const intent = classifyIntent(question);
   /** Selected period (or the given default) with its Hebrew "in the period" phrase. */
@@ -291,7 +302,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
   };
   /** Shown when the answer does not depend on the selected period. */
   const rangeNote = range
-    ? `התשובה מבוססת על קצב הקנייה של כל לקוח, ולכן היא לא מוגבלת לתקופה שנבחרה (${RANGE_PRESETS[range]}).`
+    ? `התשובה מבוססת על קצב הקנייה של כל ${t.customer}, ולכן היא לא מוגבלת לתקופה שנבחרה (${RANGE_PRESETS[range]}).`
     : null;
   const lines: string[] = [];
   const { supabase, orgId } = ctx;
@@ -384,7 +395,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
           const drivers: string[] = [];
           if (c.lost_customers > 0)
             drivers.push(
-              `**${plural(c.lost_customers, "לקוח", "לקוחות")}** שקנו ${m.previous.label} לא קנו ${m.current.label} — ${m.previous.label} הם הוציאו יחד **${money(c.lost_customers_revenue)}**.`,
+              `**${pc(c.lost_customers)}** שקנו ${m.previous.label} לא קנו ${m.current.label} — ${m.previous.label} הם הוציאו יחד **${money(c.lost_customers_revenue)}**.`,
             );
           if (c.new_customers > 0)
             drivers.push(`${plural(c.new_customers, "לקוח חדש", "לקוחות חדשים")} ${c.new_customers === 1 ? "הכניס" : "הכניסו"} ${money(c.new_customers_revenue)}.`);
@@ -550,39 +561,39 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
       if (!overdue.length && !risk.length) {
         lines.push(
           intent === "followup"
-            ? `אין כרגע לקוחות שצריך לחזור אליהם בדחיפות${scope} — הלקוחות הקבועים בקצב הרגיל שלהם.`
-            : `חדשות טובות — אין כרגע לקוחות בסיכון${scope} לפי היסטוריית הקניות.`,
+            ? `אין כרגע ${t.customers} שצריך לחזור אליהם בדחיפות${scope} — הקבועים בקצב הרגיל שלהם.`
+            : `חדשות טובות — אין כרגע ${t.customers} בסיכון${scope} לפי היסטוריית הקניות.`,
         );
       } else if (intent === "followup") {
         const targets = overdue.length ? [...overdue].sort((a, b) => b.total_revenue - a.total_revenue) : [];
         if (targets.length) {
-          lines.push(`השבוע כדאי לחזור ל-**${plural(targets.length, "לקוח", "לקוחות")}**${scope} שבדרך כלל כבר היו חוזרים:`, "");
+          lines.push(`השבוע כדאי לחזור ל-**${pc(targets.length)}**${scope} שבדרך כלל כבר היו חוזרים:`, "");
           lines.push(
             ...targets
               .slice(0, 6)
               .map((c) => `- **${c.name}** — בדרך כלל כל ${n(c.median_interval_days)} ימים, קנה לאחרונה לפני ${n(c.days_since)} ימים`),
           );
           const extra = risk.filter((r) => !targets.some((t) => t.id === r.id));
-          if (extra.length) lines.push("", `בנוסף, ${plural(extra.length, "לקוח", "לקוחות")} בסיכון: ${extra.slice(0, 3).map((c) => c.name).join(", ")}.`);
-          lines.push("", `${NEXT} התקשר קודם ל${targets[0].name} — הוא הלקוח הכי משמעותי ברשימה.`);
-          action({ type: "view_customers", label: "הצג לקוחות שלא חזרו", customerIds: targets.map((c) => c.id), title: "לקוחות שכדאי לחזור אליהם" });
-          action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: targets.map((c) => c.id), taskTitle: "לחזור ללקוח" });
+          if (extra.length) lines.push("", `בנוסף, ${pc(extra.length)} בסיכון: ${extra.slice(0, 3).map((c) => c.name).join(", ")}.`);
+          lines.push("", `${NEXT} התקשר קודם ל${targets[0].name} — הוא הכי משמעותי ברשימה.`);
+          action({ type: "view_customers", label: `הצג ${t.customers} שלא חזרו`, customerIds: targets.map((c) => c.id), title: `${t.customers} שכדאי לחזור אליהם` });
+          action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: targets.map((c) => c.id), taskTitle: `לחזור ל${t.customer}` });
         } else {
           const top = [...risk].sort((a, b) => b.total_revenue - a.total_revenue);
-          lines.push(`כדאי לחזור ל-**${plural(top.length, "לקוח", "לקוחות")} בסיכון**${scope}:`, "");
+          lines.push(`כדאי לחזור ל-**${pc(top.length)} בסיכון**${scope}:`, "");
           lines.push(...top.slice(0, 6).map((c) => `- **${c.name}** — ${reason(c)}`));
           lines.push("", `${NEXT} התקשר קודם ל${top[0].name}.`);
-          action({ type: "view_customers", label: "הצג לקוחות בסיכון", customerIds: top.map((c) => c.id), title: "לקוחות בסיכון" });
-          action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: top.map((c) => c.id), taskTitle: "לחזור ללקוח" });
+          action({ type: "view_customers", label: `הצג ${t.customers} בסיכון`, customerIds: top.map((c) => c.id), title: `${t.customers} בסיכון` });
+          action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: top.map((c) => c.id), taskTitle: `לחזור ל${t.customer}` });
         }
       } else {
         lines.push(
-          `מצאתי **${plural(risk.length, "לקוח", "לקוחות")} בסיכון** ו-**${plural(overdue.length, "לקוח קבוע", "לקוחות קבועים")}** שעבר זמן החזרה הרגיל שלהם${scope}.`,
+          `מצאתי **${pc(risk.length)} בסיכון** ו-**${plural(overdue.length, "לקוח קבוע", "לקוחות קבועים")}** שעבר זמן החזרה הרגיל שלהם${scope}.`,
         );
         if (risk.length) {
           lines.push("", "בסיכון הכי גבוה:");
           lines.push(...risk.slice(0, 5).map((c) => `- **${c.name}** — ${reason(c)}`));
-          action({ type: "view_customers", label: "הצג לקוחות בסיכון", customerIds: risk.map((c) => c.id), title: "לקוחות בסיכון" });
+          action({ type: "view_customers", label: `הצג ${t.customers} בסיכון`, customerIds: risk.map((c) => c.id), title: `${t.customers} בסיכון` });
         }
         if (overdue.length) {
           lines.push("", "בדרך כלל כבר היו חוזרים:");
@@ -591,10 +602,10 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
               .slice(0, 4)
               .map((c) => `- **${c.name}** — בדרך כלל כל ${n(c.median_interval_days)} ימים, קנה לאחרונה לפני ${n(c.days_since)} ימים`),
           );
-          action({ type: "view_customers", label: "הצג לקוחות שלא חזרו", customerIds: overdue.map((c) => c.id), title: "לקוחות קבועים שלא חזרו" });
+          action({ type: "view_customers", label: `הצג ${t.customers} שלא חזרו`, customerIds: overdue.map((c) => c.id), title: `${t.customers} קבועים שלא חזרו` });
         }
         const callIds = [...new Set([...risk, ...overdue].map((c) => c.id))];
-        action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: callIds, taskTitle: "לחזור ללקוח" });
+        action({ type: "create_tasks", label: "צור משימות מעקב", customerIds: callIds, taskTitle: `לחזור ל${t.customer}` });
         lines.push("", `${NEXT} צור משימות מעקב והתקשר השבוע ל${(risk[0] ?? overdue[0]).name}.`);
       }
       if (rangeNote) lines.push("", rangeNote);
@@ -606,7 +617,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
         if (!svc.length) lines.push(`לא מצאתי לקוחות שקנו את השירות "${service}".`);
         else
           lines.push(
-            `**${n(repeat)} מתוך ${plural(svc.length, "לקוח", "לקוחות")}** (${Math.round((repeat / svc.length) * 100)}%) קנו את "${service}" יותר מפעם אחת.`,
+            `**${n(repeat)} מתוך ${pc(svc.length)}** (${Math.round((repeat / svc.length) * 100)}%) קנו את "${service}" יותר מפעם אחת.`,
             "",
             `${NEXT} שלח הודעה ללקוחות שקנו את השירות רק פעם אחת והזמן אותם לחזור.`,
           );
@@ -615,7 +626,7 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
         if (!r.buyers) lines.push("עדיין אין מספיק מכירות כדי לחשב לקוחות חוזרים. העלה את קובץ המכירות שלך.");
         else {
           const rate = Math.round((r.repeat / r.buyers) * 100);
-          lines.push(`**${n(r.repeat)} מתוך ${plural(r.buyers, "לקוח", "לקוחות")}** (${rate}%) קנו יותר מפעם אחת.`, "");
+          lines.push(`**${n(r.repeat)} מתוך ${pc(r.buyers)}** (${rate}%) קנו יותר מפעם אחת.`, "");
           if (r.avg_purchases_repeat) lines.push(`- לקוח חוזר קונה בממוצע ${Math.round(r.avg_purchases_repeat * 10) / 10} פעמים.`);
           lines.push(`- ${plural(r.first_time, "לקוח קנה", "לקוחות קנו", "לקוח אחד קנה")} רק פעם אחת.`);
           if (r.overdue) lines.push(`- ${plural(r.overdue, "לקוח קבוע", "לקוחות קבועים")} עוד לא ${r.overdue === 1 ? "חזר" : "חזרו"} בזמן הרגיל.`);
@@ -653,13 +664,13 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
         lines.push(...rows.slice(0, 8).map((r, i) => `- ${i + 1}. **${r.name}** — ${money(r.revenue)}, ${plural(r.purchases, "קנייה", "קניות", "קנייה אחת")}`));
         if (service && range) lines.push("", `הדירוג לפי כל הקניות של השירות, לא רק ${topPeriod.inText}.`);
         lines.push("", `${NEXT} תודה אישית או הטבה קטנה ל${rows[0].name} תחזק את הקשר.`);
-        action({ type: "view_customers", label: "הצג לקוחות מובילים", customerIds: rows.map((r) => r.id), title: "לקוחות מובילים" });
+        action({ type: "view_customers", label: `הצג ${t.customers} מובילים`, customerIds: rows.map((r) => r.id), title: `${t.customers} מובילים` });
       }
     } else if (intent === "deal_risk") {
       used("get_deals_at_risk");
       const all = await getDealsAtRisk(supabase, orgId, 14, 200);
       const deals = stage ? all.filter((d) => d.stage === stage) : all;
-      const scope = stage ? ` בשלב "${STAGE_NAMES[stage]}"` : "";
+      const scope = stage ? ` בשלב "${stageLabel(stage, ctx.stages)}"` : "";
       const total = deals.reduce((s, d) => s + d.value, 0);
       if (!deals.length) lines.push(`אין כרגע עסקאות פתוחות${scope} שנראות תקועות.`);
       else {
@@ -668,34 +679,34 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
           "",
         );
         lines.push(
-          ...deals.slice(0, 6).map((d) => `- **${d.name}** — ${money(d.value)}, שלב: ${stageLabel(d.stage)}, ללא פעילות ${n(d.days_idle)} ימים`),
+          ...deals.slice(0, 6).map((d) => `- **${d.name}** — ${money(d.value)}, שלב: ${stageLabel(d.stage, ctx.stages)}, ללא פעילות ${n(d.days_idle)} ימים`),
         );
-        lines.push("", `${NEXT} צור משימות מעקב וחזור קודם לעסקה "${deals[0].name}".`);
+        lines.push("", `${NEXT} צור משימות מעקב וחזור קודם ל"${deals[0].name}".`);
         action({
           type: "create_tasks",
-          label: deals.length === 1 ? "צור משימת מעקב לעסקה" : `צור משימות מעקב ל-${deals.length} עסקאות`,
+          label: deals.length === 1 ? `צור משימת מעקב ל${t.deal}` : `צור משימות מעקב ל-${deals.length} ${t.deals}`,
           dealIds: deals.map((d) => d.id),
-          taskTitle: "מעקב אחרי העסקה",
+          taskTitle: `מעקב אחרי ה${t.deal}`,
         });
       }
     } else if (intent === "pipeline") {
-      const rows = (await runAnalystTool("get_pipeline_summary", {}, ctx)) as { stage: string; deals: number; value: number }[];
-      const open = rows.filter((r) => !["won", "lost"].includes(r.stage));
+      const rows = (await runAnalystTool("get_pipeline_summary", {}, ctx)) as { stage: string; deals: number; value: number; stage_kind: string }[];
+      const open = rows.filter((r) => r.stage_kind === "open");
       const openValue = open.reduce((s, r) => s + r.value, 0);
       const openCount = open.reduce((s, r) => s + r.deals, 0);
       const inStage = stage ? rows.find((r) => r.stage === stage) : null;
-      if (!rows.some((r) => r.deals)) lines.push("עדיין אין עסקאות בתהליך.");
+      if (!rows.some((r) => r.deals)) lines.push(`עדיין אין ${t.deals} בתהליך.`);
       else if (stage) {
         lines.push(
           inStage?.deals
-            ? `בשלב "${STAGE_NAMES[stage]}" יש **${plural(inStage.deals, "עסקה", "עסקאות", "עסקה אחת")}** בשווי **${money(inStage.value)}**.`
-            : `אין כרגע עסקאות בשלב "${STAGE_NAMES[stage]}".`,
+            ? `בשלב "${stageLabel(stage, ctx.stages)}" יש **${plural(inStage.deals, "עסקה", "עסקאות", "עסקה אחת")}** בשווי **${money(inStage.value)}**.`
+            : `אין כרגע עסקאות בשלב "${stageLabel(stage, ctx.stages)}".`,
           "",
           `סך הכל ${plural(openCount, "עסקה פתוחה", "עסקאות פתוחות", "עסקה פתוחה אחת")} בשווי ${money(openValue)}.`,
         );
       } else {
         lines.push(`יש לך **${plural(openCount, "עסקה פתוחה", "עסקאות פתוחות", "עסקה פתוחה אחת")}** בשווי כולל של **${money(openValue)}**:`, "");
-        lines.push(...rows.filter((r) => r.deals).map((r) => `- ${stageLabel(r.stage)}: ${plural(r.deals, "עסקה", "עסקאות", "עסקה אחת")}, ${money(r.value)}`));
+        lines.push(...rows.filter((r) => r.deals).map((r) => `- ${stageLabel(r.stage, ctx.stages)}: ${plural(r.deals, "עסקה", "עסקאות", "עסקה אחת")}, ${money(r.value)}`));
       }
     } else {
       const p = period("12m");
@@ -708,12 +719,12 @@ async function fallbackAnalyst(question: string, ctx: ToolContext, notice: strin
         lines.push("עדיין אין נתוני עסק במערכת. העלה קובץ CSV או Excel ואנתח אותו בשבילך.");
       else {
         lines.push(
-          `תמונת מצב: **${plural(o.customers.total, "לקוח", "לקוחות")}** (${n(o.customers.active)} פעילים ב-90 הימים האחרונים, ${n(o.customers.new_30d)} חדשים בחודש האחרון) ו-**${money(o.revenue_last_12_months)}** הכנסות ב-12 החודשים האחרונים${change !== null ? ` (${change > 0 ? "+" : ""}${change}% לעומת השנה הקודמת)` : ""}.`,
+          `תמונת מצב: **${pc(o.customers.total)}** (${n(o.customers.active)} פעילים ב-90 הימים האחרונים, ${n(o.customers.new_30d)} חדשים בחודש האחרון) ו-**${money(o.revenue_last_12_months)}** הכנסות ב-12 החודשים האחרונים${change !== null ? ` (${change > 0 ? "+" : ""}${change}% לעומת השנה הקודמת)` : ""}.`,
           "",
           ...(range || service
             ? [`- ${period("12m").inText} ההכנסות${svcText} היו **${money(filteredRevenue?.total ?? 0)}**.`, ""]
             : []),
-          "אפשר לשאול למשל: “כמה הכנסתי החודש?”, “אילו לקוחות עלולים לעזוב?”, “מה השירות הכי רווחי?” או “למי כדאי לחזור השבוע?”",
+          "אפשר לשאול למשל: “כמה הכנסתי החודש?”, “אילו ${t.customers} עלולים לעזוב?”, “מה מכניס הכי הרבה?” או “למי כדאי לחזור השבוע?”",
         );
       }
     }

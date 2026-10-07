@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useWorkspace } from "@/components/layout/workspace-provider";
+import { useTerms, useWorkspace } from "@/components/layout/workspace-provider";
 import { logWhatsApp } from "@/lib/actions/whatsapp";
-import { DEFAULT_TEMPLATES, fillTemplate, toWhatsAppNumber, whatsAppLink } from "@/lib/whatsapp";
+import { defaultTemplates, fillTemplate, toWhatsAppNumber, whatsAppLink } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 
 /** WhatsApp's own green, used only for this action so it's instantly recognizable. */
@@ -36,15 +36,16 @@ export function WhatsAppButton({
   customerId?: string | null;
   dealId?: string | null;
   service?: string | null;
-  /** Name of the template to preselect (e.g. "לא ראינו אותך מזמן"). */
-  template?: string;
+  /** Name (or id) of the template to preselect (e.g. "לא ראינו אותך מזמן"); a list = first match wins. */
+  template?: string | string[];
   variant?: "icon" | "button";
   label?: string;
   className?: string;
 }) {
   const router = useRouter();
   const { org, templates: saved } = useWorkspace();
-  const templates = saved?.length ? saved : DEFAULT_TEMPLATES;
+  const terms = useTerms();
+  const templates = saved?.length ? saved : defaultTemplates(terms);
   const number = toWhatsAppNumber(phone);
   const [open, setOpen] = useState(false);
   const [chosen, setChosen] = useState(templates[0]);
@@ -54,7 +55,8 @@ export function WhatsAppButton({
   const fill = (body: string) => fillTemplate(body, { name, business: org.name, service });
 
   function openDialog() {
-    const first = templates.find((t) => t.name === template) ?? templates[0];
+    const wanted = template === undefined ? [] : Array.isArray(template) ? template : [template];
+    const first = wanted.map((w) => templates.find((t) => t.name === w || t.id === w)).find(Boolean) ?? templates[0];
     setChosen(first);
     setText(fill(first.body));
     setOpen(true);
@@ -83,7 +85,7 @@ export function WhatsAppButton({
               <WhatsappLogo className="size-4" />
             </span>
           </TooltipTrigger>
-          <TooltipContent>אין מספר טלפון ללקוח הזה</TooltipContent>
+          <TooltipContent>אין מספר טלפון בכרטיס</TooltipContent>
         </Tooltip>
       );
     }

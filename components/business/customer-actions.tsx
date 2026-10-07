@@ -19,13 +19,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RecordFormDialog } from "./record-form";
 import { QuickAppointmentDialog, QuickSaleDialog } from "./quick-entry";
-import { useCanManage } from "@/components/layout/workspace-provider";
+import { useCanManage, useTerms } from "@/components/layout/workspace-provider";
 import { deleteRecord, type RecordEntity } from "@/lib/actions/records";
 import type { Customer } from "@/types/domain";
 
 export function CustomerActions({ customer }: { customer: Customer }) {
   const router = useRouter();
   const canManage = useCanManage();
+  const t = useTerms();
   const [dialog, setDialog] = useState<RecordEntity | "edit" | "sale" | "appointment" | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -36,11 +37,11 @@ export function CustomerActions({ customer }: { customer: Customer }) {
       <WhatsAppButton phone={customer.phone} name={customer.name} customerId={customer.id} variant="button" />
       <Button size="sm" variant="outline" onClick={() => setDialog("sale")}>
         <Receipt />
-        מכירה
+        {t.sale}
       </Button>
       <Button size="sm" variant="outline" onClick={() => setDialog("appointment")}>
         <CalendarPlus />
-        תור
+        {t.appointment}
       </Button>
       <Button size="sm" onClick={() => setDialog("tasks")}>
         <ListPlus />
@@ -55,7 +56,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
         <DropdownMenuContent align="end">
           <DropdownMenuItem onSelect={() => setDialog("edit")}>
             <PencilSimple />
-            ערוך לקוח
+            ערוך {t.customer}
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("activities")}>
             <NotePencil />
@@ -63,14 +64,14 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setDialog("deals")}>
             <Handshake />
-            הוסף עסקה
+            הוסף {t.deal}
           </DropdownMenuItem>
           {canManage && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => setConfirmDelete(true)}>
                 <Trash />
-                מחק לקוח
+                מחק {t.customer}
               </DropdownMenuItem>
             </>
           )}
@@ -102,7 +103,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           <AlertDialogHeader>
             <AlertDialogTitle>למחוק את {customer.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              הלקוח יימחק לצמיתות. המכירות והפעילות שלו יישמרו, אבל כבר לא יהיו מקושרות ללקוח.
+              הכרטיס יימחק לצמיתות. ה{t.sales} והפעילות יישמרו, אבל בלי קישור לכרטיס.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -114,7 +115,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
                 startTransition(async () => {
                   const res = await deleteRecord("customers", customer.id);
                   if (!res.ok) return void toast.error(res.error);
-                  toast.success("הלקוח נמחק");
+                  toast.success("הכרטיס נמחק");
                   router.push("/customers");
                 })
               }

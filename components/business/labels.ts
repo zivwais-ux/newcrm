@@ -69,3 +69,9 @@ export function label(map: Record<string, string>, value: string | null | undefi
   if (!value) return "—";
   return map[value] ?? value;
 }
+
+/** Activity type label in the business's words ("appointment" → their own word, e.g. "טיפול"). */
+export function activityLabel(type: string | null | undefined, terms: { appointment: string }) {
+  if (type === "appointment") return terms.appointment;
+  return label(ACTIVITY_TYPE_LABELS, type);
+}

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import type { ViewProps } from "../shared";
 import type { AIAnalystData } from "@/lib/components/loaders";
 import { activeFilterKeys, filterLabel } from "@/lib/components/filters";
+import { useStages } from "@/components/layout/workspace-provider";
 
 export const SUGGESTED_PROMPTS = [
   "למה המכירות ירדו?",
@@ -20,6 +21,7 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const chips = data?.filters ? activeFilterKeys(data.filters) : [];
+  const stages = useStages();
   // Questions asked from the canvas carry the filters the user is looking at as URL params;
   // the chat shows them as chips and sends them to the analyst separately from the question.
   const ask = (question: string) => {
@@ -65,7 +67,7 @@ export function AIAnalystView({ data }: ViewProps<AIAnalystData>) {
           <span className="text-xs text-muted-foreground">שואל בתוך הסינון:</span>
           {chips.map((k) => (
             <span key={k} className="rounded-sm border border-brand/20 bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">
-              {filterLabel(k, data.filters[k] as string)}
+              {filterLabel(k, data.filters[k] as string, stages)}
             </span>
           ))}
         </div>

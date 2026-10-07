@@ -17,7 +17,8 @@ import {
   getRevenueSummaryFiltered,
   getServiceCustomers,
 } from "@/lib/analytics/queries";
-import { DEAL_STAGES, type Activity, type Deal, type DealStage, type Task } from "@/types/domain";
+import type { Activity, Deal, Task } from "@/types/domain";
+import { loadStages } from "@/lib/stages";
 import { EMPTY_FILTERS, type WorkspaceFilters } from "./filters";
 import type { ComponentConfig } from "./types";
 
@@ -240,12 +241,13 @@ const PIPELINE_FOCUSED_STAGE = 100;
 async function salesPipeline(ctx: LoaderContext) {
   const { supabase, org } = ctx;
   const { stage } = filtersOf(ctx);
-  // A stage filter really narrows the deals that are loaded and shown.
-  const stages: readonly DealStage[] = stage ? [stage] : DEAL_STAGES;
+  // The business's own stages (order + names). A stage filter really narrows the deals that are loaded and shown.
+  const stages = await loadStages(supabase, org.id);
+  const shown = stage ? [stage] : stages.map((s) => s.key);
   const [summary, lists] = await Promise.all([
     getPipelineSummary(supabase, org.id),
     Promise.all(
-      stages.map((s) =>
+      shown.map((s) =>
         supabase
           .from("deals")
           .select("*, customers(name, phone)")
@@ -262,7 +264,7 @@ async function salesPipeline(ctx: LoaderContext) {
     if (r.error) throw r.error;
     deals.push(...((r.data ?? []) as Deal[]));
   }
-  return { summary, deals, stage, totalDeals: summary.reduce((s, x) => s + x.deals, 0) };
+  return { summary, deals, stage, stages, totalDeals: summary.reduce((s, x) => s + x.deals, 0) };
 }
 export type PipelineData = Awaited<ReturnType<typeof salesPipeline>>;
 
@@ -287,7 +289,7 @@ async function dealRisk(ctx: LoaderContext, config: ComponentConfig) {
   const { stage } = filtersOf(ctx);
   const idleDays = Number(config.idleDays ?? 14);
   // The same threshold drives the RPC and every label in the view.
-  const all = await getDealsAtRisk(supabase, org.id, idleDays, 500);
+  const [all, stages] = await Promise.all([getDealsAtRisk(supabase, org.id, idleDays, 500), loadStages(supabase, org.id)]);
   const scoped = stage ? all.filter((d) => d.stage === stage) : all;
   const withTask = await dealsWithOpenTask(supabase, org.id, scoped.map((d) => d.id));
   const deals = scoped.map((d) => ({
@@ -305,6 +307,8 @@ async function dealRisk(ctx: LoaderContext, config: ComponentConfig) {
     withTaskCount: withTask.size,
     idleDays,
     stage,
+    /** The business's own stages, so the view can name them. */
+    stages,
   };
 }
 export type DealRiskData = Awaited<ReturnType<typeof dealRisk>>;

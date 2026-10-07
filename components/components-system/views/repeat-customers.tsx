@@ -9,11 +9,13 @@ import { Ltr } from "@/components/ui/ltr";
 import { formatCurrency, formatNumber, plural } from "@/lib/utils";
 import type { RepeatData } from "@/lib/components/loaders";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
+import { useTerms } from "@/components/layout/workspace-provider";
 import { CreateTaskButton, ListRow, SectionLabel, type ViewProps } from "../shared";
 import { CustomerLink } from "../workspace-filters";
 
 export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
   const { stats, overdue, oneTime } = data;
+  const t = useTerms();
   const repeatShare = stats.buyers ? (stats.repeat / stats.buyers) * 100 : 0;
 
   if (!stats.buyers)
@@ -22,13 +24,13 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
         compact
         icon={<Repeat />}
         title={data.scopedTo ? `עדיין אין קונים של ${data.scopedTo}` : "עדיין אין היסטוריית קניות"}
-        description="כאן תראה כמה מהלקוחות חוזרים לקנות שוב, מי מהקבועים איחר לחזור, ומי קנה פעם אחת וכדאי להזמין אותו שוב. כל זה מתוך המכירות ששולמו."
+        description={`כאן תראה כמה מה${t.customers} חוזרים לקנות שוב, מי מהקבועים איחר לחזור, ומי קנה פעם אחת וכדאי להזמין אותו שוב. כל זה מתוך ה${t.sales} ששולמו.`}
         action={
           data.scopedTo ? undefined : (
             <Button asChild size="sm">
               <Link href="/data/import">
                 <UploadSimple />
-                העלה קובץ מכירות
+                העלה קובץ {t.sales}
               </Link>
             </Button>
           )
@@ -38,18 +40,18 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
 
   return (
     <div className="space-y-5">
-      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">לקוחות חוזרים עבור: {data.scopedTo}</p>}
+      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">{t.customers} חוזרים עבור: {data.scopedTo}</p>}
       <div className="grid grid-cols-3 gap-4">
         <Stat label="אחוז חוזרים" value={<Ltr>{stats.repeat_rate}%</Ltr>} hint={`מתוך ${plural(stats.buyers, "קונה", "קונים", "קונה אחד")}`} />
         <Stat
-          label="לקוחות חוזרים"
+          label={`${t.customers} חוזרים`}
           value={formatNumber(stats.repeat)}
-          hint={stats.avg_purchases_repeat ? `בממוצע ${formatNumber(stats.avg_purchases_repeat)} קניות ללקוח חוזר` : undefined}
+          hint={stats.avg_purchases_repeat ? `בממוצע ${formatNumber(stats.avg_purchases_repeat)} קניות לכל אחד מהם` : undefined}
         />
         <Stat label="קנו פעם אחת" value={formatNumber(stats.first_time)} />
       </div>
       <div>
-        <div className="flex h-2 overflow-hidden rounded-sm bg-muted" role="img" aria-label={`${Math.round(repeatShare)}% לקוחות חוזרים`}>
+        <div className="flex h-2 overflow-hidden rounded-sm bg-muted" role="img" aria-label={`${Math.round(repeatShare)}% ${t.customers} חוזרים`}>
           <div className="h-full bg-chart-1" style={{ width: `${repeatShare}%` }} />
           <div className="h-full w-0.5 bg-surface" />
         </div>
@@ -73,7 +75,7 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
             compact
             icon={<CalendarCheck />}
             title="כולם בזמן"
-            description="לקוח קבוע (3 קניות ומעלה) שעבר אצלו הרבה יותר זמן מהרגיל יופיע כאן, ותוכל לשלוח לו WhatsApp או ליצור משימה לחזור אליו."
+            description={`${t.customer} קבוע (3 קניות ומעלה) שעבר אצלו הרבה יותר זמן מהרגיל יופיע כאן, ותוכל לשלוח לו WhatsApp או ליצור משימה לחזור אליו.`}
           />
         ) : (
           <div>

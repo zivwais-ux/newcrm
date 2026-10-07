@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EntityPicker } from "./entity-picker";
-import { useMoney } from "@/components/layout/workspace-provider";
+import { useMoney, useTerms } from "@/components/layout/workspace-provider";
 import { getServiceChips, quickAppointment, quickSale, type ServiceChip } from "@/lib/actions/quick";
 import { israelNow, israelToday } from "@/lib/analytics/dates";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -31,11 +31,12 @@ function CustomerField({
 }) {
   // A name without an id (e.g. from the command bar) starts in "new customer" mode.
   const [isNew, setIsNew] = useState(!value.id && !!value.name);
+  const t = useTerms();
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <Label>
-          לקוח
+          {t.customer}
           {optional && <span className="font-normal text-muted-foreground"> (לא חובה)</span>}
         </Label>
         <button
@@ -47,7 +48,7 @@ function CustomerField({
           }}
         >
           {isNew ? <X className="size-3.5" /> : <UserPlus className="size-3.5" />}
-          {isNew ? "בחר לקוח קיים" : "לקוח חדש"}
+          {isNew ? "בחר מהרשימה" : `הוספת ${t.customer}`}
         </button>
       </div>
       {isNew ? (
@@ -79,11 +80,12 @@ function ServiceChips({
   onPick: (chip: ServiceChip | null, name: string) => void;
 }) {
   const currency = useMoney();
+  const t = useTerms();
   const [other, setOther] = useState(false);
   const inList = chips?.some((c) => c.name === value);
   return (
     <div className="space-y-1.5">
-      <Label>שירות או מוצר</Label>
+      <Label>{t.service === "שירות" ? "שירות או מוצר" : t.service}</Label>
       {chips === null ? (
         <div className="flex h-8 items-center gap-1.5 text-xs text-muted-foreground">
           <CircleNotch className="size-3.5 animate-spin" /> טוען…
@@ -124,7 +126,7 @@ function ServiceChips({
               other || (value && !inList) ? "border-brand text-brand" : "text-muted-foreground hover:border-brand/40",
             )}
           >
-            {chips.length ? "אחר…" : "+ כתוב שירות"}
+            {chips.length ? "אחר…" : `+ כתוב ${t.service}`}
           </button>
         </div>
       )}
@@ -170,6 +172,7 @@ export function QuickSaleDialog({
 }) {
   const router = useRouter();
   const currency = useMoney();
+  const t = useTerms();
   const chips = useServiceChips(open);
   const [cust, setCust] = useState<CustomerValue>(() => fromPrefill(customer));
   const [amount, setAmount] = useState(initialAmount ? String(initialAmount) : "");
@@ -192,7 +195,7 @@ export function QuickSaleDialog({
         notes,
       });
       if (!res.ok) return void toast.error(res.error);
-      toast.success(`נרשמה מכירה של ${formatCurrency(Number(amount), currency)}${res.data.customerCreated ? " · הלקוח נוסף למערכת" : ""}`);
+      toast.success(`נרשם: ${t.sale} של ${formatCurrency(Number(amount), currency)}${res.data.customerCreated ? ` · נוצר כרטיס ${t.customer}` : ""}`);
       onOpenChange(false);
       router.refresh();
     });
@@ -204,7 +207,7 @@ export function QuickSaleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="size-4 text-brand" />
-            מכירה מהירה
+            רישום {t.sale}
           </DialogTitle>
           <DialogDescription>מי קנה, כמה ומה. כל השאר כבר ממולא.</DialogDescription>
         </DialogHeader>
@@ -266,7 +269,7 @@ export function QuickSaleDialog({
             </Button>
             <Button type="submit" variant="brand" disabled={pending || !amount}>
               {pending && <CircleNotch className="animate-spin" />}
-              שמור מכירה
+              שמור {t.sale}
             </Button>
           </DialogFooter>
         </form>
@@ -297,6 +300,7 @@ export function QuickAppointmentDialog({
   service?: string | null;
 }) {
   const router = useRouter();
+  const t = useTerms();
   const chips = useServiceChips(open);
   const [cust, setCust] = useState<CustomerValue>(() => fromPrefill(customer));
   const [date, setDate] = useState(() => initialDate ?? israelToday());
@@ -308,13 +312,13 @@ export function QuickAppointmentDialog({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload = customerPayload(cust);
-    if (!payload) return void toast.error("בחר לקוח או כתוב שם של לקוח חדש");
+    if (!payload) return void toast.error(`בחר ${t.customer} מהרשימה או כתוב שם`);
     const at = new Date(`${date}T${time}`);
     if (Number.isNaN(at.getTime())) return void toast.error("בחר תאריך ושעה");
     start(async () => {
       const res = await quickAppointment({ customer: payload, at: at.toISOString(), service, notes });
       if (!res.ok) return void toast.error(res.error);
-      toast.success(`התור נקבע${res.data.customerCreated ? " · הלקוח נוסף למערכת" : ""}`);
+      toast.success(`נשמר ביומן${res.data.customerCreated ? ` · נוצר כרטיס ${t.customer}` : ""}`);
       onOpenChange(false);
       router.refresh();
     });
@@ -326,9 +330,9 @@ export function QuickAppointmentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarPlus className="size-4 text-brand" />
-            תור חדש
+            קביעת {t.appointment}
           </DialogTitle>
-          <DialogDescription>התור יופיע בכלי &quot;היום&quot; ובכרטיס הלקוח.</DialogDescription>
+          <DialogDescription>מי, מתי ומה. הכל נשמר ביומן ובכרטיס ה{t.customer}.</DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="grid gap-4">
           <CustomerField value={cust} onChange={setCust} />
@@ -350,7 +354,7 @@ export function QuickAppointmentDialog({
             </Button>
             <Button type="submit" variant="brand" disabled={pending}>
               {pending && <CircleNotch className="animate-spin" />}
-              קבע תור
+              קבע {t.appointment}
             </Button>
           </DialogFooter>
         </form>

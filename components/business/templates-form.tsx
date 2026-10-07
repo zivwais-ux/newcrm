@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { saveTemplates } from "@/lib/actions/whatsapp";
 import type { MessageTemplate } from "@/lib/whatsapp";
+import { useTerms } from "@/components/layout/workspace-provider";
 
 /** Edit the ready WhatsApp messages. Placeholders are filled per customer. */
 export function TemplatesForm({ initial, canManage }: { initial: MessageTemplate[]; canManage: boolean }) {
   const [items, setItems] = useState(initial.map((t) => ({ name: t.name, body: t.body })));
   const [pending, start] = useTransition();
+  const terms = useTerms();
 
   function update(i: number, patch: Partial<{ name: string; body: string }>) {
     setItems((list) => list.map((t, j) => (j === i ? { ...t, ...patch } : t)));
@@ -21,7 +23,7 @@ export function TemplatesForm({ initial, canManage }: { initial: MessageTemplate
   return (
     <div className="space-y-4">
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        אפשר להשתמש ב־<code className="rounded bg-muted px-1">{"{שם}"}</code> (השם הפרטי של הלקוח),{" "}
+        אפשר להשתמש ב־<code className="rounded bg-muted px-1">{"{שם}"}</code> (השם הפרטי של ה{terms.customer}),{" "}
         <code className="rounded bg-muted px-1">{"{עסק}"}</code> ו־<code className="rounded bg-muted px-1">{"{שירות}"}</code> — הם יתמלאו לבד.
       </p>
       <ul className="space-y-3">

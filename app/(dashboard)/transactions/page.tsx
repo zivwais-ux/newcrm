@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Receipt, X } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
+import { resolveTerms } from "@/lib/terms";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { FilterTabs, Pagination, SearchInput } from "@/components/business/list-controls";
 import { EmptyState } from "@/components/business/empty-state";
@@ -28,6 +29,8 @@ function dateParam(v: string | undefined) {
 export default async function TransactionsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
+  const terms = resolveTerms(org.terms);
+  const serviceHead = terms.service === "שירות" ? "מוצר / שירות" : terms.service;
   const page = pageParam(params);
   const q = searchTerm(param(params, "q"));
   const type = param(params, "type");
@@ -50,19 +53,19 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
 
   return (
     <PageContainer>
-      <PageHeader title="כסף ומכירות" description="כל המכירות, התשלומים וההחזרים במקום אחד." actions={<NewRecordButton entity="transactions" />} />
+      <PageHeader title="כסף ומכירות" description={`כל ה${terms.sales}, התשלומים וההחזרים במקום אחד.`} actions={<NewRecordButton entity="transactions" />} />
       <Module>
         <ModuleRail
           icon={<Receipt />}
-          title="מכירות"
+          title={terms.sales}
           meta={total ? <span className="num">{formatNumber(count ?? 0)}</span> : undefined}
           actions={total ? <LiveDot state={filtered ? "filtered" : "live"} label={filtered ? "מסונן" : undefined} /> : undefined}
         />
         {!total ? (
           <EmptyState
             icon={Receipt}
-            title="אין עדיין מכירות"
-            description="כאן יופיעו כל המכירות והתשלומים. העלה קובץ אקסל עם המכירות שלך, ותקבל מיד תמונה של ההכנסות."
+            title={`אין עדיין ${terms.sales}`}
+            description={`כאן יופיעו כל ה${terms.sales} והתשלומים. העלה קובץ אקסל, ותקבל מיד תמונה של ההכנסות.`}
             importCta
             action={<NewRecordButton entity="transactions" variant="outline" />}
           />
@@ -73,15 +76,15 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 <p className="min-w-0 flex-1 text-[13px] font-medium">
                   {from && to ? (
                     <>
-                      מכירות מ-<Ltr>{formatDate(from)}</Ltr> עד <Ltr>{formatDate(to)}</Ltr>
+                      {terms.sales} מ-<Ltr>{formatDate(from)}</Ltr> עד <Ltr>{formatDate(to)}</Ltr>
                     </>
                   ) : from ? (
                     <>
-                      מכירות מ-<Ltr>{formatDate(from)}</Ltr> והלאה
+                      {terms.sales} מ-<Ltr>{formatDate(from)}</Ltr> והלאה
                     </>
                   ) : (
                     <>
-                      מכירות עד <Ltr>{formatDate(to)}</Ltr>
+                      {terms.sales} עד <Ltr>{formatDate(to)}</Ltr>
                     </>
                   )}
                 </p>
@@ -94,12 +97,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
               </div>
             )}
             <div className="flex flex-col gap-2 border-b border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-              <SearchInput placeholder="חיפוש לפי מוצר, שירות או עובד…" />
+              <SearchInput placeholder={terms.service === "שירות" ? "חיפוש לפי מוצר, שירות או עובד…" : `חיפוש לפי ${terms.service} או עובד…`} />
               <FilterTabs
                 param="type"
                 options={[
                   { value: "", label: "הכל" },
-                  { value: "sale", label: "מכירות" },
+                  { value: "sale", label: terms.sales },
                   { value: "subscription", label: "מנויים" },
                   { value: "refund", label: "החזרים" },
                 ]}
@@ -110,8 +113,8 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 <TableHeader>
                   <TableRow>
                     <TableHead className="ps-4">תאריך</TableHead>
-                    <TableHead>לקוח</TableHead>
-                    <TableHead className="hidden md:table-cell">מוצר / שירות</TableHead>
+                    <TableHead>{terms.customer}</TableHead>
+                    <TableHead className="hidden md:table-cell">{serviceHead}</TableHead>
                     <TableHead className="hidden lg:table-cell">טופל על ידי</TableHead>
                     <TableHead className="hidden sm:table-cell">סטטוס</TableHead>
                     <TableHead className="pe-4 text-end">סכום</TableHead>
@@ -124,7 +127,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                       <TableCell className="max-w-[220px]">
                         {t.customer_id ? (
                           <Link href={`/customers/${t.customer_id}`} className="block truncate font-medium hover:text-brand">
-                            {t.customers?.name ?? "לקוח"}
+                            {t.customers?.name ?? terms.customer}
                           </Link>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -145,7 +148,7 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                 </TableBody>
               </Table>
             ) : (
-              <EmptyState compact icon={Receipt} title="לא נמצאו מכירות" description="נסה חיפוש אחר או סינון אחר." />
+              <EmptyState compact icon={Receipt} title={`לא נמצאו ${terms.sales}`} description="נסה חיפוש אחר או סינון אחר." />
             )}
             <Pagination page={page} pageSize={PAGE_SIZE} total={count ?? 0} />
           </>

@@ -1,6 +1,7 @@
 import { Handshake, Kanban } from "@phosphor-icons/react/dist/ssr";
 import { requireOrg } from "@/lib/supabase/server";
 import { getPipelineSummary } from "@/lib/analytics/queries";
+import { loadStages } from "@/lib/stages";
 import { PageContainer, PageHeader } from "@/components/layout/page";
 import { PipelineBoard } from "@/components/business/pipeline-board";
 import { EmptyState } from "@/components/business/empty-state";
@@ -17,14 +18,16 @@ export const metadata = { title: "עסקאות" };
 export default async function DealsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
-  const [{ data }, summary] = await Promise.all([
+  const [{ data }, summary, stages] = await Promise.all([
     supabase.from("deals").select("*, customers(name, phone)").eq("organization_id", org.id).order("value", { ascending: false }).limit(500),
     getPipelineSummary(supabase, org.id),
+    loadStages(supabase, org.id),
   ]);
   const deals = (data ?? []) as Deal[];
-  const open = summary.filter((s) => s.stage !== "won" && s.stage !== "lost");
-  const won = summary.find((s) => s.stage === "won");
-  const lost = summary.find((s) => s.stage === "lost");
+  const kindOf = (key: string) => stages.find((s) => s.key === key)?.kind ?? "open";
+  const open = summary.filter((s) => kindOf(s.stage) === "open");
+  const won = summary.find((s) => kindOf(s.stage) === "won");
+  const lost = summary.find((s) => kindOf(s.stage) === "lost");
   const winRate = won && lost && won.deals + lost.deals ? Math.round((won.deals / (won.deals + lost.deals)) * 100) : null;
 
   return (

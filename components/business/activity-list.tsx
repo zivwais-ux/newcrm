@@ -12,12 +12,14 @@ import { CustomerLink } from "@/components/components-system/workspace-filters";
 import { deleteRecord } from "@/lib/actions/records";
 import type { Activity } from "@/types/domain";
 import { cn } from "@/lib/utils";
-import { ACTIVITY_TYPE_LABELS } from "./labels";
+import { activityLabel } from "./labels";
+import { useTerms } from "@/components/layout/workspace-provider";
 
 const ICON = { appointment: CalendarDots, call: Phone, meeting: Users, email: Envelope, note: NotePencil, visit: MapPin, whatsapp: ChatCircle } as const;
 
 export function ActivityItem({ activity, showCustomer = true }: { activity: Activity; showCustomer?: boolean }) {
   const router = useRouter();
+  const terms = useTerms();
   const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const Icon = ICON[activity.type] ?? NotePencil;
@@ -30,7 +32,7 @@ export function ActivityItem({ activity, showCustomer = true }: { activity: Acti
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm">
-          <span className="font-medium">{ACTIVITY_TYPE_LABELS[activity.type] ?? activity.type}</span>
+          <span className="font-medium">{activityLabel(activity.type, terms)}</span>
           {showCustomer && activity.customers?.name && activity.customer_id && (
             <>
               {" · "}

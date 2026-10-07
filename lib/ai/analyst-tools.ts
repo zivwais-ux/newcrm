@@ -16,8 +16,9 @@ import {
   getTopCustomers,
 } from "@/lib/analytics/queries";
 import { resolveRange } from "@/lib/analytics/dates";
-import { STAGE_NAMES } from "@/lib/components/filters";
-import type { DealStage } from "@/types/domain";
+import { stageName } from "@/lib/components/filters";
+import { loadStages } from "@/lib/stages";
+import type { StageDef } from "@/types/domain";
 
 // Read-only analytics tools available to the AI Business Analyst.
 // They run server-side through the user-scoped client: RLS confines them to the
@@ -39,6 +40,8 @@ export interface ToolContext {
   /** Actions derived from tool results (never chosen freely by the model). */
   actions: AnalystAction[];
   toolsUsed: string[];
+  /** The business's own deal stages (loaded once per call, see toolStages). */
+  stages?: StageDef[];
 }
 
 const dateParam = { type: "string", description: "ISO date yyyy-mm-dd" };
@@ -153,8 +156,14 @@ const asInt = (v: unknown, fallback: number, min: number, max: number) => {
 };
 const round = (n: number) => Math.round(n * 100) / 100;
 
-/** Hebrew label for a deal stage (DB values stay in English). */
-export const stageLabel = (stage: string) => STAGE_NAMES[stage as DealStage] ?? stage;
+/** A deal stage in the business's own words (DB keys stay in English). */
+export const stageLabel = (stage: string, stages?: StageDef[]) => stageName(stage, stages);
+
+/** The business's stages, loaded once per analyst call and kept on the context. */
+export async function toolStages(ctx: ToolContext): Promise<StageDef[]> {
+  ctx.stages ??= await loadStages(ctx.supabase, ctx.orgId);
+  return ctx.stages;
+}
 
 /** "yyyy-mm-dd" → "DD/MM/YYYY" (the date format Israeli users read). */
 export function dmy(iso: string | null | undefined) {
@@ -289,7 +298,7 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
       };
     }
     case "get_deals_at_risk": {
-      const rows = await getDealsAtRisk(supabase, orgId, asInt(args.idle_days, 14, 3, 120), 50);
+      const [rows, stages] = await Promise.all([getDealsAtRisk(supabase, orgId, asInt(args.idle_days, 14, 3, 120), 50), toolStages(ctx)]);
       if (rows.length) {
         addAction(ctx, {
           type: "create_tasks",
@@ -306,7 +315,7 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
           customer: r.customer_name,
           value: round(r.value),
           stage: r.stage,
-          stage_label: stageLabel(r.stage),
+          stage_label: stageLabel(r.stage, stages),
           days_without_activity: r.days_idle,
           expected_close: r.expected_close,
           reason: r.reason,
@@ -314,8 +323,8 @@ export async function runAnalystTool(name: string, args: Record<string, unknown>
       };
     }
     case "get_pipeline_summary": {
-      const rows = await getPipelineSummary(supabase, orgId);
-      return rows.map((r) => ({ ...r, stage_label: stageLabel(r.stage) }));
+      const [rows, stages] = await Promise.all([getPipelineSummary(supabase, orgId), toolStages(ctx)]);
+      return rows.map((r) => ({ ...r, stage_label: stageLabel(r.stage, stages), stage_kind: stages.find((s) => s.key === r.stage)?.kind ?? "open" }));
     }
     case "search_customers": {
       const q = String(args.query ?? "").trim().slice(0, 80).replace(/[%,()]/g, " ");

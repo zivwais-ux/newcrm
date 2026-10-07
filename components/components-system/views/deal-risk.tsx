@@ -8,21 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { BulkTaskDialog } from "@/components/business/bulk-task-dialog";
-import { STAGE_LABELS } from "@/components/business/pipeline-board";
+import { useStages } from "@/components/layout/workspace-provider";
+import { stageLabel } from "@/lib/stages";
 import { formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 import type { DealRiskData } from "@/lib/components/loaders";
-import type { DealStage } from "@/types/domain";
 import { CreateTaskButton, ListRow, type ViewProps } from "../shared";
 
 export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
   const [bulk, setBulk] = useState(false);
+  const ctxStages = useStages();
+  const stages = data.stages ?? ctxStages;
   if (!data.deals.length)
     return (
       <EmptyState
         compact
         icon={<ShieldCheck />}
         title="אין עסקאות תקועות"
-        description={`בכל העסקאות הפתוחות${data.stage ? ` בשלב ${STAGE_LABELS[data.stage]}` : ""} הייתה פעילות ב-${data.idleDays} הימים האחרונים. עסקה שתיתקע תופיע כאן.`}
+        description={`בכל העסקאות הפתוחות${data.stage ? ` בשלב ${stageLabel(data.stage, stages)}` : ""} הייתה פעילות ב-${data.idleDays} הימים האחרונים. עסקה שתיתקע תופיע כאן.`}
       />
     );
   return (
@@ -30,7 +32,7 @@ export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           <span className="font-medium text-foreground num">{formatNumber(data.total)}</span> עסקאות · <Ltr>{formatCurrency(data.totalValue, currency)}</Ltr> בסיכון
-          {data.stage && <span className="font-medium text-brand"> · {STAGE_LABELS[data.stage]}</span>}
+          {data.stage && <span className="font-medium text-brand"> · {stageLabel(data.stage, stages)}</span>}
         </p>
         {data.ids.length > 0 ? (
           <Button
@@ -52,7 +54,7 @@ export function DealRiskView({ data, currency }: ViewProps<DealRiskData>) {
             {d.customer_name && <p className="truncate text-xs text-muted-foreground">{d.customer_name}</p>}
             <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground">
               <Ltr className="font-medium text-foreground num">{formatCurrency(d.value, currency)}</Ltr>
-              <Badge variant="outline">{STAGE_LABELS[d.stage as DealStage] ?? d.stage}</Badge>
+              <Badge variant="outline">{stageLabel(d.stage, stages)}</Badge>
               {d.idle && <span className="text-warning">אין פעילות כבר {plural(d.days_idle, "יום", "ימים", "יום אחד")}</span>}
               {d.pastClose && <span className="text-warning">עבר תאריך הסגירה הצפוי ({formatDate(d.expected_close)})</span>}
               {d.hasOpenTask && <Badge variant="brand">יש משימה פתוחה</Badge>}

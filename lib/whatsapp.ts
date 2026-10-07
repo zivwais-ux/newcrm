@@ -1,4 +1,5 @@
 // WhatsApp click-to-chat helpers. Pure functions, safe on server and client.
+import { DEFAULT_TERMS, type Terms } from "./terms";
 
 export interface MessageTemplate {
   id: string;
@@ -6,14 +7,24 @@ export interface MessageTemplate {
   body: string;
 }
 
-/** Built-in templates, used until the business saves its own. */
-export const DEFAULT_TEMPLATES: MessageTemplate[] = [
-  { id: "default-hello", name: "הודעה חופשית", body: "היי {שם}, " },
-  { id: "default-miss", name: "לא ראינו אותך מזמן", body: "היי {שם}, מה שלומך? לא ראינו אותך כבר תקופה ב{עסק} ונשמח לראות אותך שוב. מתי נוח לך? 😊" },
-  { id: "default-reminder", name: "תזכורת לתור", body: "היי {שם}, רק מזכירים את התור שלך ב{עסק}. נתראה! אם צריך לשנות — כתוב לנו כאן." },
-  { id: "default-thanks", name: "תודה על הביקור", body: "היי {שם}, תודה שבחרת ב{עסק}! נשמח לשמוע איך היה." },
-  { id: "default-payment", name: "תזכורת תשלום", body: "היי {שם}, רק תזכורת קטנה לגבי התשלום על {שירות}. תודה!" },
-];
+/** Built-in templates in the business's own words, used until the business saves its own. */
+export function defaultTemplates(terms: Pick<Terms, "appointment"> = DEFAULT_TERMS): MessageTemplate[] {
+  return [
+    { id: "default-hello", name: "הודעה חופשית", body: "היי {שם}, " },
+    { id: "default-miss", name: "לא ראינו אותך מזמן", body: "היי {שם}, מה שלומך? לא ראינו אותך כבר תקופה ב{עסק} ונשמח לראות אותך שוב. מתי נוח לך? 😊" },
+    { id: "default-reminder", name: `תזכורת: ${terms.appointment}`, body: `היי {שם}, רק מזכירים את ה${terms.appointment} שלך ב{עסק}. נתראה! אם צריך לשנות — כתוב לנו כאן.` },
+    { id: "default-thanks", name: "תודה על הביקור", body: "היי {שם}, תודה שבחרת ב{עסק}! נשמח לשמוע איך היה." },
+    { id: "default-payment", name: "תזכורת תשלום", body: "היי {שם}, רק תזכורת קטנה לגבי התשלום על {שירות}. תודה!" },
+  ];
+}
+
+/** Names to look for when preselecting the appointment reminder (the business's word, then older names). */
+export function reminderTemplate(terms: Pick<Terms, "appointment"> = DEFAULT_TERMS) {
+  return [`תזכורת: ${terms.appointment}`, "default-reminder", "תזכורת לתור"];
+}
+
+/** Built-in templates with the default words (kept for compatibility). */
+export const DEFAULT_TEMPLATES: MessageTemplate[] = defaultTemplates(DEFAULT_TERMS);
 
 /**
  * Normalizes an Israeli or international phone to WhatsApp's digits-only format.

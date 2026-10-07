@@ -11,7 +11,7 @@ import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { TaskList } from "@/components/business/task-list";
 import { ActivityItem } from "@/components/business/activity-list";
 import { RecordFormDialog } from "@/components/business/record-form";
-import { STAGE_LABELS } from "@/components/business/pipeline-board";
+import { useStageLabel } from "@/components/layout/workspace-provider";
 import type { SpotlightData, SpotlightResult } from "@/lib/components/spotlight";
 import type { RecordEntity } from "@/lib/actions/records";
 import { Ltr } from "@/components/ui/ltr";
@@ -83,6 +83,7 @@ function SpotlightError({ message, onClose }: { message: string; onClose: () => 
 
 function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightData; currency: string; onClose: () => void }) {
   const [dialog, setDialog] = useState<RecordEntity | null>(null);
+  const stageName = useStageLabel();
   const c = data.customer;
   const money = (n: number) => formatCurrency(n, currency);
 
@@ -159,7 +160,7 @@ function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightDat
                     >
                       <span className="truncate font-medium group-hover:text-brand">{d.name}</span>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
-                        {STAGE_LABELS[d.stage]} · <Ltr className="font-medium text-foreground num">{money(Number(d.value))}</Ltr>
+                        {stageName(d.stage)} · <Ltr className="font-medium text-foreground num">{money(Number(d.value))}</Ltr>
                         <CaretLeft className="size-3.5" aria-hidden />
                       </span>
                     </Link>

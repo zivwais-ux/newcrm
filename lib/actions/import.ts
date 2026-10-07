@@ -8,7 +8,8 @@ import { canManage, requireOrg } from "@/lib/supabase/server";
 import { buildBundle, CustomerResolver, type CanonicalRecord } from "@/lib/data-mapping/transform";
 import { getDataCounts } from "@/lib/analytics/queries";
 import { COMPONENT_REGISTRY, getDefinition, missingEntities } from "@/lib/components/registry";
-import type { ActionResult } from "@/types/domain";
+import { DEAL_STAGES, type ActionResult } from "@/types/domain";
+import { loadStages } from "@/lib/stages";
 import { fail, friendlyError, ok } from "./errors";
 
 const BATCH = 500;
@@ -142,7 +143,8 @@ const recordSchema = z.object({
   deal: z
     .object({
       name: text.min(1),
-      stage: z.enum(["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"]),
+      // Imports map stages onto the default keys; importChunk then fits them to the business's own stages.
+      stage: z.enum(DEAL_STAGES),
       value: z.number().finite().min(0),
       expected_close: isoDate.nullable(),
       owner_name: nullableText,
@@ -280,6 +282,11 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
     );
     stats.leads = bundle.leads.length;
 
+    // A default stage the business removed goes to its first open stage (won/lost always exist).
+    const stages = bundle.deals.length ? await loadStages(supabase, org.id) : [];
+    const firstOpen = stages.find((s) => s.kind === "open")?.key ?? "new";
+    const fitStage = (key: string): string =>
+      stages.some((s) => s.key === key) ? key : (stages.find((s) => s.kind === key)?.key ?? firstOpen);
     await insertInBatches(
       supabase,
       "deals",
@@ -288,6 +295,7 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
         customer_id: idFor(customerIndex),
         owner_id: user.id,
         ...d,
+        stage: fitStage(d.stage),
         custom_fields: owner_name ? { owner_name } : {},
         source_import_id: importId,
       })),

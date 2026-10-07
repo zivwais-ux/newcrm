@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Stat } from "@/components/business/stat";
 import { NewRecordButton } from "@/components/business/record-form";
+import { useTerms } from "@/components/layout/workspace-provider";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
 import { formatCurrency, formatNumber, pctChange, relativeDays } from "@/lib/utils";
 import type { CustomerHubData } from "@/lib/components/loaders";
@@ -31,6 +32,7 @@ const VISIBLE = 8;
 export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const t = useTerms();
   const { stats, customers } = data;
 
   /** /customers link that keeps the active service filter (as an id list the page understands). */
@@ -38,7 +40,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
     const p = new URLSearchParams();
     if (data.scopeIds && data.scopedTo) {
       p.set("ids", data.scopeIds.join(","));
-      p.set("title", `לקוחות שקנו: ${data.scopedTo}`);
+      p.set("title", `${t.customers} שקנו: ${data.scopedTo}`);
     }
     for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v);
     const qs = p.toString();
@@ -50,8 +52,8 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
       <EmptyState
         compact
         icon={<Users />}
-        title="עדיין אין לקוחות"
-        description="כאן תראה את כל הלקוחות שלך: מי קנה לאחרונה, מי חדש ומי פעיל. הכי מהיר: העלה את רשימת הלקוחות מקובץ אקסל."
+        title={`עדיין אין ${t.customers}`}
+        description={`כאן תראה את כל ה${t.customers} שלך: מי קנה לאחרונה, מי חדש ומי פעיל. הכי מהיר: העלה את הרשימה מקובץ אקסל.`}
         action={
           <Button asChild size="sm">
             <Link href="/data/import">
@@ -70,11 +72,11 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
 
   return (
     <div className="space-y-6">
-      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">לקוחות שקנו: {data.scopedTo}</p>}
+      {data.scopedTo && <p className="-mb-2 text-xs font-medium text-brand">{t.customers} שקנו: {data.scopedTo}</p>}
       <div className="grid grid-cols-3 gap-4">
-        <Stat label={data.scopedTo ? "קונים" : "סה״כ לקוחות"} value={formatNumber(stats.total)} />
+        <Stat label={data.scopedTo ? "קונים" : `סה״כ ${t.customers}`} value={formatNumber(stats.total)} />
         <Stat
-          label="לקוחות חדשים (קנייה ראשונה ב-30 יום)"
+          label={`${t.customers} חדשים (קנייה ראשונה ב-30 יום)`}
           value={formatNumber(stats.new_30d)}
           delta={pctChange(stats.new_30d, stats.new_prev_30d)}
           hint="לעומת 30 הימים שלפני"
@@ -99,8 +101,8 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="חיפוש לקוח לפי שם, טלפון או אימייל…"
-            aria-label="חיפוש לקוח"
+            placeholder="חיפוש לפי שם, טלפון או אימייל…"
+            aria-label={`חיפוש ${t.customers}`}
             dir="auto"
             className="h-8 ps-8 text-[13px]"
           />
@@ -117,7 +119,7 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
           ))}
           <NewRecordButton entity="customers" size="xs" variant="outline">
             <UserPlus />
-            הוסף לקוח
+            הוסף {t.customer}
           </NewRecordButton>
         </div>
       </div>
@@ -125,10 +127,10 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
       <div className="-mx-1">
         {shown.length === 0 ? (
           <p className="px-1 py-4 text-center text-sm text-muted-foreground">
-            {term ? "לא מצאנו כאן לקוח כזה. " : "עדיין אין לקוחות שקנו את השירות הזה. "}
+            {term ? "לא מצאנו כאן התאמה. " : `עדיין אין ${t.customers} שקנו את זה. `}
             {term && (
               <Link href={customersHref({ q: q.trim() })} className="font-medium text-foreground hover:underline">
-                חפש בכל הלקוחות ←
+                חפש בכל ה{t.customers} ←
               </Link>
             )}
           </p>
@@ -136,10 +138,10 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
           <table className="w-full text-sm">
             <thead>
               <tr className="text-start text-xs text-muted-foreground">
-                <th className="px-1 pb-2 text-start font-medium">לקוח</th>
+                <th className="px-1 pb-2 text-start font-medium">{t.customer}</th>
                 <th className="hidden px-1 pb-2 text-start font-medium sm:table-cell">סטטוס</th>
                 <th className="hidden px-1 pb-2 text-start font-medium md:table-cell">קנייה אחרונה</th>
-                <th className="px-1 pb-2 text-end font-medium">{data.scopedTo ? "הכנסות מהשירות" : "הכנסות"}</th>
+                <th className="px-1 pb-2 text-end font-medium">{data.scopedTo ? `הכנסות מ${data.scopedTo}` : "הכנסות"}</th>
                 <th className="w-9 px-1 pb-2">
                   <span className="sr-only">WhatsApp</span>
                 </th>
@@ -171,11 +173,11 @@ export function CustomerHubView({ data, currency }: ViewProps<CustomerHubData>) 
         )}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 px-1">
           <Link href={customersHref()} className="text-xs font-medium text-muted-foreground hover:text-foreground">
-            לכל {formatNumber(stats.total)} {data.scopedTo ? "הקונים" : "הלקוחות"} ←
+            לכל {formatNumber(stats.total)} {data.scopedTo ? "הקונים" : `ה${t.customers}`} ←
           </Link>
           {term && shown.length > 0 && (
             <Link href={customersHref({ q: q.trim() })} className="text-xs text-muted-foreground hover:text-foreground">
-              חפש &quot;{q.trim()}&quot; בכל הלקוחות ←
+              חפש &quot;{q.trim()}&quot; בכל ה{t.customers} ←
             </Link>
           )}
         </div>

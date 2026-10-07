@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
 import { WhatsAppButton } from "@/components/business/whatsapp-button";
-import { ACTIVITY_TYPE_LABELS, label } from "@/components/business/labels";
+import { activityLabel } from "@/components/business/labels";
+import { useTerms } from "@/components/layout/workspace-provider";
+import { reminderTemplate } from "@/lib/whatsapp";
 import { setAppointmentAttendance, setTaskDone } from "@/lib/actions/tools";
 import { cn, formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 import type { TodayData } from "@/lib/components/loaders";
@@ -35,6 +37,7 @@ function Section({ icon, title, count, children }: { icon: React.ReactNode; titl
 
 export function TodayView({ data, currency }: ViewProps<TodayData>) {
   const router = useRouter();
+  const terms = useTerms();
   const [, start] = useTransition();
   const [tasks, markDone] = useOptimistic(data.tasks, (state, id: string) => state.filter((t) => t.id !== id));
   const [appointments, markAttendance] = useOptimistic(data.appointments, (state, m: { id: string; attendance: "arrived" | "no_show" }) =>
@@ -51,7 +54,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       markAttendance({ id, attendance: value });
       const res = await setAppointmentAttendance(id, value);
       if (!res.ok) toast.error(res.error);
-      else toast.success(value === "arrived" ? "נרשם שהלקוח הגיע" : "נרשם שהלקוח לא הגיע");
+      else toast.success(value === "arrived" ? "נרשם: הגיע" : "נרשם: לא הגיע");
       router.refresh();
     });
   }
@@ -62,7 +65,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
         compact
         icon={<Sun />}
         title="אין שום דבר דחוף היום 🎉"
-        description="כל בוקר יופיעו כאן התורים של היום, משימות שהגיע זמנן, לקוחות שכדאי להזכיר להם לחזור ועסקאות שנתקעו — עם כפתור WhatsApp לכל אחד."
+        description={`כל בוקר יופיעו כאן ה${terms.appointments} של היום, משימות שהגיע זמנן, ${terms.customers} שכדאי להזכיר להם לחזור ו${terms.deals} שנתקעו — עם כפתור WhatsApp לכל אחד.`}
       />
     );
 
@@ -75,18 +78,18 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       </p>
 
       {appointments.length > 0 && (
-        <Section icon={<CalendarDots />} title="תורים ופגישות היום" count={appointments.length}>
+        <Section icon={<CalendarDots />} title={`${terms.appointments} היום`} count={appointments.length}>
           {appointments.map((a) => (
             <ListRow key={a.id} className={cn(a.attendance && "opacity-70")}>
               <span className="w-12 shrink-0 text-sm font-semibold num">
                 <Ltr>{time(a.date)}</Ltr>
               </span>
               <div className="min-w-0 flex-1">
-                {a.customer_id && a.customer ? <CustomerLink id={a.customer_id}>{a.customer.name}</CustomerLink> : <p className="text-sm">{label(ACTIVITY_TYPE_LABELS, a.type)}</p>}
+                {a.customer_id && a.customer ? <CustomerLink id={a.customer_id}>{a.customer.name}</CustomerLink> : <p className="text-sm">{activityLabel(a.type, terms)}</p>}
                 <p className="truncate text-xs text-muted-foreground">
                   {a.attendance === "arrived" && <span className="font-medium text-positive">הגיע · </span>}
                   {a.attendance === "no_show" && <span className="font-medium text-negative">לא הגיע · </span>}
-                  {a.notes || label(ACTIVITY_TYPE_LABELS, a.type)}
+                  {a.notes || activityLabel(a.type, terms)}
                 </p>
               </div>
               {a.past && !a.attendance && (
@@ -101,7 +104,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
                   </Button>
                 </div>
               )}
-              {a.customer && !a.past && <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template="תזכורת לתור" />}
+              {a.customer && !a.past && <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template={reminderTemplate(terms)} />}
               {a.customer && a.attendance === "no_show" && (
                 <WhatsAppButton phone={a.customer.phone} name={a.customer.name} customerId={a.customer_id} template="הודעה חופשית" />
               )}
@@ -164,7 +167,7 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       )}
 
       {data.stuck.length > 0 && (
-        <Section icon={<Handshake />} title="עסקאות שנתקעו" count={data.stuck.length}>
+        <Section icon={<Handshake />} title={`${terms.deals} שנתקעו`} count={data.stuck.length}>
           {data.stuck.map((d) => (
             <ListRow key={d.id}>
               <div className="min-w-0 flex-1">
@@ -181,18 +184,18 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
       )}
 
       {data.reminders.length > 0 && (
-        <Section icon={<BellRinging />} title="תזכורת לתורים של מחר" count={pendingReminders}>
-          <p className="mb-1 text-xs text-muted-foreground">שלח לכל לקוח תזכורת ב-WhatsApp, כדי שלא ישכח את התור של {formatDate(data.tomorrow)}.</p>
+        <Section icon={<BellRinging />} title={`תזכורת ל${terms.appointments} של מחר`} count={pendingReminders}>
+          <p className="mb-1 text-xs text-muted-foreground">שלח תזכורת ב-WhatsApp לכל מי שקבע {terms.appointment} ל-{formatDate(data.tomorrow)}, כדי שלא ישכח.</p>
           {data.reminders.map((r) => (
             <ListRow key={r.id}>
               <span className="w-12 shrink-0 text-sm font-semibold num">
                 <Ltr>{time(r.date)}</Ltr>
               </span>
               <div className="min-w-0 flex-1">
-                {r.customer_id && r.customer ? <CustomerLink id={r.customer_id}>{r.customer.name}</CustomerLink> : <p className="text-sm">{label(ACTIVITY_TYPE_LABELS, r.type)}</p>}
+                {r.customer_id && r.customer ? <CustomerLink id={r.customer_id}>{r.customer.name}</CustomerLink> : <p className="text-sm">{activityLabel(r.type, terms)}</p>}
                 <p className="truncate text-xs text-muted-foreground">
                   {r.sent && <span className="font-medium text-positive">נשלחה הודעה היום · </span>}
-                  {r.notes || label(ACTIVITY_TYPE_LABELS, r.type)}
+                  {r.notes || activityLabel(r.type, terms)}
                 </p>
               </div>
               {r.customer ? (
@@ -200,12 +203,12 @@ export function TodayView({ data, currency }: ViewProps<TodayData>) {
                   phone={r.customer.phone}
                   name={r.customer.name}
                   customerId={r.customer_id}
-                  template="תזכורת לתור"
+                  template={reminderTemplate(terms)}
                   variant="button"
                   label={r.sent ? "שלח שוב" : "שלח תזכורת"}
                 />
               ) : (
-                <span className="text-xs text-muted-foreground">אין לקוח מקושר</span>
+                <span className="text-xs text-muted-foreground">לא מקושר לכרטיס</span>
               )}
             </ListRow>
           ))}

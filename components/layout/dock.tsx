@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useCreate } from "./create-provider";
+import { useTerms } from "./workspace-provider";
+import type { Terms } from "@/lib/terms";
 
 export const OPEN_DRAWER_EVENT = "bos:open-drawer";
 
@@ -53,6 +55,13 @@ export const MORE = [
   { href: "/data", label: "הנתונים שלי", icon: Database },
   { href: "/settings", label: "הגדרות", icon: GearSix },
 ] as const;
+
+/** Nav labels that are the business's own nouns. */
+function navLabel(href: string, fallback: string, t: Terms) {
+  if (href === "/customers") return t.customers;
+  if (href === "/deals") return t.deals;
+  return fallback;
+}
 
 function DockLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
   const reduce = useReducedMotion();
@@ -82,6 +91,7 @@ function DockLink({ href, label, icon: Icon, active }: { href: string; label: st
 export function Dock() {
   const pathname = usePathname();
   const create = useCreate();
+  const t = useTerms();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
   const moreActive = MORE.some((m) => isActive(m.href));
   const onHome = pathname === "/home";
@@ -93,7 +103,7 @@ export function Dock() {
     >
       <div className="pointer-events-auto flex items-center border border-border bg-module/92 px-1 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-module/80">
         {MAIN.map((i) => (
-          <DockLink key={i.href} {...i} active={isActive(i.href)} />
+          <DockLink key={i.href} {...i} label={navLabel(i.href, i.label, t)} active={isActive(i.href)} />
         ))}
 
         <DropdownMenu>
@@ -110,16 +120,16 @@ export function Dock() {
             <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">מה תרצה להוסיף?</DropdownMenuLabel>
             <DropdownMenuItem onSelect={() => create({ kind: "sale" })} className="py-2 font-semibold">
               <Receipt className="text-brand" />
-              מכירה מהירה
+              רישום {t.sale}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => create({ kind: "appointment" })} className="py-2 font-semibold">
               <CalendarPlus className="text-brand" />
-              תור חדש
+              קביעת {t.appointment}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={() => create({ kind: "record", entity: "customers" })} className="py-2">
               <UserPlus />
-              לקוח חדש
+              הוספת {t.customer}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => create({ kind: "record", entity: "tasks" })} className="py-2">
               <CheckSquare />
@@ -131,7 +141,7 @@ export function Dock() {
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => create({ kind: "record", entity: "deals" })} className="py-2">
               <Handshake />
-              עסקה חדשה
+              הוספת {t.deal}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             {onHome && (
@@ -150,7 +160,7 @@ export function Dock() {
         </DropdownMenu>
 
         {AFTER.map((i) => (
-          <DockLink key={i.href} {...i} active={isActive(i.href)} />
+          <DockLink key={i.href} {...i} label={navLabel(i.href, i.label, t)} active={isActive(i.href)} />
         ))}
 
         <DropdownMenu>
@@ -172,7 +182,7 @@ export function Dock() {
               <DropdownMenuItem key={m.href} asChild className="py-2">
                 <Link href={m.href} aria-current={isActive(m.href) ? "page" : undefined}>
                   <m.icon className={cn(isActive(m.href) && "text-brand")} />
-                  {m.label}
+                  {navLabel(m.href, m.label, t)}
                 </Link>
               </DropdownMenuItem>
             ))}

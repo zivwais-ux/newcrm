@@ -41,8 +41,27 @@ const END = "(?=$|[\\s,.?!:;])";
 const START = "(?:^|\\s)";
 
 const SALE = new RegExp(`^(?:מכירה|מכרתי|רשום מכירה|תשלום|שילם|שילמה|קנה|קנתה)${END}`);
-const APPOINTMENT = new RegExp(`^(?:תור|קבע תור|קבעי תור|פגישה|קבע פגישה)${END}`);
-const CUSTOMER = new RegExp(`^(?:לקוח חדש|לקוחה חדשה|הוסף לקוח|הוסיפי לקוח|לקוח)${END}`);
+const BASE_APPOINTMENT_WORDS = ["תור", "פגישה"];
+const BASE_CUSTOMER_WORDS = ["לקוח", "לקוחה"];
+
+const escape = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const alternation = (list: string[]) =>
+  [...new Set(list.map((w) => clean(w)).filter(Boolean))]
+    .sort((a, b) => b.length - a.length)
+    .map(escape)
+    .join("|");
+
+/** "תור", "קבע תור"… plus the business's own appointment words ("טיפול", "סשן"). */
+function appointmentRe(extra: string[]) {
+  const words = alternation([...BASE_APPOINTMENT_WORDS, ...extra]);
+  return new RegExp(`^(?:(?:קבע|קבעי)\\s+)?(?:${words})${END}`);
+}
+
+/** "לקוח חדש", "הוסף לקוח"… plus the business's own word ("מטופל חדש"). */
+function customerRe(extra: string[]) {
+  const words = alternation([...BASE_CUSTOMER_WORDS, ...extra]);
+  return new RegExp(`^(?:(?:הוסף|הוסיפי)\\s+)?(?:${words})(?:\\s+(?:חדש|חדשה))?${END}`);
+}
 const TASK = new RegExp(`^(?:משימה|תזכורת|תזכיר לי|להזכיר לי|צריך)${END}`);
 const OPEN = new RegExp(`^(?:פתח|פתחי|עבור ל|עבור|לך ל|הצג|תראה לי)${END}`);
 const ADD_MODULE = new RegExp(`^(?:הוסף מודול|הוסיפי מודול|הוסף כלי|הוסף למסך|הוסף)${END}`);
@@ -141,9 +160,21 @@ function extractService(text: string): { service: string | null; rest: string } 
   return { service: clean(s[1]) || null, rest: clean(text.replace(s[0], " ")) };
 }
 
-function matchPage(text: string) {
+/** The business's own nouns, so "מטופלים" opens the customers page and "מטופל חדש" adds one. */
+export type CommandTerms = { customer: string; customers: string; deal: string; deals: string };
+
+function pagesFor(terms?: CommandTerms) {
+  if (!terms) return PAGES;
+  const own: Record<string, { words: string[]; label: string }> = {
+    "/customers": { words: [terms.customers, terms.customer], label: terms.customers },
+    "/deals": { words: [terms.deals, terms.deal], label: terms.deals },
+  };
+  return PAGES.map((p) => (own[p.href] ? { ...p, words: [...own[p.href].words, ...p.words], label: own[p.href].label } : p));
+}
+
+function matchPage(text: string, terms?: CommandTerms) {
   const t = text.replace(/^ה(?=[֐-׿]{3,})/, "");
-  return PAGES.find((p) => p.words.some((w) => w === text || w === t));
+  return pagesFor(terms).find((p) => p.words.some((w) => w === text || w === t));
 }
 
 function matchModule(text: string, modules: ModuleRef[]) {
@@ -157,9 +188,15 @@ function matchModule(text: string, modules: ModuleRef[]) {
   );
 }
 
-export function parseCommand(input: string, modules: ModuleRef[] = [], now = israelNow()): Command {
+/**
+ * @param words extra appointment trigger words — the business's own (see appointmentWords(terms)).
+ * @param terms the business's nouns, for "<customer> חדש" and page names.
+ */
+export function parseCommand(input: string, modules: ModuleRef[] = [], now = israelNow(), words: string[] = [], terms?: CommandTerms): Command {
   const text = clean(input);
   if (!text) return { kind: "search", query: "" };
+  const APPOINTMENT = appointmentRe(words);
+  const CUSTOMER = customerRe(terms ? [terms.customer] : []);
 
   if (SALE.test(text)) {
     let rest = text.replace(SALE, " ");
@@ -179,7 +216,7 @@ export function parseCommand(input: string, modules: ModuleRef[] = [], now = isr
     return { kind: "appointment", name: nameFrom(s.rest), date: d.date, time: t.time, service: s.service };
   }
 
-  if (CUSTOMER.test(text) && !matchPage(text)) {
+  if (CUSTOMER.test(text) && !matchPage(text, terms)) {
     const p = extractPhone(text.replace(CUSTOMER, " "));
     return { kind: "customer", name: nameFrom(p.rest), phone: p.phone };
   }
@@ -196,7 +233,7 @@ export function parseCommand(input: string, modules: ModuleRef[] = [], now = isr
   }
 
   const openTarget = OPEN.test(text) ? clean(text.replace(OPEN, " ")) : text;
-  const page = matchPage(openTarget);
+  const page = matchPage(openTarget, terms);
   if (page) return { kind: "open", href: page.href, label: page.label };
 
   if (text.endsWith("?") || QUESTION.test(text)) return { kind: "ask", question: text };

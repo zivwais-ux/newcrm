@@ -25,23 +25,25 @@ import { parseCommand, type Command as ParsedCommand } from "@/lib/command/parse
 import { COMPONENT_REGISTRY } from "@/lib/components/registry";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useCreate } from "./create-provider";
-import { useMoney } from "./workspace-provider";
+import { useMoney, useTerms } from "./workspace-provider";
+import { appointmentWords, type Terms } from "@/lib/terms";
 
 const MODULES = COMPONENT_REGISTRY.map((d) => ({ id: d.id, name: d.name }));
 
 const RESULT_ICONS = { customer: Users, lead: UserPlus, deal: Handshake, transaction: Receipt, component: Cube } as const;
-const GROUPS: { type: SearchResult["type"]; label: string }[] = [
-  { type: "customer", label: "לקוחות" },
+const groups = (t: Terms): { type: SearchResult["type"]; label: string }[] => [
+  { type: "customer", label: t.customers },
   { type: "lead", label: "פניות" },
-  { type: "deal", label: "עסקאות" },
-  { type: "transaction", label: "מכירות" },
+  { type: "deal", label: t.deals },
+  { type: "transaction", label: t.sales },
   { type: "component", label: "מודולים" },
 ];
 
-const EXAMPLES = [
-  "מכירה 250 לדנה על תספורת",
-  "תור ליוסי מחר ב-10",
-  "לקוח חדש רונית 0501234567",
+/** Examples in the business's own words, so people see sentences they would actually type. */
+const examples = (t: Terms) => [
+  "מכירה 250 לדנה",
+  `${t.appointment} ליוסי מחר ב-10`,
+  `הוסף ${t.customer} רונית 0501234567`,
   "משימה להתקשר לספק ביום חמישי",
   "הוסף מודול לקוחות חוזרים",
   "כמה הכנסתי החודש?",
@@ -56,26 +58,27 @@ export function openCommandBar(text = "") {
 /** One sentence per intent, shown before the user presses Enter. */
 function Describe({ cmd }: { cmd: ParsedCommand }) {
   const currency = useMoney();
+  const terms = useTerms();
   const part = (v: string | null | undefined, empty: string) =>
     v ? <span className="font-semibold text-foreground">{v}</span> : <span className="text-muted-foreground">{empty}</span>;
   switch (cmd.kind) {
     case "sale":
       return (
         <>
-          מכירה מהירה · {part(cmd.amount ? formatCurrency(cmd.amount, currency) : null, "סכום")} · {part(cmd.name, "לקוח")}
+          רישום {terms.sale} · {part(cmd.amount ? formatCurrency(cmd.amount, currency) : null, "סכום")} · {part(cmd.name, terms.customer)}
           {cmd.service && <> · {part(cmd.service, "")}</>}
         </>
       );
     case "appointment":
       return (
         <>
-          תור חדש · {part(cmd.name, "לקוח")} · {part(cmd.date ? formatDate(cmd.date) : null, "היום")} · {part(cmd.time, "שעה")}
+          קביעת {terms.appointment} · {part(cmd.name, terms.customer)} · {part(cmd.date ? formatDate(cmd.date) : null, "היום")} · {part(cmd.time, "שעה")}
         </>
       );
     case "customer":
       return (
         <>
-          לקוח חדש · {part(cmd.name, "שם")}
+          הוספת {terms.customer} · {part(cmd.name, "שם")}
           {cmd.phone && <> · <span className="num font-semibold text-foreground" dir="ltr">{cmd.phone}</span></>}
         </>
       );
@@ -111,6 +114,10 @@ const INTENT_ICONS: Record<ParsedCommand["kind"], React.ElementType> = {
 export function CommandBar() {
   const router = useRouter();
   const create = useCreate();
+  const terms = useTerms();
+  const EXAMPLES = useMemo(() => examples(terms), [terms]);
+  const GROUPS = useMemo(() => groups(terms), [terms]);
+  const words = useMemo(() => appointmentWords(terms), [terms]);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -118,7 +125,7 @@ export function CommandBar() {
   const [running, startRun] = useTransition();
   const [hint, setHint] = useState(0);
 
-  const cmd = useMemo(() => parseCommand(query, MODULES), [query]);
+  const cmd = useMemo(() => parseCommand(query, MODULES, undefined, words, terms), [query, words, terms]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -143,7 +150,7 @@ export function CommandBar() {
   useEffect(() => {
     const t = setInterval(() => setHint((h) => (h + 1) % EXAMPLES.length), 4000);
     return () => clearInterval(t);
-  }, []);
+  }, [EXAMPLES.length]);
 
   const searchable = cmd.kind === "search" || cmd.kind === "open" || cmd.kind === "ask";
   useEffect(() => {
@@ -257,7 +264,7 @@ export function CommandBar() {
               {!query.trim() && (
                 <CommandGroup heading="אפשר לכתוב למשל">
                   {EXAMPLES.map((ex) => {
-                    const ExIcon = INTENT_ICONS[parseCommand(ex, MODULES).kind];
+                    const ExIcon = INTENT_ICONS[parseCommand(ex, MODULES, undefined, words, terms).kind];
                     return (
                       <CommandItem key={ex} value={ex} onSelect={() => setQuery(ex)}>
                         <ExIcon className="text-muted-foreground" />

@@ -9,7 +9,7 @@ describe("workspace filters", () => {
       service: "Deep Clean",
       stage: "proposal",
     });
-    expect(parseFilters(new URLSearchParams("range=forever&stage=hacked&service="))).toEqual({ range: null, service: null, stage: null });
+    expect(parseFilters(new URLSearchParams("range=forever&stage=Hacked%27--&service="))).toEqual({ range: null, service: null, stage: null });
   });
 
   it("lists active keys and describes them for the analyst", () => {

@@ -4,7 +4,8 @@ import { z } from "zod";
 import { requireOrg } from "@/lib/supabase/server";
 import { COMPONENT_REGISTRY } from "@/lib/components/registry";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { LEAD_STATUS_LABELS, STAGE_LABELS, label } from "@/components/business/labels";
+import { LEAD_STATUS_LABELS, label } from "@/components/business/labels";
+import { loadStages, stageLabel } from "@/lib/stages";
 
 export interface SearchResult {
   type: "customer" | "lead" | "deal" | "transaction" | "component";
@@ -23,7 +24,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   const like = `%${q}%`;
   const amount = Number(q.replace(/[^\d.]/g, ""));
 
-  const [customers, leads, deals, transactions] = await Promise.all([
+  const [customers, leads, deals, transactions, stages] = await Promise.all([
     supabase
       .from("customers")
       .select("id, name, email, company")
@@ -48,6 +49,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
       )
       .order("date", { ascending: false })
       .limit(4),
+    loadStages(supabase, org.id),
   ]);
 
   const results: SearchResult[] = [];
@@ -56,7 +58,7 @@ export async function globalSearch(query: string): Promise<SearchResult[]> {
   for (const l of leads.data ?? [])
     results.push({ type: "lead", id: l.id, title: l.name, subtitle: [l.status ? label(LEAD_STATUS_LABELS, l.status) : null, l.source].filter(Boolean).join(" · "), href: `/leads?q=${encodeURIComponent(l.name)}` });
   for (const d of deals.data ?? [])
-    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${label(STAGE_LABELS, d.stage)} · ${formatCurrency(Number(d.value), org.currency)}`, href: `/deals?deal=${d.id}` });
+    results.push({ type: "deal", id: d.id, title: d.name, subtitle: `${stageLabel(d.stage, stages)} · ${formatCurrency(Number(d.value), org.currency)}`, href: `/deals?deal=${d.id}` });
   for (const t of (transactions.data ?? []) as unknown as {
     id: string;
     amount: number;
@@ -92,6 +94,6 @@ export async function searchDeals(query: string): Promise<{ id: string; name: st
   const q = clean(z.string().catch("").parse(query));
   let req = supabase.from("deals").select("id, name, stage").eq("organization_id", org.id);
   if (q) req = req.ilike("name", `%${q}%`);
-  const { data } = await req.order("updated_at", { ascending: false }).limit(20);
-  return (data ?? []).map((d) => ({ id: d.id, name: d.name, subtitle: label(STAGE_LABELS, d.stage) }));
+  const [{ data }, stages] = await Promise.all([req.order("updated_at", { ascending: false }).limit(20), loadStages(supabase, org.id)]);
+  return (data ?? []).map((d) => ({ id: d.id, name: d.name, subtitle: stageLabel(d.stage, stages) }));
 }

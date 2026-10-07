@@ -8,7 +8,8 @@ import { ActivityItem } from "@/components/business/activity-list";
 import { Module, ModuleRail } from "@/components/ui/module";
 import { pageParam, param, type SearchParams } from "@/lib/params";
 import { ACTIVITY_TYPES, type Activity } from "@/types/domain";
-import { ACTIVITY_TYPE_LABELS } from "@/components/business/labels";
+import { activityLabel } from "@/components/business/labels";
+import { resolveTerms } from "@/lib/terms";
 import { formatDate, formatNumber, isoDate } from "@/lib/utils";
 
 export const metadata = { title: "יומן פעילות" };
@@ -18,6 +19,7 @@ const PAGE_SIZE = 40;
 export default async function ActivitiesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
+  const terms = resolveTerms(org.terms);
   const page = pageParam(params);
   const when = param(params, "when") ?? "";
   const type = param(params, "type");
@@ -46,7 +48,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
 
   return (
     <PageContainer className="max-w-3xl">
-      <PageHeader title="יומן פעילות" description="תורים, שיחות, פגישות והערות — לפי הסדר." actions={<NewRecordButton entity="activities" />} />
+      <PageHeader title="יומן פעילות" description={`${terms.appointments}, שיחות והערות — לפי הסדר.`} actions={<NewRecordButton entity="activities" />} />
       <Module>
         <ModuleRail icon={<CalendarDots />} title="יומן פעילות" meta={<span className="num">{formatNumber(count ?? 0)}</span>} />
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-3.5 py-2.5">
@@ -58,13 +60,13 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
               { value: "past", label: "מה שהיה" },
             ]}
           />
-          <FilterTabs param="type" options={[{ value: "", label: "כל הסוגים" }, ...ACTIVITY_TYPES.map((t) => ({ value: t, label: ACTIVITY_TYPE_LABELS[t] ?? t }))]} />
+          <FilterTabs param="type" options={[{ value: "", label: "כל הסוגים" }, ...ACTIVITY_TYPES.map((t) => ({ value: t, label: activityLabel(t, terms) }))]} />
         </div>
         {!rows.length ? (
           <EmptyState
             icon={CalendarDots}
             title="אין עדיין פעילות"
-            description="כאן יופיעו התורים, השיחות והפגישות שלך לפי ימים. רשום את הפעילות הראשונה."
+            description={`כאן יופיעו ה${terms.appointments}, השיחות וההערות שלך לפי ימים. רשום את הפעילות הראשונה.`}
             action={<NewRecordButton entity="activities" variant="outline" />}
           />
         ) : (

@@ -11,13 +11,18 @@ import { Button } from "@/components/ui/button";
 import { LiveDot, Module, ModuleFlush, ModuleRail } from "@/components/ui/module";
 import { pageParam, param, searchTerm, uuidList, type SearchParams } from "@/lib/params";
 import { formatNumber, plural } from "@/lib/utils";
+import { resolveTerms } from "@/lib/terms";
 
-export const metadata = { title: "לקוחות" };
+export async function generateMetadata() {
+  const { org } = await requireOrg();
+  return { title: resolveTerms(org.terms).customers };
+}
 const PAGE_SIZE = 50;
 
 export default async function CustomersPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const { supabase, org } = await requireOrg();
+  const t = resolveTerms(org.terms);
   const page = pageParam(params);
   const q = searchTerm(param(params, "q"));
   const status = param(params, "status");
@@ -33,12 +38,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
     ids = risk.map((r) => r.id);
     for (const r of risk)
       notes.set(r.id, `${r.change_pct !== null && r.change_pct < 0 ? `ההכנסות ירדו ב־${Math.abs(r.change_pct)}% · ` : ""}פעילות אחרונה לפני ${formatNumber(r.days_since)} ימים`);
-    title ??= "לקוחות בסיכון";
+    title ??= `${t.customers} בסיכון`;
   } else if (segment === "overdue") {
     const overdue = await getOverdueCustomers(supabase, org.id, 1.5, 500);
     ids = overdue.map((r) => r.id);
     for (const r of overdue) notes.set(r.id, `בדרך כלל חוזר כל ${formatNumber(r.median_interval_days)} ימים · נראה לאחרונה לפני ${formatNumber(r.days_since)} ימים`);
-    title ??= "לקוחות קבועים שעבר הזמן שבו הם בדרך כלל חוזרים";
+    title ??= `${t.customers} קבועים שעבר הזמן שבו הם בדרך כלל חוזרים`;
   }
   const segmented = Boolean(segment) || ids.length > 0 || param(params, "ids") !== undefined;
 
@@ -96,17 +101,17 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   return (
     <PageContainer>
       <PageHeader
-        title="לקוחות"
+        title={t.customers}
         description="כל מי שאתה עובד איתו — במקום אחד."
         actions={<NewRecordButton entity="customers" />}
       />
       {!totalCustomers ? (
         <Module>
-          <ModuleRail icon={<Users />} title="הלקוחות שלי" />
+          <ModuleRail icon={<Users />} title={`ה${t.customers} שלי`} />
           <EmptyState
             icon={Users}
-            title="אין עדיין לקוחות"
-            description="העלה קובץ אקסל עם רשימת הלקוחות שלך, או הוסף לקוח ראשון — הם יופיעו כאן."
+            title={`אין עדיין ${t.customers}`}
+            description={`העלה קובץ אקסל עם רשימת ה${t.customers} שלך, או הוסף אחד ידנית — הם יופיעו כאן.`}
             importCta
             action={<NewRecordButton entity="customers" variant="outline" />}
           />
@@ -115,7 +120,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
         <Module>
           <ModuleRail
             icon={<Users />}
-            title={segmented ? (title ?? "לקוחות נבחרים") : "הלקוחות שלי"}
+            title={segmented ? (title ?? `${t.customers} שנבחרו`) : `ה${t.customers} שלי`}
             meta={<span className="num">{formatNumber(count)}</span>}
             actions={
               segmented ? (
@@ -132,7 +137,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
           />
           {segmented && (
             <p className="border-b border-border bg-brand-soft/50 px-3.5 py-2 text-xs text-muted-foreground">
-              {plural(count, "לקוח", "לקוחות")} בתצוגה הזו. סמן לקוחות כדי ליצור להם משימות מעקב.
+              {plural(count, t.customer, t.customers, `1 ${t.customer}`)} בתצוגה הזו. סמן כדי ליצור משימות מעקב.
             </p>
           )}
           <div className="flex flex-col gap-2 border-b border-border px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -148,12 +153,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
             />
           </div>
           {error ? (
-            <EmptyState title="לא הצלחנו לטעון את הלקוחות" description="רענן את העמוד ונסה שוב." />
+            <EmptyState title={`לא הצלחנו לטעון את ה${t.customers}`} description="רענן את העמוד ונסה שוב." />
           ) : rows.length === 0 ? (
-            <EmptyState compact icon={Users} title="לא נמצאו לקוחות" description="נסה חיפוש אחר או סינון אחר." />
+            <EmptyState compact icon={Users} title={`לא נמצאו ${t.customers}`} description="נסה חיפוש אחר או סינון אחר." />
           ) : (
             <ModuleFlush>
-              <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle="לחזור ללקוח" />
+              <CustomersTable rows={rows} allIds={segmented ? ids : undefined} defaultTaskTitle={`לחזור ל${t.customer}`} />
             </ModuleFlush>
           )}
           <Pagination page={page} pageSize={PAGE_SIZE} total={count} />

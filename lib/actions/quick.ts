@@ -16,7 +16,7 @@ const customerRef = z
     name: z.string().trim().max(200).default(""),
     phone: z.string().trim().max(40).default(""),
   })
-  .refine((c) => c.id || c.name.length > 0, "בחר לקוח או כתוב שם של לקוח חדש");
+  .refine((c) => c.id || c.name.length > 0, "בחר מהרשימה או כתוב שם");
 
 const serviceName = z.string().trim().max(200).default("");
 

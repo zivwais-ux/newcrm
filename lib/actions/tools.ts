@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireOrg } from "@/lib/supabase/server";
+import { resolveTerms } from "@/lib/terms";
 import { israelDay } from "@/lib/analytics/dates";
 import type { ActionResult } from "@/types/domain";
 import { fail, friendlyError, ok } from "./errors";
@@ -95,8 +96,9 @@ const APPOINTMENT_TYPES = ["appointment", "meeting", "visit"];
 /** Records whether the customer arrived to a past appointment. */
 export async function setAppointmentAttendance(id: string, attendance: "arrived" | "no_show"): Promise<ActionResult<null>> {
   const parsed = z.object({ id: uuid, attendance: z.enum(["arrived", "no_show"]) }).safeParse({ id, attendance });
-  if (!parsed.success) return fail("התור לא תקין.");
+  if (!parsed.success) return fail("משהו השתבש. נסה שוב.");
   const { supabase, org } = await requireOrg();
+  const t = resolveTerms(org.terms);
   const { data: row, error: readError } = await supabase
     .from("activities")
     .select("id, type, date, notes, customer_id")
@@ -104,8 +106,8 @@ export async function setAppointmentAttendance(id: string, attendance: "arrived"
     .eq("organization_id", org.id)
     .maybeSingle();
   if (readError) return fail(friendlyError(readError));
-  if (!row || !APPOINTMENT_TYPES.includes(row.type)) return fail("לא מצאנו את התור.");
-  if (new Date(row.date).getTime() > Date.now()) return fail("אפשר לסמן הגעה רק אחרי שהתור התחיל.");
+  if (!row || !APPOINTMENT_TYPES.includes(row.type)) return fail(`לא מצאנו את ה${t.appointment}.`);
+  if (new Date(row.date).getTime() > Date.now()) return fail(`אפשר לסמן הגעה רק אחרי שעת ה${t.appointment}.`);
 
   const rest = String(row.notes ?? "").replace(ATTENDANCE_MARK, "").trim();
   const notes = rest ? `${ATTENDANCE_TEXT[parsed.data.attendance]}\n${rest}` : ATTENDANCE_TEXT[parsed.data.attendance];
@@ -116,7 +118,7 @@ export async function setAppointmentAttendance(id: string, attendance: "arrived"
     .eq("organization_id", org.id)
     .select("id");
   if (error) return fail(friendlyError(error));
-  if (!data?.length) return fail("לא הצלחנו לעדכן את התור.");
+  if (!data?.length) return fail(`לא הצלחנו לעדכן את ה${t.appointment}.`);
   if (row.customer_id) revalidatePath(`/customers/${row.customer_id}`);
   revalidatePath("/activities");
   refresh();

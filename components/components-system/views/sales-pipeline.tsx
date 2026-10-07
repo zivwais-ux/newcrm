@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { Handshake, UploadSimple, X } from "@phosphor-icons/react";
-import { PipelineBoard, STAGE_LABELS } from "@/components/business/pipeline-board";
+import { PipelineBoard } from "@/components/business/pipeline-board";
+import { useStages } from "@/components/layout/workspace-provider";
+import { stageLabel } from "@/lib/stages";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
@@ -15,6 +17,8 @@ import { useWorkspaceFilters } from "../workspace-filters";
 
 export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
   const { toggle } = useWorkspaceFilters();
+  const ctxStages = useStages();
+  const stages = data.stages ?? ctxStages;
   if (!data.totalDeals)
     return (
       <EmptyState
@@ -35,9 +39,10 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
         }
       />
     );
-  const open = data.summary.filter((s) => s.stage !== "won" && s.stage !== "lost");
-  const won = data.summary.find((s) => s.stage === "won");
-  const lost = data.summary.find((s) => s.stage === "lost");
+  const kindOf = (key: string) => stages.find((s) => s.key === key)?.kind ?? "open";
+  const open = data.summary.filter((s) => kindOf(s.stage) === "open");
+  const won = data.summary.find((s) => kindOf(s.stage) === "won");
+  const lost = data.summary.find((s) => kindOf(s.stage) === "lost");
   const stageRow = data.stage ? data.summary.find((s) => s.stage === data.stage) : null;
   const winRate = won && lost && won.deals + lost.deals ? Math.round((won.deals / (won.deals + lost.deals)) * 100) : null;
   return (
@@ -54,7 +59,7 @@ export function SalesPipelineView({ data, currency }: ViewProps<PipelineData>) {
       {data.stage && (
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>
-            מוצגות רק עסקאות בשלב <span className="font-medium text-foreground">{STAGE_LABELS[data.stage]}</span>
+            מוצגות רק עסקאות בשלב <span className="font-medium text-foreground">{stageLabel(data.stage, stages)}</span>
             {stageRow && (
               <>
                 {" "}

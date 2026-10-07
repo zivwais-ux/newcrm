@@ -3,11 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { canManage, requireOrg } from "@/lib/supabase/server";
-import { ACTIVITY_TYPES, DEAL_STAGES, type ActionResult } from "@/types/domain";
+import { ACTIVITY_TYPES, type ActionResult } from "@/types/domain";
 import { fail, friendlyError, ok } from "./errors";
 
 // Manual data entry and editing for every canonical entity.
 // All writes go through the user-scoped client, so RLS enforces tenancy.
+
+/** Deal stages are the business's own; the DB trigger checks the key exists for the organization. */
+const stageKey = z.string().regex(/^[a-z0-9_]{1,40}$/, "השלב לא תקין.");
+
+/** A stage the DB rejected (23514) was removed or renamed away in the meantime. */
+function dealError(error: { code?: string; message?: string }) {
+  return error.code === "23514" ? "השלב הזה כבר לא קיים. רענן את העמוד ובחר שלב אחר." : friendlyError(error);
+}
 
 const optionalText = (max = 200) =>
   z
@@ -51,7 +59,7 @@ const schemas = {
   deals: z.object({
     name: z.string().trim().min(1, "צריך למלא שם לעסקה").max(200),
     customer_id: optionalUuid,
-    stage: z.enum(DEAL_STAGES).default("new"),
+    stage: stageKey.default("new"),
     value: money.default(0),
     owner_id: optionalUuid,
     expected_close: optionalDate,
@@ -125,7 +133,7 @@ export async function createRecord<E extends RecordEntity>(entity: E, input: Rec
   if (entity === "transactions" && values.type === "refund") values.status = "refunded";
 
   const { data, error } = await supabase.from(entity).insert(values).select("id").single();
-  if (error) return fail(friendlyError(error));
+  if (error) return fail(entity === "deals" ? dealError(error) : friendlyError(error));
 
   if (entity === "activities" && values.deal_id) {
     await touchDeal(supabase, org.id, values.deal_id as string);
@@ -152,7 +160,7 @@ export async function updateRecord<E extends RecordEntity>(
     .eq("id", id)
     .eq("organization_id", org.id)
     .select("id");
-  if (error) return fail(friendlyError(error));
+  if (error) return fail(entity === "deals" ? dealError(error) : friendlyError(error));
   if (!data?.length) return fail("לא מצאנו את הרשומה. ייתכן שהיא נמחקה — רענן את העמוד.");
   revalidate(entity, values.customer_id as string | null);
   if (entity === "customers") revalidatePath(`/customers/${id}`);
@@ -171,7 +179,7 @@ export async function deleteRecord(entity: RecordEntity, id: string): Promise<Ac
 }
 
 export async function moveDeal(id: string, stage: string): Promise<ActionResult<null>> {
-  const parsed = z.object({ id: z.string().uuid(), stage: z.enum(DEAL_STAGES) }).safeParse({ id, stage });
+  const parsed = z.object({ id: z.string().uuid(), stage: stageKey }).safeParse({ id, stage });
   if (!parsed.success) return fail("השלב לא תקין.");
   const { supabase, org } = await requireOrg();
   const { data, error } = await supabase
@@ -180,7 +188,7 @@ export async function moveDeal(id: string, stage: string): Promise<ActionResult<
     .eq("id", id)
     .eq("organization_id", org.id)
     .select("id");
-  if (error) return fail(friendlyError(error));
+  if (error) return fail(dealError(error));
   if (!data?.length) return fail("לא מצאנו את העסקה. ייתכן שהיא נמחקה — רענן את העמוד.");
   revalidatePath("/deals");
   revalidatePath("/home");

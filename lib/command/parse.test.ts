@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extractDate, parseCommand } from "./parse";
+import { appointmentWords, resolveTerms } from "@/lib/terms";
 
 // Tuesday 6 Oct 2026, 09:00 Israel time (local getters = Israel wall clock).
 const now = new Date(2026, 9, 6, 9, 0, 0);
@@ -61,6 +62,39 @@ describe("parseCommand", () => {
     expect(parseCommand("כמה הרווחתי החודש", modules, now)).toEqual({ kind: "ask", question: "כמה הרווחתי החודש" });
     expect(parseCommand("למה ההכנסות ירדו?", modules, now).kind).toBe("ask");
     expect(parseCommand("דנה כהן", modules, now)).toEqual({ kind: "search", query: "דנה כהן" });
+  });
+});
+
+describe("parseCommand with the business's own words", () => {
+  const terms = resolveTerms({ customer: "מטופל", customers: "מטופלים", appointment: "סשן", appointments: "סשנים", deal: "הצעת מחיר", deals: "הצעות מחיר" });
+  const words = appointmentWords(terms);
+
+  it("treats the business's appointment word as an appointment", () => {
+    expect(parseCommand("סשן לדנה מחר ב-10", modules, now, ["סשן"])).toEqual({
+      kind: "appointment",
+      name: "דנה",
+      date: "2026-10-07",
+      time: "10:00",
+      service: null,
+    });
+    expect(parseCommand("קבע סשן ליוסי היום ב-16:30", modules, now, words)).toMatchObject({ kind: "appointment", name: "יוסי", time: "16:30" });
+    expect(parseCommand("טיפול לרון ביום ראשון", modules, now, words)).toMatchObject({ kind: "appointment", name: "רון", date: "2026-10-11" });
+  });
+
+  it("does not treat the word as an appointment without it", () => {
+    expect(parseCommand("סשן לדנה מחר ב-10", modules, now).kind).toBe("search");
+  });
+
+  it("keeps the built-in words working alongside the business's", () => {
+    expect(parseCommand("תור לדנה מחר ב-10", modules, now, words)).toMatchObject({ kind: "appointment", name: "דנה" });
+    expect(parseCommand("פגישה עם יוסי ביום ראשון", modules, now, words)).toMatchObject({ kind: "appointment", name: "יוסי" });
+  });
+
+  it("adds a customer and opens pages by the business's nouns", () => {
+    expect(parseCommand("מטופל חדש רונית 0501234567", modules, now, words, terms)).toEqual({ kind: "customer", name: "רונית", phone: "0501234567" });
+    expect(parseCommand("לקוח חדש רונית", modules, now, words, terms)).toMatchObject({ kind: "customer", name: "רונית" });
+    expect(parseCommand("מטופלים", modules, now, words, terms)).toEqual({ kind: "open", href: "/customers", label: "מטופלים" });
+    expect(parseCommand("פתח הצעות מחיר", modules, now, words, terms)).toEqual({ kind: "open", href: "/deals", label: "הצעות מחיר" });
   });
 });
 

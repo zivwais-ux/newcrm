@@ -6,6 +6,7 @@ import { CalendarBlank, X } from "@phosphor-icons/react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RANGE_PRESETS } from "@/lib/analytics/dates";
 import { activeFilterKeys, filterLabel, parseFilters, type WorkspaceFilters } from "@/lib/components/filters";
+import { useStages } from "@/components/layout/workspace-provider";
 import type { FilterKey } from "@/lib/components/types";
 
 const FILTER_NAMES: Record<FilterKey, string> = { range: "תאריכים", service: "שירות", stage: "שלב עסקה" };
@@ -69,6 +70,7 @@ export function CustomerLink({ id, children, className }: { id: string; children
 
 export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
   const { filters: live, setParams } = useWorkspaceFilters();
+  const stages = useStages();
   const f = filters ?? live;
   const chips = activeFilterKeys(f).filter((k) => k !== "range");
   return (
@@ -90,7 +92,7 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
       {chips.map((k) => (
         <span key={k} className="inline-flex h-8 items-center gap-1.5 border border-brand bg-brand-soft pe-1 ps-2.5 text-xs font-medium text-brand">
           <span className="size-1.5 rounded-full bg-brand" />
-          {filterLabel(k, f[k] as string)}
+          {filterLabel(k, f[k] as string, stages)}
           <button onClick={() => setParams({ [k]: null })} className="grid size-6 place-items-center hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
             <X className="size-3" weight="bold" />
           </button>

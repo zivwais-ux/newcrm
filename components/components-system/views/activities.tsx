@@ -5,10 +5,12 @@ import { CalendarDots } from "@phosphor-icons/react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ActivityItem } from "@/components/business/activity-list";
 import { NewRecordButton } from "@/components/business/record-form";
+import { useTerms } from "@/components/layout/workspace-provider";
 import type { ActivitiesData } from "@/lib/components/loaders";
 import { SectionLabel, type ViewProps } from "../shared";
 
 export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
+  const t = useTerms();
   const sections = data.upcomingFirst
     ? [
         { label: "היום ובהמשך", items: data.upcoming },
@@ -31,7 +33,7 @@ export function ActivitiesView({ data }: ViewProps<ActivitiesData>) {
           compact
           icon={<CalendarDots />}
           title="עדיין אין פעילות"
-          description="כאן יופיעו התורים, השיחות והביקורים שלך — מה שמחכה היום ובהמשך, ומה שהיה לאחרונה. רשום את הפעילות הראשונה."
+          description={`כאן יופיעו ה${t.appointments}, השיחות והביקורים שלך — מה שמחכה היום ובהמשך, ומה שהיה לאחרונה. רשום את הפעילות הראשונה.`}
           action={
             <NewRecordButton entity="activities" size="sm">
               הוסף פעילות
