@@ -31,7 +31,7 @@ import { recipeByKey } from "@/lib/automations/recipes";
 import type { Action } from "@/lib/automations/schema";
 import { cn, formatNumber } from "@/lib/utils";
 import { Switch } from "./switch";
-import { FlowSentence } from "./flow-sentence";
+import { FlowSentence, Tokenized, fillEmpty } from "./flow-sentence";
 import { RunList } from "./run-list";
 import { ACTION_ICONS, ActionEditor, ConditionEditor, TriggerEditor, WaitEditor } from "./node-editors";
 import { conditionFields, conditionFor, firstIssue, nodeIssue, sameNode, subjectOf, useDescribeContext, type Draft, type NodeRef } from "./flow-vocab";
@@ -163,7 +163,7 @@ export function FlowEditor({
         ref: { kind: "action", i },
         tone: "action",
         title: i === 0 ? "אז" : "וגם",
-        sentence: describeAction(a, ctx).replace(/""/g, "…"),
+        sentence: fillEmpty(describeAction(a, ctx)),
         detail: a.type === "prepare_whatsapp" ? a.body : a.type === "add_note" ? a.text : undefined,
         icon: ACTION_ICONS[a.type],
       }),
@@ -343,7 +343,7 @@ export function FlowEditor({
           meta={!readOnly && dirty && id ? <span className="text-warning">יש שינויים שלא נשמרו</span> : undefined}
         />
         <div className="space-y-3 px-4 py-3.5 sm:px-5">
-          <FlowSentence text={describeAutomation(draft, ctx).replace(/""/g, "…")} strong className="text-[15px] sm:text-base" />
+          <FlowSentence text={describeAutomation(draft, ctx)} strong className="text-[15px] sm:text-base" />
           {showIssue && issue && (
             <p role="alert" className="flex items-center gap-1.5 text-[13px] font-medium text-negative">
               <WarningCircle className="size-4 shrink-0" />
@@ -514,7 +514,7 @@ function FlowNode({
         }
       }}
       className={cn(
-        "group w-full shrink-0 cursor-pointer text-start transition-[border-color,box-shadow,transform] duration-150 hover:border-border-strong active:translate-y-px md:w-64",
+        "group w-full shrink-0 cursor-pointer text-start transition-[border-color,box-shadow,transform] duration-150 hover:border-border-strong active:translate-y-px md:w-56 xl:w-64",
         selected && "border-brand ring-2 ring-brand/15 hover:border-brand",
         issue && !selected && "border-warning/60",
       )}
@@ -525,8 +525,14 @@ function FlowNode({
         <TileIcon tone={node.tone} icon={node.icon} />
       </ModuleRail>
       <div className="min-h-[4.25rem] space-y-1 px-3.5 py-3">
-        <p className="text-[14px] leading-relaxed">{node.sentence}</p>
-        {node.detail?.trim() && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground" dir="auto">&quot;{node.detail}&quot;</p>}
+        <p className="text-[14px] leading-relaxed">
+          <Tokenized text={node.sentence} />
+        </p>
+        {node.detail?.trim() && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground" dir="auto">
+            <Tokenized text={node.detail} />
+          </p>
+        )}
       </div>
       {issue && (
         <div className="flex items-center gap-1.5 border-t border-border bg-warning-soft px-3.5 py-1.5 text-xs font-medium text-warning">
@@ -551,7 +557,7 @@ function Connector({ live, options, onAdd, dashed }: { live: boolean; options: A
   const plus =
     "relative z-[1] grid size-6 cursor-pointer place-items-center rounded-sm border border-border-strong bg-module text-muted-foreground shadow-xs transition-[border-color,color,transform] hover:border-brand hover:text-brand active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 data-[state=open]:border-brand data-[state=open]:text-brand";
   return (
-    <div className="relative flex h-12 shrink-0 items-center justify-center md:h-10 md:w-16" aria-hidden={!options.length || undefined}>
+    <div className="relative flex h-12 shrink-0 items-center justify-center md:h-10 md:w-12 xl:w-14" aria-hidden={!options.length || undefined}>
       <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
         <line className={cn("md:hidden", lineClass)} x1="50%" y1="0" x2="50%" y2="100%" stroke={stroke} strokeWidth={live ? 1.5 : 1} />
         <line className={cn("hidden md:block", lineClass)} x1="100%" y1="50%" x2="0" y2="50%" stroke={stroke} strokeWidth={live ? 1.5 : 1} />

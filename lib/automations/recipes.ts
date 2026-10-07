@@ -16,7 +16,7 @@ export const RECIPES: Recipe[] = [
     key: "thank_first_purchase",
     title: "תודה אחרי קנייה ראשונה",
     why: "מי שמקבל תודה אישית חוזר יותר.",
-    build: (t) => ({
+    build: () => ({
       name: "תודה אחרי קנייה ראשונה",
       trigger: { type: "record_created", entity: "transactions" },
       conditions: [

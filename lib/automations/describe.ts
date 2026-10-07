@@ -9,7 +9,8 @@ export interface DescribeContext {
   fieldLabel?: (key: string) => string;
 }
 
-const plural = (n: number, one: string, many: string) => (n === 1 ? one : `${n} ${many}`);
+/** Quotes a text; uses «» when it already contains double quotes, so nothing gets double-wrapped. */
+const quote = (text: string) => (text.includes('"') ? `«${text}»` : `"${text}"`);
 const daysText = (n: number) => (n === 0 ? "באותו יום" : n === 1 ? "יום אחד" : `${n} ימים`);
 
 export function subjectNoun(s: Subject, t: Terms): string {
@@ -86,7 +87,14 @@ export function describeCondition(c: Condition, ctx: DescribeContext = {}): stri
   if (c.field === "has_phone") return c.op === "neq" || c.value === "false" ? "ואין לו טלפון" : "ויש לו טלפון";
   if (c.field === "is_first_purchase") return c.op === "neq" || c.value === "false" ? "ולא קנייה ראשונה" : "וזו הקנייה הראשונה";
   const name = c.field.startsWith("cf:") ? `"${ctx.fieldLabel?.(c.field.slice(3)) ?? "שדה"}"` : (FIELD_WORDS[c.field] ?? c.field).replace("השירות", `ה${t.service}`);
-  const value = c.field === "stage" ? (ctx.stageLabel?.(c.value) ?? c.value) : (STATUS_WORDS[c.value] ?? c.value);
+  const value =
+    c.field === "stage"
+      ? (ctx.stageLabel?.(c.value) ?? c.value)
+      : c.value === "true"
+        ? "כן"
+        : c.value === "false"
+          ? "לא"
+          : (STATUS_WORDS[c.value] ?? c.value);
   if (c.op === "empty" || c.op === "not_empty") return `ו${name} ${OP_WORDS[c.op]}`;
   return `ו${name} ${OP_WORDS[c.op]}${c.op === "gt" || c.op === "lt" ? "" : " "}${value}`;
 }
@@ -95,13 +103,13 @@ export function describeAction(a: Action, ctx: DescribeContext = {}): string {
   const t = ctx.terms ?? DEFAULT_TERMS;
   switch (a.type) {
     case "create_task":
-      return `צור משימה "${a.title}"${a.due_in_days ? ` ל${plural(a.due_in_days, "מחר", "ימים")}`.replace("ל1 ימים", "למחר") : ""}`;
+      return `צור משימה ${quote(a.title)}${a.due_in_days === 1 ? " למחר" : a.due_in_days ? ` בעוד ${a.due_in_days} ימים` : ""}`;
     case "prepare_whatsapp":
       return "הכן הודעת WhatsApp לשליחה";
     case "add_note":
       return `הוסף הערה ל${t.customer}`;
     case "notify":
-      return `שלח לי התראה: "${a.title}"`;
+      return `שלח לי התראה: ${quote(a.title)}`;
     case "set_value":
       return a.target === "deal_stage"
         ? `העבר את ה${t.deal} לשלב "${ctx.stageLabel?.(a.value) ?? a.value}"`

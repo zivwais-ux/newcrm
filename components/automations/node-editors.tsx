@@ -9,6 +9,7 @@ import { useFields, useStages, useTerms } from "@/components/layout/workspace-pr
 import { describeAction, describeCondition, describeTrigger } from "@/lib/automations/describe";
 import type { Action, Condition, Subject, Trigger } from "@/lib/automations/schema";
 import { cn } from "@/lib/utils";
+import { Tokenized, fillEmpty } from "./flow-sentence";
 import { ChoiceChip, DaysWords, Segmented, Sentence, Stepper, Word } from "./chips";
 import {
   ACTION_TYPES,
@@ -38,7 +39,7 @@ function ReadsAs({ text }: { text: string }) {
   return (
     <div className="border-s-2 border-brand bg-rail px-3.5 py-2.5 text-[13.5px] leading-relaxed text-foreground">
       <span className="text-muted-foreground">כך זה נקרא: </span>
-      {text.replace(/""/g, "…")}
+      <Tokenized text={fillEmpty(text)} />
     </div>
   );
 }

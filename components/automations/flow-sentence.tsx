@@ -1,7 +1,32 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { useTerms } from "@/components/layout/workspace-provider";
+import { placeholderChips } from "./flow-vocab";
 import { cn, formatDate } from "@/lib/utils";
+
+/** An empty quoted text ("") reads as "…" so a half-built part never looks broken. */
+export const fillEmpty = (s: string) => s.replace(/(^|\s)""/g, "$1…");
+
+/** Text with the engine's fill-ins ({שם}, {סכום}…) shown as small marked words instead of braces. */
+export function Tokenized({ text }: { text: string }) {
+  const terms = useTerms();
+  const words: Record<string, string> = Object.fromEntries(placeholderChips(terms).map((p) => [p.token, p.label]));
+  const parts = text.split(/(\{[^}]+\})/g);
+  return (
+    <>
+      {parts.map((p, i) =>
+        words[p] ? (
+          <span key={i} className="mx-px rounded-sm bg-brand-soft px-1 text-[0.93em] text-brand">
+            {words[p]}
+          </span>
+        ) : (
+          <Fragment key={i}>{p}</Fragment>
+        ),
+      )}
+    </>
+  );
+}
 
 /**
  * A flow read aloud: describeAutomation's parts ("כאשר… ← ואם… ← אז…") with quiet arrows between them,
@@ -18,7 +43,9 @@ export function FlowSentence({ text, className, strong = false }: { text: string
               ←
             </span>
           )}
-          <span className={cn(strong && i === 0 && "font-medium")}>{p}</span>
+          <span className={cn(strong && i === 0 && "font-medium")}>
+            <Tokenized text={fillEmpty(p)} />
+          </span>
         </Fragment>
       ))}
     </p>
