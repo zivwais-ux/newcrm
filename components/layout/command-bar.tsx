@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   CheckSquare,
   Cube,
+  FlowArrow,
   Handshake,
   MagnifyingGlass,
   Receipt,
@@ -272,6 +273,22 @@ export function CommandBar() {
                       </CommandItem>
                     );
                   })}
+                </CommandGroup>
+              )}
+
+              {!query.trim() && (
+                <CommandGroup heading="מעבר">
+                  <CommandItem
+                    value="__go-automations"
+                    onSelect={() => {
+                      close();
+                      router.push("/automations");
+                    }}
+                  >
+                    <FlowArrow className="text-muted-foreground" />
+                    <span>זרימות</span>
+                    <span className="ms-auto truncate text-xs text-muted-foreground">דברים שקורים לבד</span>
+                  </CommandItem>
                 </CommandGroup>
               )}
 
