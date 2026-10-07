@@ -63,6 +63,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
           onOpenChange={(o) => !o && setEditing(null)}
           recordId={editing.id}
           initial={{ name: editing.name, email: editing.email, phone: editing.phone, source: editing.source, status: editing.status, value: editing.value, owner_id: editing.owner_id }}
+          customFields={editing.custom_fields}
         />
       )}
     </div>

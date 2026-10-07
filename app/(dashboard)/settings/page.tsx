@@ -1,4 +1,4 @@
-import { Buildings, Kanban, Sparkle, TextAa, User, Users, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, Kanban, Sparkle, TextAa, Textbox, User, Users, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import { getMembers, requireOrg, canManage } from "@/lib/supabase/server";
 import { isAIConfigured } from "@/lib/ai/openai";
 import { PageContainer, PageHeader } from "@/components/layout/page";
@@ -10,6 +10,8 @@ import { ROLE_LABELS, label } from "@/components/business/labels";
 import { TemplatesForm } from "@/components/business/templates-form";
 import { TermsForm } from "@/components/settings/terms-form";
 import { StagesForm } from "@/components/settings/stages-form";
+import { FieldsForm } from "@/components/settings/fields-form";
+import { loadFields } from "@/lib/stages";
 import { loadTemplates } from "@/lib/whatsapp-server";
 import { resolveTerms } from "@/lib/terms";
 import { initials } from "@/lib/utils";
@@ -18,12 +20,16 @@ export const metadata = { title: "הגדרות" };
 
 export default async function SettingsPage() {
   const { supabase, org, role, profile, user } = await requireOrg();
-  const [members, templates] = await Promise.all([getMembers(supabase, org.id), loadTemplates(supabase, org.id, resolveTerms(org.terms))]);
+  const [members, templates, fields] = await Promise.all([
+    getMembers(supabase, org.id),
+    loadTemplates(supabase, org.id, resolveTerms(org.terms)),
+    loadFields(supabase, org.id),
+  ]);
   const aiReady = isAIConfigured();
 
   return (
     <PageContainer className="max-w-3xl">
-      <PageHeader title="הגדרות" description="פרטי העסק, המילים והשלבים שלו, הפרופיל שלך והצוות." />
+      <PageHeader title="הגדרות" description="פרטי העסק, המילים, השלבים והשדות שלו, הפרופיל שלך והצוות." />
       <div className="space-y-6">
         <Module>
           <ModuleRail index={1} icon={<Buildings />} title="העסק" />
@@ -57,7 +63,17 @@ export default async function SettingsPage() {
         </Module>
 
         <Module>
-          <ModuleRail index={4} icon={<User />} title="הפרופיל שלי" />
+          <ModuleRail index={4} icon={<Textbox />} title="השדות שלי" />
+          <ModuleBody className="space-y-4">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              פרטים שחשוב לך לשמור ואין להם מקום בטופס הרגיל. בחר סוג רשומה, הוסף שדות וגרור כדי לשנות את הסדר.
+            </p>
+            <FieldsForm initial={fields} canManage={canManage(role)} />
+          </ModuleBody>
+        </Module>
+
+        <Module>
+          <ModuleRail index={5} icon={<User />} title="הפרופיל שלי" />
           <ModuleBody className="space-y-4">
             {user.email && (
               <p className="truncate text-[13px] text-muted-foreground">
@@ -69,7 +85,7 @@ export default async function SettingsPage() {
         </Module>
 
         <Module>
-          <ModuleRail index={5} icon={<WhatsappLogo />} title="הודעות WhatsApp מוכנות" />
+          <ModuleRail index={6} icon={<WhatsappLogo />} title="הודעות WhatsApp מוכנות" />
           <ModuleBody className="space-y-4">
             <p className="text-[13px] leading-relaxed text-muted-foreground">ההודעות שמופיעות בכל כפתור WhatsApp במערכת.</p>
             <TemplatesForm initial={templates} canManage={canManage(role)} />
@@ -77,7 +93,7 @@ export default async function SettingsPage() {
         </Module>
 
         <Module>
-          <ModuleRail index={6} icon={<Users />} title="הצוות" meta={<span className="num">{members.length}</span>} />
+          <ModuleRail index={7} icon={<Users />} title="הצוות" meta={<span className="num">{members.length}</span>} />
           <p className="px-4 pt-4 text-[13px] leading-relaxed text-muted-foreground sm:px-5">
             כל מי שיש לו גישה לחשבון. הנתונים של כל עסק נפרדים לגמרי.
           </p>
@@ -102,7 +118,7 @@ export default async function SettingsPage() {
 
         <Module>
           <ModuleRail
-            index={7}
+            index={8}
             icon={<Sparkle />}
             title="היועץ החכם"
             actions={aiReady ? <Badge variant="positive">מחובר</Badge> : <Badge variant="warning">לא מחובר</Badge>}

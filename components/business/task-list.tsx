@@ -151,6 +151,7 @@ export function TaskList({ tasks, showCustomer = true, actions = true }: { tasks
             assigned_to: editing.assigned_to,
             due_date: editing.due_date,
           }}
+          customFields={editing.custom_fields}
           labels={{ customer_id: editing.customers?.name ?? null, deal_id: editing.deals?.name ?? null }}
         />
       )}

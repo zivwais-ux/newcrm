@@ -1,8 +1,14 @@
 // Fields the business defines itself. Definitions live in field_definitions; values live in each
 // record's custom_fields jsonb under the field's key. Pure helpers (client and server).
 
+import { formatDate } from "@/lib/utils";
+
 export const FIELD_ENTITIES = ["customers", "transactions", "activities", "deals", "leads", "tasks"] as const;
 export type FieldEntity = (typeof FIELD_ENTITIES)[number];
+
+/** Entities whose table has a custom_fields column, so values can actually be stored. */
+export const VALUE_ENTITIES: readonly FieldEntity[] = ["customers", "transactions", "activities", "deals", "leads", "tasks"];
+export const canStoreValues = (entity: string): entity is FieldEntity => (VALUE_ENTITIES as readonly string[]).includes(entity);
 
 export const FIELD_TYPES = ["text", "number", "money", "date", "select", "multiselect", "checkbox", "phone"] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
@@ -89,19 +95,68 @@ export function coerceCustomFields(defs: FieldDef[], input: Record<string, unkno
   return { ok: true, value: out };
 }
 
-/** Display text for a stored value. */
-export function formatFieldValue(def: Pick<FieldDef, "type">, value: unknown): string {
+/**
+ * Applies a custom_fields patch from a form onto what a record already stores.
+ * Only keys of the given definitions are touched: an empty value removes the key, anything else
+ * is coerced. Every other key (legacy/imported raw columns like "הערה") is kept as is.
+ */
+export function mergeCustomFields(
+  defs: FieldDef[],
+  existing: Record<string, unknown> | null | undefined,
+  input: Record<string, unknown>,
+): { ok: true; value: Record<string, unknown> } | { ok: false; error: string } {
+  const out: Record<string, unknown> = { ...(existing ?? {}) };
+  for (const def of defs) {
+    if (!(def.key in input)) continue;
+    const res = coerceFieldValue(def, input[def.key]);
+    if (!res.ok) return res;
+    if (res.value === null) delete out[def.key];
+    else out[def.key] = res.value;
+  }
+  return { ok: true, value: out };
+}
+
+/**
+ * For imports: coerces the values that belong to a definition and drops cells that don't fit
+ * (one bad cell never fails a whole file). Keys that aren't definitions stay untouched.
+ */
+export function coerceImportedFields(defs: FieldDef[], values: Record<string, unknown>): Record<string, unknown> {
+  const byKey = new Map(defs.map((d) => [d.key, d]));
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(values)) {
+    const def = byKey.get(k);
+    if (!def) {
+      out[k] = v;
+      continue;
+    }
+    const res = coerceFieldValue(def, v);
+    if (res.ok && res.value !== null) out[k] = res.value;
+  }
+  return out;
+}
+
+/** Display text for a stored value. Money uses the business currency when given. */
+export function formatFieldValue(def: Pick<FieldDef, "type">, value: unknown, currency?: string): string {
   if (value === null || value === undefined || value === "") return "";
   switch (def.type) {
     case "checkbox":
       return value === true || value === "true" ? "כן" : "לא";
     case "multiselect":
       return Array.isArray(value) ? value.join(", ") : String(value);
-    case "money":
-      return typeof value === "number" ? `₪${value.toLocaleString("he-IL")}` : String(value);
+    case "money": {
+      if (typeof value !== "number") return String(value);
+      if (!currency) return `₪${value.toLocaleString("he-IL")}`;
+      try {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2, minimumFractionDigits: 0 }).format(value);
+      } catch {
+        return value.toLocaleString("he-IL");
+      }
+    }
+    case "number":
+      return typeof value === "number" ? value.toLocaleString("he-IL") : String(value);
     case "date": {
-      const d = new Date(String(value));
-      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString("he-IL");
+      const s = String(value);
+      return /^\d{4}-\d{2}-\d{2}/.test(s) ? formatDate(s) : s;
     }
     default:
       return String(value);

@@ -1,7 +1,16 @@
 // Raw rows + confirmed mapping → canonical business records.
 // This is the semantic layer: after this point nothing depends on spreadsheet column names.
 
-import { CUSTOM, IGNORE, FIELD_BY_KEY, detectEntities, type ColumnMapping } from "./canonical-schema";
+import {
+  CUSTOM,
+  IGNORE,
+  FIELD_BY_KEY,
+  detectEntities,
+  parseFieldTarget,
+  parseNewFieldTarget,
+  type ColumnMapping,
+  type ImportFieldEntity,
+} from "./canonical-schema";
 import {
   clean,
   inferDateOrder,
@@ -37,6 +46,8 @@ export interface TransactionDraft {
   owner_name: string | null;
   status: string;
   type: string;
+  /** Values of the business's own fields, by field key. */
+  custom_fields?: Record<string, string>;
 }
 
 export interface LeadDraft {
@@ -55,6 +66,8 @@ export interface DealDraft {
   value: number;
   expected_close: string | null;
   owner_name: string | null;
+  /** Values of the business's own fields, by field key. */
+  custom_fields?: Record<string, string>;
 }
 
 export interface ActivityDraft {
@@ -91,6 +104,8 @@ export const ISSUE_LABELS: Record<IssueType, string> = {
 export interface MappingContext {
   byTarget: Map<string, string>; // canonical key → column
   customColumns: string[];
+  /** Columns that fill one of the business's own fields. */
+  fieldColumns: { column: string; entity: ImportFieldEntity; key: string }[];
   entities: ReturnType<typeof detectEntities>;
   dateOrder: DateOrder;
 }
@@ -98,16 +113,20 @@ export interface MappingContext {
 export function buildMappingContext(mapping: ColumnMapping[], rows: RawRow[]): MappingContext {
   const byTarget = new Map<string, string>();
   const customColumns: string[] = [];
+  const fieldColumns: MappingContext["fieldColumns"] = [];
   for (const m of mapping) {
     if (m.target === IGNORE) continue;
-    if (m.target === CUSTOM) customColumns.push(m.column);
+    const field = parseFieldTarget(m.target);
+    if (field) fieldColumns.push({ column: m.column, ...field });
+    // A field that will be created on import is previewed like any extra column.
+    else if (m.target === CUSTOM || parseNewFieldTarget(m.target)) customColumns.push(m.column);
     else if (FIELD_BY_KEY.has(m.target) && !byTarget.has(m.target)) byTarget.set(m.target, m.column);
   }
   const dateColumns = [...byTarget.entries()]
     .filter(([k]) => FIELD_BY_KEY.get(k)?.type === "date")
     .map(([, c]) => c);
   const dateSample = rows.slice(0, 500).flatMap((r) => dateColumns.map((c) => r[c]));
-  return { byTarget, customColumns, entities: detectEntities(mapping), dateOrder: inferDateOrder(dateSample) };
+  return { byTarget, customColumns, fieldColumns, entities: detectEntities(mapping), dateOrder: inferDateOrder(dateSample) };
 }
 
 /** Converts one raw row. Returns the canonical record and any blocking issues. */
@@ -125,6 +144,11 @@ export function toCanonical(row: RawRow, rowIndex: number, ctx: MappingContext):
   for (const col of ctx.customColumns) {
     const v = clean(row[col]);
     if (v) custom[col] = v;
+  }
+  const own: Partial<Record<ImportFieldEntity, Record<string, string>>> = {};
+  for (const f of ctx.fieldColumns) {
+    const v = clean(row[f.column]);
+    if (v) (own[f.entity] ??= {})[f.key] = v;
   }
 
   const has = (e: string) => ctx.entities.includes(e as never);
@@ -153,7 +177,7 @@ export function toCanonical(row: RawRow, rowIndex: number, ctx: MappingContext):
         source: text("lead.source"),
         status: normalizeLeadStatus(get("lead.status")),
         value: parseMoney(get("lead.value")),
-        custom_fields: { ...custom, ...(company ? { company } : {}) },
+        custom_fields: { ...custom, ...(company ? { company } : {}), ...own.leads },
       };
   }
 
@@ -168,7 +192,7 @@ export function toCanonical(row: RawRow, rowIndex: number, ctx: MappingContext):
         phone,
         company,
         status: normalizeCustomerStatus(get("customer.status")),
-        custom_fields: has("lead") ? {} : custom,
+        custom_fields: { ...(has("lead") ? {} : custom), ...own.customers },
       };
     }
   }
@@ -186,6 +210,7 @@ export function toCanonical(row: RawRow, rowIndex: number, ctx: MappingContext):
         owner_name: text("transaction.owner"),
         status: normalizeTxStatus(get("transaction.status")),
         type: amount < 0 ? "refund" : normalizeTxType(get("transaction.type")),
+        ...(own.transactions ? { custom_fields: own.transactions } : {}),
       };
     }
   }
@@ -200,6 +225,7 @@ export function toCanonical(row: RawRow, rowIndex: number, ctx: MappingContext):
         value: Math.abs(parseMoney(get("deal.value")) ?? 0),
         expected_close: parseDate(get("deal.expected_close"), ctx.dateOrder),
         owner_name: text("transaction.owner"),
+        ...(own.deals ? { custom_fields: own.deals } : {}),
       };
   }
 

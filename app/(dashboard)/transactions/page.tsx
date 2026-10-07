@@ -15,6 +15,8 @@ import { LiveDot, Module, ModuleRail } from "@/components/ui/module";
 import { TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, label } from "@/components/business/labels";
 import { pageParam, param, searchTerm, type SearchParams } from "@/lib/params";
 import type { Transaction } from "@/types/domain";
+import { loadFields } from "@/lib/stages";
+import { formatFieldValue } from "@/lib/fields";
 
 export const metadata = { title: "כסף ומכירות" };
 const PAGE_SIZE = 50;
@@ -47,7 +49,12 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
     .order("created_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   const rows = (data ?? []) as Transaction[];
-  const { count: total } = await supabase.from("transactions").select("id", { count: "exact", head: true }).eq("organization_id", org.id);
+  const [{ count: total }, fields] = await Promise.all([
+    supabase.from("transactions").select("id", { count: "exact", head: true }).eq("organization_id", org.id),
+    loadFields(supabase, org.id),
+  ]);
+  // The business's own fields marked "הצג בטבלה".
+  const columns = fields.filter((f) => f.entity === "transactions" && f.show_in_list);
 
   const filtered = Boolean(q || type || from || to);
 
@@ -117,6 +124,13 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                     <TableHead className="hidden md:table-cell">{serviceHead}</TableHead>
                     <TableHead className="hidden lg:table-cell">טופל על ידי</TableHead>
                     <TableHead className="hidden sm:table-cell">סטטוס</TableHead>
+                    {columns.map((f) => (
+                      <TableHead key={f.key} className="hidden max-w-[160px] lg:table-cell">
+                        <span dir="auto" className="block truncate">
+                          {f.label}
+                        </span>
+                      </TableHead>
+                    ))}
                     <TableHead className="pe-4 text-end">סכום</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -140,6 +154,21 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
                           {t.type === "refund" ? TRANSACTION_TYPE_LABELS.refund : label(TRANSACTION_STATUS_LABELS, t.status)}
                         </Badge>
                       </TableCell>
+                      {columns.map((f) => {
+                        const text = formatFieldValue(f, t.custom_fields?.[f.key], org.currency);
+                        const ltr = f.type === "number" || f.type === "money" || f.type === "phone";
+                        return (
+                          <TableCell key={f.key} className={ltr ? "num hidden max-w-[160px] text-[13px] lg:table-cell" : "hidden max-w-[160px] text-[13px] lg:table-cell"}>
+                            {text ? (
+                              <span dir={ltr ? "ltr" : "auto"} className="block truncate" title={text}>
+                                {text}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                        );
+                      })}
                       <TableCell className="num pe-4 text-end font-medium">
                         <Ltr>{formatCurrency(t.type === "refund" ? -t.amount : t.amount, org.currency)}</Ltr>
                       </TableCell>

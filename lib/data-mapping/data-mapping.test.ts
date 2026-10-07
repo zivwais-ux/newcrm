@@ -120,3 +120,29 @@ describe("validation and transform", () => {
     expect(b.customers).toHaveLength(0);
   });
 });
+
+describe("own fields in imports", () => {
+  const map = (column: string, target: string): ColumnMapping => ({ column, target, confidence: 1, source: "user" });
+  const sheet = [{ שם: "דנה", סכום: "200", תאריך: "01/05/2025", רכב: "12-345-67", הערה: "VIP", חדש: "כן" }];
+  const mapping = [
+    map("שם", "customer.name"),
+    map("סכום", "transaction.amount"),
+    map("תאריך", "transaction.date"),
+    map("רכב", "field:customers:f_car"),
+    map("הערה", "custom"),
+    map("חדש", "newfield:transactions"),
+  ];
+
+  it("puts mapped columns under the field key and keeps raw extra columns", () => {
+    const v = validateRows(sheet, mapping);
+    const r = v.validRecords[0];
+    expect(r.customer?.custom_fields).toEqual({ הערה: "VIP", חדש: "כן", f_car: "12-345-67" });
+    expect(r.transaction?.custom_fields).toBeUndefined();
+  });
+
+  it("fills a sale field", () => {
+    const v = validateRows(sheet, [...mapping.slice(0, 5), map("חדש", "field:transactions:f_new")]);
+    expect(v.validRecords[0].transaction?.custom_fields).toEqual({ f_new: "כן" });
+    expect(detectEntities([map("רכב", "field:customers:f_car")])).toEqual([]);
+  });
+});

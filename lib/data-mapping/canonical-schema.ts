@@ -15,7 +15,32 @@ export interface CanonicalField {
 
 export const IGNORE = "ignore";
 export const CUSTOM = "custom";
-export type MappingTarget = string; // CanonicalField.key | IGNORE | CUSTOM
+export type MappingTarget = string; // CanonicalField.key | IGNORE | CUSTOM | field:… | newfield:…
+
+/** Entities a business's own field can be filled for from a file (their tables have custom_fields). */
+export const IMPORT_FIELD_ENTITIES = ["customers", "leads", "transactions", "deals"] as const;
+export type ImportFieldEntity = (typeof IMPORT_FIELD_ENTITIES)[number];
+export const FIELD_ENTITY_OF: Record<ImportFieldEntity, CanonicalEntity> = {
+  customers: "customer",
+  leads: "lead",
+  transactions: "transaction",
+  deals: "deal",
+};
+
+/** "field:customers:f_ab12" — the column fills an existing field of the business. */
+export const fieldTarget = (entity: ImportFieldEntity, key: string) => `field:${entity}:${key}`;
+/** "newfield:customers" — a new field named after the column is created when the import starts. */
+export const newFieldTarget = (entity: ImportFieldEntity) => `newfield:${entity}`;
+
+export function parseFieldTarget(target: MappingTarget): { entity: ImportFieldEntity; key: string } | null {
+  const m = target.match(/^field:([a-z]+):(f_[a-z0-9_]{1,40})$/);
+  return m && (IMPORT_FIELD_ENTITIES as readonly string[]).includes(m[1]) ? { entity: m[1] as ImportFieldEntity, key: m[2] } : null;
+}
+
+export function parseNewFieldTarget(target: MappingTarget): ImportFieldEntity | null {
+  const m = target.match(/^newfield:([a-z]+)$/);
+  return m && (IMPORT_FIELD_ENTITIES as readonly string[]).includes(m[1]) ? (m[1] as ImportFieldEntity) : null;
+}
 
 export const CANONICAL_FIELDS: CanonicalField[] = [
   // Customer / contact

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coerceCustomFields, coerceFieldValue, formatFieldValue, newFieldKey, type FieldDef } from "./fields";
+import { canStoreValues, coerceCustomFields, coerceFieldValue, coerceImportedFields, formatFieldValue, mergeCustomFields, newFieldKey, type FieldDef } from "./fields";
 
 const def = (type: FieldDef["type"], options: string[] = []): FieldDef => ({
   id: "x",
@@ -38,5 +38,33 @@ describe("custom fields", () => {
 
   it("makes stable ascii keys", () => {
     expect(newFieldKey()).toMatch(/^f_[a-z0-9]{1,40}$/);
+  });
+
+  it("merges a form patch without dropping other keys", () => {
+    const defs = [def("number"), { ...def("text"), key: "f_name" }];
+    const existing = { הערה: "מהקובץ", f_test: 3, f_name: "ישן", f_gone: "שדה שהוסר" };
+    expect(mergeCustomFields(defs, existing, { f_test: "7", f_name: "", other: "x" })).toEqual({
+      ok: true,
+      value: { הערה: "מהקובץ", f_test: 7, f_gone: "שדה שהוסר" },
+    });
+    expect(mergeCustomFields(defs, null, { f_test: "abc" })).toEqual({ ok: false, error: '"שדה" צריך להיות מספר' });
+    expect(mergeCustomFields(defs, existing, {})).toEqual({ ok: true, value: existing });
+  });
+
+  it("coerces imported cells leniently", () => {
+    const defs = [def("number"), { ...def("checkbox"), key: "f_ok" }];
+    expect(coerceImportedFields(defs, { f_test: "1,500", f_ok: "אולי", עמודה: "טקסט" })).toEqual({ f_test: 1500, עמודה: "טקסט" });
+  });
+
+  it("formats money and dates", () => {
+    expect(formatFieldValue(def("money"), 1200, "ILS")).toBe("₪1,200");
+    expect(formatFieldValue(def("date"), "2026-10-07")).toMatch(/^7 ב.+ 2026$/);
+    expect(formatFieldValue(def("number"), 1500)).toBe("1,500");
+  });
+
+  it("knows which entities can store values", () => {
+    expect(canStoreValues("customers")).toBe(true);
+    expect(canStoreValues("activities")).toBe(true);
+    expect(canStoreValues("services")).toBe(false);
   });
 });

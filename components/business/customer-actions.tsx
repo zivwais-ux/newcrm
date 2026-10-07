@@ -85,6 +85,7 @@ export function CustomerActions({ customer }: { customer: Customer }) {
           onOpenChange={(o) => !o && setDialog(null)}
           recordId={customer.id}
           initial={{ name: customer.name, email: customer.email, phone: customer.phone, company: customer.company, status: customer.status }}
+          customFields={customer.custom_fields}
         />
       )}
       {dialog === "sale" && <QuickSaleDialog open onOpenChange={(o) => !o && setDialog(null)} customer={customer} />}

@@ -9,7 +9,8 @@ import { buildBundle, CustomerResolver, type CanonicalRecord } from "@/lib/data-
 import { getDataCounts } from "@/lib/analytics/queries";
 import { COMPONENT_REGISTRY, getDefinition, missingEntities } from "@/lib/components/registry";
 import { DEAL_STAGES, type ActionResult } from "@/types/domain";
-import { loadStages } from "@/lib/stages";
+import { loadFields, loadStages } from "@/lib/stages";
+import { coerceImportedFields, type FieldDef } from "@/lib/fields";
 import { fail, friendlyError, ok } from "./errors";
 
 const BATCH = 500;
@@ -56,7 +57,7 @@ const mappingSchema = z
   .array(
     z.object({
       column: z.string().max(200),
-      target: z.string().max(60),
+      target: z.string().max(80),
       confidence: z.number().min(0).max(1),
       reason: z.string().max(300).optional(),
       source: z.enum(["ai", "heuristic", "user"]),
@@ -127,6 +128,7 @@ const recordSchema = z.object({
       owner_name: nullableText,
       status: z.enum(["paid", "pending", "cancelled", "refunded"]),
       type: z.enum(["sale", "refund", "subscription", "other"]),
+      custom_fields: z.record(z.string().max(200), text).optional(),
     })
     .nullable(),
   lead: z
@@ -148,6 +150,7 @@ const recordSchema = z.object({
       value: z.number().finite().min(0),
       expected_close: isoDate.nullable(),
       owner_name: nullableText,
+      custom_fields: z.record(z.string().max(200), text).optional(),
     })
     .nullable(),
   activity: z
@@ -204,7 +207,11 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
 
   try {
     const bundle = buildBundle(parsed.data as CanonicalRecord[]);
-    const resolver = await loadCustomerResolver(supabase, org.id);
+    const [resolver, fieldDefs] = await Promise.all([loadCustomerResolver(supabase, org.id), loadFields(supabase, org.id)]);
+    // Values of the business's own fields are coerced to the field's type (bad cells are dropped);
+    // raw extra columns stay as they were.
+    const defsOf = (entity: FieldDef["entity"]) => fieldDefs.filter((f) => f.entity === entity);
+    const fit = (entity: FieldDef["entity"], values: Record<string, unknown> | undefined) => coerceImportedFields(defsOf(entity), values ?? {});
     const stats: ChunkStats = { customersCreated: 0, customersMatched: 0, transactions: 0, services: 0, leads: 0, deals: 0, activities: 0, existingSkipped: 0 };
 
     const customerIds: string[] = [];
@@ -220,7 +227,7 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
         const id = randomUUID();
         customerIds.push(id);
         resolver.add(c, id);
-        newCustomers.push({ id, organization_id: org.id, ...c, source_import_id: importId });
+        newCustomers.push({ id, organization_id: org.id, ...c, custom_fields: fit("customers", c.custom_fields), source_import_id: importId });
       }
     }
     await insertInBatches(supabase, "customers", newCustomers);
@@ -265,11 +272,12 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
     await insertInBatches(
       supabase,
       "transactions",
-      freshTransactions.map(({ customerIndex, ...t }) => ({
+      freshTransactions.map(({ customerIndex, custom_fields, ...t }) => ({
         organization_id: org.id,
         customer_id: idFor(customerIndex),
         service_id: t.product_or_service ? serviceIds.get(t.product_or_service.toLowerCase()) ?? null : null,
         ...t,
+        custom_fields: fit("transactions", custom_fields),
         source_import_id: importId,
       })),
     );
@@ -278,7 +286,7 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
     await insertInBatches(
       supabase,
       "leads",
-      bundle.leads.map((l) => ({ organization_id: org.id, owner_id: user.id, ...l, source_import_id: importId })),
+      bundle.leads.map((l) => ({ organization_id: org.id, owner_id: user.id, ...l, custom_fields: fit("leads", l.custom_fields), source_import_id: importId })),
     );
     stats.leads = bundle.leads.length;
 
@@ -290,13 +298,13 @@ export async function importChunk(importId: string, records: CanonicalRecord[]):
     await insertInBatches(
       supabase,
       "deals",
-      bundle.deals.map(({ customerIndex, owner_name, ...d }) => ({
+      bundle.deals.map(({ customerIndex, owner_name, custom_fields, ...d }) => ({
         organization_id: org.id,
         customer_id: idFor(customerIndex),
         owner_id: user.id,
         ...d,
         stage: fitStage(d.stage),
-        custom_fields: owner_name ? { owner_name } : {},
+        custom_fields: { ...fit("deals", custom_fields), ...(owner_name ? { owner_name } : {}) },
         source_import_id: importId,
       })),
     );

@@ -284,6 +284,7 @@ export function PipelineBoard({
             expected_close: editing.expected_close,
             owner_id: editing.owner_id,
           }}
+          customFields={editing.custom_fields}
           labels={{ customer_id: editing.customers?.name ?? null }}
         />
       )}

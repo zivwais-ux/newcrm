@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { canManage, requireOrg } from "@/lib/supabase/server";
 import { ACTIVITY_TYPES, type ActionResult } from "@/types/domain";
+import { canStoreValues, mergeCustomFields, type FieldDef } from "@/lib/fields";
 import { fail, friendlyError, ok } from "./errors";
 
 // Manual data entry and editing for every canonical entity.
@@ -90,7 +91,10 @@ const schemas = {
 } as const;
 
 export type RecordEntity = keyof typeof schemas;
-export type RecordInput<E extends RecordEntity> = z.input<(typeof schemas)[E]>;
+export type RecordInput<E extends RecordEntity> = z.input<(typeof schemas)[E]> & {
+  /** Values of the business's own fields, by field key. Merged into the record's custom_fields. */
+  custom_fields?: Record<string, unknown>;
+};
 
 const PATHS: Record<RecordEntity, string[]> = {
   customers: ["/customers", "/home"],
@@ -102,6 +106,51 @@ const PATHS: Record<RecordEntity, string[]> = {
 };
 
 type Supabase = Awaited<ReturnType<typeof requireOrg>>["supabase"];
+
+/** Splits the business's own field values off the built-in columns. */
+function splitCustom(input: unknown): { rest: unknown; custom: Record<string, unknown> | null } {
+  if (!input || typeof input !== "object") return { rest: input, custom: null };
+  const { custom_fields, ...rest } = input as Record<string, unknown>;
+  const custom = custom_fields && typeof custom_fields === "object" && !Array.isArray(custom_fields) ? (custom_fields as Record<string, unknown>) : null;
+  return { rest, custom };
+}
+
+async function loadEntityFields(supabase: Supabase, orgId: string, entity: RecordEntity): Promise<FieldDef[] | null> {
+  const { data, error } = await supabase
+    .from("field_definitions")
+    .select("id, entity, key, label, type, options, position, show_in_list")
+    .eq("organization_id", orgId)
+    .eq("entity", entity)
+    .eq("archived", false);
+  if (error) return null;
+  return (data ?? []) as FieldDef[];
+}
+
+/**
+ * The record's custom_fields after applying the form's values for the business's own fields.
+ * Returns undefined when there's nothing to write (no values sent, no fields, or no column).
+ */
+async function resolveCustomFields(
+  supabase: Supabase,
+  orgId: string,
+  entity: RecordEntity,
+  custom: Record<string, unknown> | null,
+  recordId?: string,
+): Promise<{ ok: true; value: Record<string, unknown> | undefined } | { ok: false; error: string }> {
+  if (!custom || !canStoreValues(entity)) return { ok: true, value: undefined };
+  const defs = await loadEntityFields(supabase, orgId, entity);
+  if (defs === null) return { ok: false, error: "לא הצלחנו לטעון את השדות. נסה שוב." };
+  const touched = defs.filter((d) => d.key in custom);
+  if (!touched.length) return { ok: true, value: undefined };
+  let existing: Record<string, unknown> = {};
+  if (recordId) {
+    const { data, error } = await supabase.from(entity).select("custom_fields").eq("id", recordId).eq("organization_id", orgId).maybeSingle();
+    if (error) return { ok: false, error: friendlyError(error) };
+    if (!data) return { ok: false, error: "לא מצאנו את הרשומה. ייתכן שהיא נמחקה — רענן את העמוד." };
+    existing = ((data as { custom_fields?: Record<string, unknown> | null }).custom_fields ?? {}) as Record<string, unknown>;
+  }
+  return mergeCustomFields(touched, existing, custom);
+}
 
 /** Marks a deal as just worked on. last_activity_at is timestamptz, so "now" is the same instant in Israel. */
 async function touchDeal(supabase: Supabase, orgId: string, dealId: string) {
@@ -123,10 +172,14 @@ function revalidate(entity: RecordEntity, customerId?: string | null) {
 }
 
 export async function createRecord<E extends RecordEntity>(entity: E, input: RecordInput<E>): Promise<ActionResult<{ id: string }>> {
-  const parsed = schemas[entity].safeParse(input);
+  const { rest, custom } = splitCustom(input);
+  const parsed = schemas[entity].safeParse(rest);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "בדוק את הפרטים בטופס.");
   const { supabase, org, user } = await requireOrg();
   const values: Record<string, unknown> = { ...parsed.data, organization_id: org.id };
+  const customFields = await resolveCustomFields(supabase, org.id, entity, custom);
+  if (!customFields.ok) return fail(customFields.error);
+  if (customFields.value) values.custom_fields = customFields.value;
   if (entity === "customers" || entity === "transactions" || entity === "activities") values.owner_id = user.id;
   if (entity === "deals" || entity === "leads") values.owner_id ??= user.id;
   if (entity === "tasks") values.assigned_to ??= user.id;
@@ -148,10 +201,15 @@ export async function updateRecord<E extends RecordEntity>(
   input: RecordInput<E>,
 ): Promise<ActionResult<null>> {
   if (!z.string().uuid().safeParse(id).success) return fail("הרשומה לא תקינה.");
-  const parsed = schemas[entity].safeParse(input);
+  const { rest, custom } = splitCustom(input);
+  const parsed = schemas[entity].safeParse(rest);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "בדוק את הפרטים בטופס.");
   const { supabase, org } = await requireOrg();
   const values: Record<string, unknown> = { ...parsed.data };
+  // Merged with what the record already stores, so imported/legacy keys survive the edit.
+  const customFields = await resolveCustomFields(supabase, org.id, entity, custom, id);
+  if (!customFields.ok) return fail(customFields.error);
+  if (customFields.value) values.custom_fields = customFields.value;
   if (entity === "deals") values.last_activity_at = new Date().toISOString();
   if (entity === "transactions" && values.type === "refund") values.status = "refunded";
   const { data, error } = await supabase

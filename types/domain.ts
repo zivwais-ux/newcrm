@@ -86,6 +86,8 @@ export interface Transaction {
   owner_id: string | null;
   owner_name: string | null;
   created_at: string;
+  /** The business's own field values (and imported raw columns), by key. */
+  custom_fields?: Record<string, unknown>;
   customers?: { name: string } | null;
 }
 
@@ -116,6 +118,8 @@ export interface Task {
   status: "open" | "done";
   due_date: string | null;
   created_at: string;
+  /** The business's own field values (and imported raw columns), by key. */
+  custom_fields?: Record<string, unknown>;
   customers?: { name: string } | null;
   deals?: { name: string } | null;
 }

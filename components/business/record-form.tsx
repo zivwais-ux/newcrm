@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EntityPicker } from "./entity-picker";
-import { useStages, useTerms, useWorkspace } from "@/components/layout/workspace-provider";
+import { useFields, useMoney, useStages, useTerms, useWorkspace } from "@/components/layout/workspace-provider";
+import { CustomFieldInputs, toFormValue } from "./custom-field-inputs";
+import { canStoreValues } from "@/lib/fields";
 import type { Terms } from "@/lib/terms";
 import { createRecord, updateRecord, type RecordEntity } from "@/lib/actions/records";
 import { ACTIVITY_TYPES, DEAL_STAGES } from "@/types/domain";
@@ -205,6 +207,7 @@ export function RecordFormDialog({
   onOpenChange,
   recordId,
   initial,
+  customFields,
   labels,
   onSaved,
 }: {
@@ -213,6 +216,8 @@ export function RecordFormDialog({
   onOpenChange: (open: boolean) => void;
   recordId?: string;
   initial?: Record<string, string | number | null | undefined>;
+  /** The record's stored custom_fields (for editing), so the business's own fields show their values. */
+  customFields?: Record<string, unknown> | null;
   labels?: { customer_id?: string | null; deal_id?: string | null };
   onSaved?: (id: string) => void;
 }) {
@@ -236,11 +241,25 @@ export function RecordFormDialog({
   });
   const [pending, startTransition] = useTransition();
   const set = (k: string, v: string | null) => setValues((s) => ({ ...s, [k]: v ?? "" }));
+  // The business's own fields. Only keys the user changed are sent; the server merges them into
+  // the stored custom_fields, so other keys (imported columns, archived fields) are never lost.
+  const allDefs = useFields(entity);
+  const defs = canStoreValues(entity) ? allDefs : [];
+  const currency = useMoney();
+  const [custom, setCustom] = useState<Record<string, unknown>>(() =>
+    Object.fromEntries(defs.map((d) => [d.key, toFormValue(d, customFields?.[d.key])])),
+  );
+  const [touched, setTouched] = useState<Set<string>>(() => new Set());
+  const setCustomValue = (key: string, value: unknown) => {
+    setCustom((c) => ({ ...c, [key]: value }));
+    setTouched((t) => (t.has(key) ? t : new Set(t).add(key)));
+  };
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const payload: Record<string, unknown> = { ...values };
     if (entity === "activities" && values.date) payload.date = new Date(values.date).toISOString();
+    if (touched.size) payload.custom_fields = Object.fromEntries([...touched].map((k) => [k, custom[k]]));
     startTransition(async () => {
       const res = recordId
         ? await updateRecord(entity, recordId, payload as never)
@@ -320,6 +339,7 @@ export function RecordFormDialog({
               )}
             </div>
           ))}
+          <CustomFieldInputs defs={defs} values={custom} currency={currency} onChange={setCustomValue} />
           <DialogFooter className="col-span-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               ביטול

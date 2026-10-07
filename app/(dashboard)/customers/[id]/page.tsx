@@ -20,6 +20,8 @@ import { Module, ModuleBody, ModuleRail } from "@/components/ui/module";
 import { CUSTOMER_STATUS_LABELS, TRANSACTION_STATUS_LABELS, TRANSACTION_TYPE_LABELS, label } from "@/components/business/labels";
 import type { Activity, Customer, Deal, Task, Transaction } from "@/types/domain";
 import { resolveTerms } from "@/lib/terms";
+import { loadFields } from "@/lib/stages";
+import { formatFieldValue } from "@/lib/fields";
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,12 +34,13 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   if (!customer) notFound();
   const c = customer as Customer;
 
-  const [txRes, actRes, dealRes, taskRes, allTx] = await Promise.all([
+  const [txRes, actRes, dealRes, taskRes, allTx, fieldDefs] = await Promise.all([
     supabase.from("transactions").select("*").eq("customer_id", id).order("date", { ascending: false }).limit(100),
     supabase.from("activities").select("*").eq("customer_id", id).order("date", { ascending: false }).limit(50),
     supabase.from("deals").select("*").eq("customer_id", id).order("updated_at", { ascending: false }),
     supabase.from("tasks").select("*, deals(name)").eq("customer_id", id).order("status").order("due_date"),
     supabase.from("transactions").select("amount, date, type, status, product_or_service").eq("customer_id", id).order("date"),
+    loadFields(supabase, org.id),
   ]);
   const transactions = (txRes.data ?? []) as Transaction[];
   const activities = (actRes.data ?? []) as Activity[];
@@ -57,7 +60,15 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
   const topServices = [...byService.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   const openTasks = tasks.filter((t) => t.status === "open");
   const segment = typeof c.custom_fields?.segment === "string" ? (c.custom_fields.segment as string) : null;
-  const customFields = Object.entries(c.custom_fields ?? {}).filter(([, v]) => typeof v === "string" || typeof v === "number");
+  // The business's own fields first (in its order, empty ones hidden), then other stored keys
+  // such as raw columns kept from an import. Keys of removed fields (f_…) stay hidden.
+  const ownFields = fieldDefs
+    .filter((f) => f.entity === "customers")
+    .map((f) => ({ key: f.key, label: f.label, type: f.type, text: formatFieldValue(f, c.custom_fields?.[f.key], org.currency) }))
+    .filter((f) => f.text);
+  const customFields = Object.entries(c.custom_fields ?? {}).filter(
+    ([k, v]) => !/^f_[a-z0-9_]+$/.test(k) && (typeof v === "string" || typeof v === "number"),
+  );
   const money = (n: number) => formatCurrency(n, org.currency);
 
   return (
@@ -159,10 +170,24 @@ export default async function CustomerProfilePage({ params }: { params: Promise<
                   <p className="border-t border-border pt-3 text-xs text-muted-foreground">{terms.customer} מאז {formatDate(c.created_at)}</p>
                 </ModuleBody>
               </Module>
-              {customFields.length > 0 && (
+              {ownFields.length + customFields.length > 0 && (
                 <Module>
                   <ModuleRail icon={<Tag />} title="פרטים נוספים" />
                   <ModuleBody className="space-y-2 text-sm">
+                    {ownFields.map((f) => (
+                      <div key={f.key} className="flex justify-between gap-3">
+                        <span dir="auto" className="shrink-0 text-muted-foreground">
+                          {f.label}
+                        </span>
+                        <span
+                          dir={f.type === "number" || f.type === "money" || f.type === "phone" ? "ltr" : "auto"}
+                          className={f.type === "number" || f.type === "money" || f.type === "phone" ? "num truncate" : "truncate text-end"}
+                          title={f.text}
+                        >
+                          {f.type === "phone" ? <a href={`tel:${f.text}`} className="hover:underline">{f.text}</a> : f.text}
+                        </span>
+                      </div>
+                    ))}
                     {customFields.map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-3">
                         <span className="capitalize text-muted-foreground">{k.replace(/_/g, " ")}</span>

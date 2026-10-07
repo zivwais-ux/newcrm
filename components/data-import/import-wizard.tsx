@@ -15,16 +15,25 @@ import { Ltr } from "@/components/ui/ltr";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { createClient } from "@/lib/supabase/client";
-import { useWorkspace } from "@/components/layout/workspace-provider";
+import { useCanManage, useFields, useTerms, useWorkspace } from "@/components/layout/workspace-provider";
 import {
   CANONICAL_FIELDS,
   CUSTOM,
   ENTITY_LABELS,
   FIELD_BY_KEY,
+  FIELD_ENTITY_OF,
   IGNORE,
+  IMPORT_FIELD_ENTITIES,
+  fieldTarget,
+  newFieldTarget,
+  parseFieldTarget,
+  parseNewFieldTarget,
   type CanonicalEntity,
   type ColumnMapping,
+  type ImportFieldEntity,
 } from "@/lib/data-mapping/canonical-schema";
+import { createField } from "@/lib/actions/fields";
+import type { FieldDef } from "@/lib/fields";
 import {
   ACCEPT_ATTR,
   FileParseError,
@@ -189,6 +198,15 @@ export function ImportWizard({
 }) {
   const router = useRouter();
   const { org } = useWorkspace();
+  const terms = useTerms();
+  const canManageFields = useCanManage();
+  // The business's own fields a column can fill (entities whose tables keep custom_fields).
+  const customerFields = useFields("customers");
+  const leadFields = useFields("leads");
+  const saleFields = useFields("transactions");
+  const dealFields = useFields("deals");
+  const ownFields: Record<ImportFieldEntity, FieldDef[]> = { customers: customerFields, leads: leadFields, transactions: saleFields, deals: dealFields };
+  const ownEntityLabel: Record<ImportFieldEntity, string> = { customers: terms.customers, leads: "פניות", transactions: terms.sales, deals: terms.deals };
   const inputRef = useRef<HTMLInputElement>(null);
   const startedWith = useRef<File | null>(null);
   const [step, setStep] = useState<Step>("upload");
@@ -324,7 +342,7 @@ export function ImportWizard({
               mapping: p.mapping.map((x) => {
                 if (x.column === column) return { ...x, target, confidence: 1, source: "user", reason: "נבחר על ידך" };
                 // A business field can only be used once — free it from any other column.
-                if (target !== CUSTOM && target !== IGNORE && x.target === target)
+                if (target !== CUSTOM && target !== IGNORE && !parseNewFieldTarget(target) && x.target === target)
                   return { ...x, target: CUSTOM, confidence: 0.3, source: "user", reason: "הועבר — יישמר כשדה נוסף" };
                 return x;
               }),
@@ -333,20 +351,68 @@ export function ImportWizard({
     );
   }
 
+  /**
+   * Columns mapped to "new field" become real fields now (or reuse a field with the same name),
+   * and their mapping points at the field key. Returns the updated plans, or null on failure.
+   */
+  async function createNewFields(work: SheetPlan[]): Promise<SheetPlan[] | null> {
+    if (!work.some((p) => p.mapping.some((m) => parseNewFieldTarget(m.target)))) return work;
+    const known: Record<ImportFieldEntity, { key: string; label: string }[]> = {
+      customers: [...customerFields],
+      leads: [...leadFields],
+      transactions: [...saleFields],
+      deals: [...dealFields],
+    };
+    const out: SheetPlan[] = [];
+    for (const plan of work) {
+      const mapping: ColumnMapping[] = [];
+      for (const m of plan.mapping) {
+        const entity = parseNewFieldTarget(m.target);
+        if (!entity) {
+          mapping.push(m);
+          continue;
+        }
+        const label = m.column.trim().slice(0, 60) || "שדה מהקובץ";
+        let key = known[entity].find((f) => f.label.trim().toLowerCase() === label.toLowerCase())?.key;
+        if (!key) {
+          const res = await createField({ entity, label, type: "text" });
+          if (!res.ok) {
+            toast.error(`לא הצלחנו ליצור את השדה "${label}": ${res.error}`);
+            return null;
+          }
+          key = res.data.key;
+          known[entity].push({ key, label });
+        }
+        mapping.push({ ...m, target: fieldTarget(entity, key) });
+      }
+      out.push({ ...plan, mapping });
+    }
+    // Keep the new mapping, so a retry after an error doesn't create the fields again.
+    setPlans((ps) => ps.map((p) => out.find((o) => o.id === p.id) ?? p));
+    return out;
+  }
+
   async function runImport() {
-    const work = included.filter((p) => (validations.get(p.id)?.valid ?? 0) > 0);
-    if (!work.length) return;
+    const ready = included.filter((p) => (validations.get(p.id)?.valid ?? 0) > 0);
+    if (!ready.length) return;
     setStep("importing");
     setProgress(2);
+    const work = await createNewFields(ready);
+    if (!work) {
+      setStep("summary");
+      return;
+    }
+    // Field columns now carry field keys: re-read the rows with the final mapping.
+    const finalValidations = new Map(work.map((p) => [p.id, work === ready ? validations.get(p.id)! : validateRows(p.sheet.rows, p.mapping)]));
     const totals: ChunkStats = { ...EMPTY_TOTALS };
     const serviceNames = new Set<string>();
     let revenue = 0;
     let imported = 0;
-    const totalRows = work.reduce((n, p) => n + validations.get(p.id)!.valid, 0);
+    const totalRows = work.reduce((n, p) => n + finalValidations.get(p.id)!.valid, 0);
     let done = 0;
 
     for (const plan of work) {
-      const validation = validations.get(plan.id)!;
+      const validation = finalValidations.get(plan.id)!;
       const records = validation.validRecords;
       const multi = plans.length > 1;
       const created = await createImport({
@@ -734,6 +800,22 @@ export function ImportWizard({
                                 .filter(Boolean)
                                 .slice(0, 3);
                               const field = FIELD_BY_KEY.get(m.target);
+                              const own = parseFieldTarget(m.target);
+                              const ownDef = own ? ownFields[own.entity].find((f) => f.key === own.key) : undefined;
+                              const newFor = parseNewFieldTarget(m.target);
+                              const shown = field
+                                ? `${ENTITY_LABELS[field.entity]} · ${field.label}`
+                                : own
+                                  ? `${ownEntityLabel[own.entity]} · ${ownDef?.label ?? "שדה שלי"}`
+                                  : newFor
+                                    ? `שדה חדש ב${ownEntityLabel[newFor]}: ${m.column}`
+                                    : m.target === CUSTOM
+                                      ? "שמור כשדה נוסף"
+                                      : "אל תייבא";
+                              // "New field" is offered for the kinds of records this sheet creates.
+                              const sheetEntities = IMPORT_FIELD_ENTITIES.filter((e) => v.entities.includes(FIELD_ENTITY_OF[e]));
+                              const newFieldEntities: ImportFieldEntity[] = sheetEntities.length ? sheetEntities : ["customers"];
+                              const ownGroups = IMPORT_FIELD_ENTITIES.filter((e) => ownFields[e].length > 0);
                               return (
                                 <TableRow key={m.column} className={cn(m.confidence < 0.7 && m.source !== "user" && field && "bg-warning-soft/50")}>
                                   <TableCell className="ps-3 font-medium" dir="auto">
@@ -747,9 +829,7 @@ export function ImportWizard({
                                   <TableCell>
                                     <Select value={m.target} onValueChange={(t) => setTarget(plan.id, m.column, t)}>
                                       <SelectTrigger size="sm" aria-label={`מה זו העמודה ${m.column}`}>
-                                        <SelectValue>
-                                          {field ? `${ENTITY_LABELS[field.entity]} · ${field.label}` : m.target === CUSTOM ? "שמור כשדה נוסף" : "אל תייבא"}
-                                        </SelectValue>
+                                        <SelectValue>{shown}</SelectValue>
                                       </SelectTrigger>
                                       <SelectContent>
                                         {ENTITY_ORDER.map((entity) => (
@@ -762,7 +842,24 @@ export function ImportWizard({
                                             ))}
                                           </SelectGroup>
                                         ))}
+                                        {ownGroups.map((entity) => (
+                                          <SelectGroup key={`own-${entity}`}>
+                                            <SelectLabel>השדות שלי · {ownEntityLabel[entity]}</SelectLabel>
+                                            {ownFields[entity].map((f) => (
+                                              <SelectItem key={f.key} value={fieldTarget(entity, f.key)}>
+                                                {f.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectGroup>
+                                        ))}
                                         <SelectSeparator />
+                                        {canManageFields &&
+                                          newFieldEntities.map((entity) => (
+                                            <SelectItem key={`new-${entity}`} value={newFieldTarget(entity)}>
+                                              <Plus className="size-3.5 text-brand" />
+                                              {newFieldEntities.length > 1 ? `שדה חדש ב${ownEntityLabel[entity]} בשם "${m.column}"` : `שדה חדש בשם "${m.column}"`}
+                                            </SelectItem>
+                                          ))}
                                         <SelectItem value={CUSTOM}>שמור כשדה נוסף</SelectItem>
                                         <SelectItem value={IGNORE}>אל תייבא</SelectItem>
                                       </SelectContent>

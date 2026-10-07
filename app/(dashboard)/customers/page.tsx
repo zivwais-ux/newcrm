@@ -47,7 +47,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   }
   const segmented = Boolean(segment) || ids.length > 0 || param(params, "ids") !== undefined;
 
-  type Base = { id: string; name: string; email: string | null; phone: string | null; company: string | null; status: string };
+  type Base = { id: string; name: string; email: string | null; phone: string | null; company: string | null; status: string; custom_fields: Record<string, unknown> | null };
   let base: Base[] = [];
   let count = 0;
   let error: unknown = null;
@@ -58,7 +58,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
     for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
     const results = await Promise.all(
       chunks.map((chunk) =>
-        supabase.from("customers").select("id, name, email, phone, company, status").eq("organization_id", org.id).in("id", chunk),
+        supabase.from("customers").select("id, name, email, phone, company, status, custom_fields").eq("organization_id", org.id).in("id", chunk),
       ),
     );
     error = results.find((r) => r.error)?.error ?? null;
@@ -74,7 +74,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Se
   } else {
     let query = supabase
       .from("customers")
-      .select("id, name, email, phone, company, status", { count: "exact" })
+      .select("id, name, email, phone, company, status, custom_fields", { count: "exact" })
       .eq("organization_id", org.id);
     if (q) query = query.or(`name.ilike.%${q}%,email.ilike.%${q}%,company.ilike.%${q}%,phone.ilike.%${q}%`);
     if (status) query = query.eq("status", status);
