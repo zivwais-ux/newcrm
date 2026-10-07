@@ -204,7 +204,8 @@ begin
       select (not exists (
         select 1 from public.transactions o
         where o.organization_id = p_org and o.customer_id = t.customer_id and o.id <> t.id
-          and public.is_paid_sale(o) and o.date <= t.date
+          and public.is_paid_sale(o)
+          and (o.date < t.date or (o.date = t.date and o.created_at < t.created_at))
       ))::text into v
       from public.transactions t where t.id = p_id and t.organization_id = p_org and t.customer_id is not null;
       v := coalesce(v, 'false');
@@ -577,7 +578,7 @@ begin
                     cust, v_deal,
                     public.il_today() + coalesce((act->>'due_in_days')::int, 0),
                     a.created_by, a.created_by);
-            done_parts := done_parts || 'משימה';
+            done_parts := array_append(done_parts, 'משימה');
 
           when 'prepare_whatsapp' then
             if v_lead is not null then
@@ -590,9 +591,9 @@ begin
               insert into public.outbox_messages (organization_id, customer_id, lead_id, name, phone, body, automation_id)
               values (q.organization_id, cust, v_lead, v_cname, v_phone,
                       left(public.automation_fill(act->>'body', q.organization_id, q.record_type, q.record_id, q.context), 1000), a.id);
-              done_parts := done_parts || 'הודעה מוכנה';
+              done_parts := array_append(done_parts, 'הודעה מוכנה');
             else
-              done_parts := done_parts || 'אין טלפון — דילגנו על ההודעה';
+              done_parts := array_append(done_parts, 'אין טלפון — דילגנו על ההודעה');
             end if;
 
           when 'add_note' then
@@ -600,7 +601,7 @@ begin
               insert into public.activities (organization_id, customer_id, deal_id, type, date, notes)
               values (q.organization_id, cust, v_deal, 'note', now(),
                       left(public.automation_fill(act->>'text', q.organization_id, q.record_type, q.record_id, q.context), 1000));
-              done_parts := done_parts || 'הערה';
+              done_parts := array_append(done_parts, 'הערה');
             end if;
 
           when 'notify' then
@@ -608,25 +609,25 @@ begin
             values (q.organization_id,
                     left(public.automation_fill(act->>'title', q.organization_id, q.record_type, q.record_id, q.context), 200),
                     case when cust is not null then '/customers/' || cust when v_deal is not null then '/deals?deal=' || v_deal else null end);
-            done_parts := done_parts || 'התראה';
+            done_parts := array_append(done_parts, 'התראה');
 
           when 'set_value' then
             if act->>'target' = 'customer_status' and cust is not null and (act->>'value') in ('active', 'inactive', 'lead', 'churned') then
               update public.customers set status = act->>'value' where id = cust and organization_id = q.organization_id;
-              done_parts := done_parts || 'סטטוס עודכן';
+              done_parts := array_append(done_parts, 'סטטוס עודכן');
             elsif act->>'target' = 'lead_status' and v_lead is not null and (act->>'value') in ('new', 'contacted', 'qualified', 'converted', 'lost') then
               update public.leads set status = act->>'value' where id = v_lead and organization_id = q.organization_id;
-              done_parts := done_parts || 'סטטוס עודכן';
+              done_parts := array_append(done_parts, 'סטטוס עודכן');
             elsif act->>'target' = 'deal_stage' and v_deal is not null then
               update public.deals set stage = act->>'value' where id = v_deal and organization_id = q.organization_id;
-              done_parts := done_parts || 'שלב עודכן';
+              done_parts := array_append(done_parts, 'שלב עודכן');
             elsif act->>'target' = 'custom_field'
                   and exists (select 1 from public.field_definitions f
                               where f.organization_id = q.organization_id and f.entity = q.record_type
                                 and f.key = act->>'field' and not f.archived) then
               execute format('update public.%I set custom_fields = custom_fields || jsonb_build_object($1, $2::text) where id = $3 and organization_id = $4', q.record_type)
                 using act->>'field', act->>'value', q.record_id, q.organization_id;
-              done_parts := done_parts || 'שדה עודכן';
+              done_parts := array_append(done_parts, 'שדה עודכן');
             end if;
           else
             null;
@@ -649,7 +650,7 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Schedule (pg_cron). Applied separately in the dashboard if the extension needs enabling there:
---   create extension if not exists pg_cron;
---   select cron.schedule('automation-process', '*/5 * * * *', 'select public.automation_process()');
---   select cron.schedule('automation-scan', '5 4 * * *', 'select public.automation_scan()');
+-- Schedule (pg_cron): due work every 5 minutes, date-based scan daily at 04:05 UTC (07:05 Israel).
+create extension if not exists pg_cron;
+select cron.schedule('automation-process', '*/5 * * * *', 'select public.automation_process()');
+select cron.schedule('automation-scan', '5 4 * * *', 'select public.automation_scan()');
