@@ -11,6 +11,7 @@ export interface Organization {
   data_source_pref: string | null;
   currency: string;
   onboarding_completed: boolean;
+  terms?: Record<string, string> | null;
   created_at: string;
 }
 
@@ -44,8 +45,17 @@ export interface Lead {
   updated_at: string;
 }
 
+/** The stages every organization starts with. Businesses rename, reorder and add their own (deal_stages table). */
 export const DEAL_STAGES = ["new", "contacted", "qualified", "proposal", "negotiation", "won", "lost"] as const;
-export type DealStage = (typeof DEAL_STAGES)[number];
+/** A stage key: one of the defaults or one the business added. */
+export type DealStage = string;
+export type StageKind = "open" | "won" | "lost";
+export interface StageDef {
+  key: string;
+  label: string;
+  kind: StageKind;
+  position: number;
+}
 
 export interface Deal {
   id: string;
