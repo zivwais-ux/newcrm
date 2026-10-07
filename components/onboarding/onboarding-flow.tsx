@@ -19,12 +19,14 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { completeOnboarding, createOrganization } from "@/lib/actions/org";
+import { updateTerms } from "@/lib/actions/workspace";
+import { DEFAULT_TERMS, TERM_GROUPS, type TermKey } from "@/lib/terms";
 import type { BusinessType } from "@/types/domain";
 
 const BUSINESS_TYPES: { value: BusinessType; title: string; description: string; icon: React.ElementType }[] = [
-  { value: "service", title: "אני נותן שירות", description: "מספרה, קליניקה, סטודיו, ניקיון, תיקונים, שירותים מקומיים", icon: Storefront },
-  { value: "sales", title: "אני מוכר", description: "סוכנות, מכירות לעסקים, צוות מכירות, נדל״ן", icon: Briefcase },
-  { value: "both", title: "גם וגם", description: "נותן שירות, ויש גם תהליך מכירה", icon: Stack },
+  { value: "service", title: "אנשים חוזרים אליי", description: "יש לי לקוחות קבועים, תורים או מנויים", icon: Storefront },
+  { value: "sales", title: "אני סוגר עסקאות", description: "כל לקוח עובר תהליך: פנייה, הצעה, סגירה", icon: Briefcase },
+  { value: "both", title: "גם וגם", description: "יש לקוחות שחוזרים, ויש גם תהליך מכירה", icon: Stack },
 ];
 
 const DATA_SOURCES = [
@@ -33,6 +35,80 @@ const DATA_SOURCES = [
 ] as const;
 
 type DataSource = (typeof DATA_SOURCES)[number]["value"];
+type Step = "business" | "words" | "data";
+const STEPS: { id: Step; title: string }[] = [
+  { id: "business", title: "על העסק" },
+  { id: "words", title: "המילים שלך" },
+  { id: "data", title: "הנתונים שלך" },
+];
+/** Onboarding asks only the three words everyone meets on day one; the rest live in settings. */
+const WORD_GROUPS = TERM_GROUPS.filter((g) => g.singular !== "deal");
+
+function WordsStep({ value, onChange }: { value: Partial<Record<TermKey, string>>; onChange: (v: Partial<Record<TermKey, string>>) => void }) {
+  const [custom, setCustom] = useState<Record<string, boolean>>({});
+  return (
+    <div className="space-y-7">
+      {WORD_GROUPS.map((g) => {
+        const current = value[g.singular] ?? DEFAULT_TERMS[g.singular];
+        const isCustom = custom[g.singular] || !g.suggestions.some(([one]) => one === current);
+        return (
+          <fieldset key={g.singular} className="space-y-2.5">
+            <legend className="mb-1 text-sm font-semibold">{g.question}</legend>
+            <div className="flex flex-wrap gap-1.5">
+              {g.suggestions.map(([one, many]) => (
+                <button
+                  key={one}
+                  type="button"
+                  aria-pressed={!isCustom && current === one}
+                  onClick={() => {
+                    setCustom((c) => ({ ...c, [g.singular]: false }));
+                    onChange({ ...value, [g.singular]: one, [g.plural]: many });
+                  }}
+                  className={cn(
+                    "border px-3 py-1.5 text-[13.5px] transition-colors cursor-pointer",
+                    !isCustom && current === one ? "border-brand bg-brand text-white" : "border-border bg-module hover:border-brand/50",
+                  )}
+                >
+                  {one}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-pressed={isCustom}
+                onClick={() => setCustom((c) => ({ ...c, [g.singular]: true }))}
+                className={cn(
+                  "border border-dashed px-3 py-1.5 text-[13.5px] cursor-pointer",
+                  isCustom ? "border-brand text-brand" : "border-border-strong text-muted-foreground hover:border-brand/50",
+                )}
+              >
+                מילה משלי…
+              </button>
+            </div>
+            {isCustom && (
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  dir="auto"
+                  autoFocus
+                  placeholder="ביחיד"
+                  aria-label="ביחיד"
+                  value={value[g.singular] ?? ""}
+                  onChange={(e) => onChange({ ...value, [g.singular]: e.target.value })}
+                />
+                <Input
+                  dir="auto"
+                  placeholder="ברבים"
+                  aria-label="ברבים"
+                  value={value[g.plural] ?? ""}
+                  onChange={(e) => onChange({ ...value, [g.plural]: e.target.value })}
+                />
+              </div>
+            )}
+          </fieldset>
+        );
+      })}
+    </div>
+  );
+}
 
 function OptionCard({
   selected,
@@ -87,7 +163,7 @@ export function OnboardingFlow({
   defaultName,
   businessType: initialType,
 }: {
-  initialStep: "business" | "data";
+  initialStep: Step;
   defaultName: string;
   businessType: BusinessType | null;
 }) {
@@ -96,6 +172,7 @@ export function OnboardingFlow({
   const [businessName, setBusinessName] = useState("");
   const [businessType, setBusinessType] = useState<BusinessType | null>(initialType);
   const [source, setSource] = useState<DataSource | null>(null);
+  const [words, setWords] = useState<Partial<Record<TermKey, string>>>({});
   const [pending, startTransition] = useTransition();
 
   function submitBusiness(e: React.FormEvent) {
@@ -103,6 +180,14 @@ export function OnboardingFlow({
     if (!businessType) return toast.error("בחר איזה סוג עסק יש לך.");
     startTransition(async () => {
       const res = await createOrganization({ name: businessName, businessType, fullName: defaultName || undefined });
+      if (!res.ok) return void toast.error(res.error);
+      setStep("words");
+    });
+  }
+
+  function submitWords() {
+    startTransition(async () => {
+      const res = await updateTerms(words);
       if (!res.ok) return void toast.error(res.error);
       setStep("data");
     });
@@ -118,21 +203,25 @@ export function OnboardingFlow({
     });
   }
 
+  const stepIndex = STEPS.findIndex((x) => x.id === step);
+
   return (
     <div className="w-full max-w-lg">
       <div className="mb-10 space-y-2">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">{step === "business" ? "על העסק" : "הנתונים שלך"}</span>
-          <span className="tabular">שלב {step === "business" ? 1 : 2} מתוך 2</span>
+          <span className="font-medium text-foreground">{STEPS[stepIndex].title}</span>
+          <span className="num">
+            שלב {stepIndex + 1} מתוך {STEPS.length}
+          </span>
         </div>
-        <Progress value={step === "business" ? 50 : 100} className="h-2" />
+        <Progress value={((stepIndex + 1) / STEPS.length) * 100} className="h-1.5" />
       </div>
 
       {step === "business" ? (
         <form onSubmit={submitBusiness} className="space-y-8">
           <div className="space-y-2">
             <h1 className="text-[28px] leading-tight font-bold tracking-tight">ברוך הבא! בוא נכיר את העסק שלך</h1>
-            <p className="text-[15px] leading-relaxed text-muted-foreground">שתי שאלות קצרות, ונבנה לך מסך עבודה שמתאים בדיוק לאיך שהעסק שלך עובד.</p>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">כמה שאלות קצרות, והמערכת תדבר בשפה של העסק שלך.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="businessName">איך קוראים לעסק?</Label>
@@ -148,7 +237,7 @@ export function OnboardingFlow({
             />
           </div>
           <fieldset className="space-y-3">
-            <legend className="mb-3 text-sm font-medium">מה העסק עושה?</legend>
+            <legend className="mb-3 text-sm font-medium">איך העסק עובד?</legend>
             {BUSINESS_TYPES.map((t) => (
               <OptionCard
                 key={t.value}
@@ -166,6 +255,26 @@ export function OnboardingFlow({
             {!pending && <ArrowRight className="rtl:-scale-x-100" />}
           </Button>
         </form>
+      ) : step === "words" ? (
+        <div className="space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-[28px] leading-tight font-bold tracking-tight">איך זה נקרא אצלך?</h1>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              המערכת תשתמש במילים שלך בכל מקום. אפשר לשנות אותן בכל רגע בהגדרות.
+            </p>
+          </div>
+          <WordsStep value={words} onChange={setWords} />
+          <div className="flex gap-2">
+            <Button size="lg" className="flex-1" onClick={submitWords} disabled={pending}>
+              {pending ? <CircleNotch className="animate-spin" /> : null}
+              המשך
+              {!pending && <ArrowRight className="rtl:-scale-x-100" />}
+            </Button>
+            <Button size="lg" variant="ghost" onClick={() => setStep("data")} disabled={pending}>
+              דלג
+            </Button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-8">
           <div className="space-y-2">

@@ -5,6 +5,7 @@ import type { BusinessType, Member, MemberRole, StageDef } from "@/types/domain"
 import type { MessageTemplate } from "@/lib/whatsapp";
 import { DEFAULT_TERMS, type Terms } from "@/lib/terms";
 import { DEFAULT_STAGES, stageLabel } from "@/lib/stages";
+import type { FieldDef, FieldEntity } from "@/lib/fields";
 
 export interface WorkspaceContextValue {
   org: { id: string; name: string; business_type: BusinessType; currency: string };
@@ -17,6 +18,8 @@ export interface WorkspaceContextValue {
   terms?: Terms;
   /** The business's own deal stages, in order. */
   stages?: StageDef[];
+  /** Fields the business defined itself, all entities. */
+  fields?: FieldDef[];
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
@@ -54,4 +57,11 @@ export function useStages(): StageDef[] {
 export function useStageLabel() {
   const stages = useStages();
   return (key: string | null | undefined) => stageLabel(key, stages);
+}
+
+const NO_FIELDS: FieldDef[] = [];
+/** The business's own fields for one kind of record, in order. */
+export function useFields(entity: FieldEntity): FieldDef[] {
+  const all = useContext(WorkspaceContext)?.fields ?? NO_FIELDS;
+  return all.filter((f) => f.entity === entity);
 }

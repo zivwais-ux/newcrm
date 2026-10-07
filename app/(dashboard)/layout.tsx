@@ -5,7 +5,7 @@ import { CreateProvider } from "@/components/layout/create-provider";
 import { Dock } from "@/components/layout/dock";
 import { TopStrip } from "@/components/layout/top-strip";
 import { loadTemplates } from "@/lib/whatsapp-server";
-import { loadStages } from "@/lib/stages";
+import { loadFields, loadStages } from "@/lib/stages";
 import { resolveTerms } from "@/lib/terms";
 
 // Server actions on these pages (import chunks) can take longer than the default.
@@ -14,10 +14,12 @@ export const maxDuration = 60;
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { supabase, user, profile, org, role } = await requireOrg();
   if (!org.onboarding_completed) redirect("/onboarding");
-  const [members, templates, stages] = await Promise.all([
+  const terms = resolveTerms(org.terms);
+  const [members, templates, stages, fields] = await Promise.all([
     getMembers(supabase, org.id),
-    loadTemplates(supabase, org.id),
+    loadTemplates(supabase, org.id, terms),
     loadStages(supabase, org.id),
+    loadFields(supabase, org.id),
   ]);
   const name = profile.full_name || user.email?.split("@")[0] || "חבר צוות";
 
@@ -29,8 +31,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         role,
         members,
         templates,
-        terms: resolveTerms(org.terms),
+        terms,
         stages,
+        fields,
       }}
     >
       <CreateProvider>

@@ -10,7 +10,7 @@ import { fail, friendlyError, ok } from "./errors";
 
 // The business shapes the app to itself: its own words and its own stages.
 
-const termsSchema = z.record(z.enum(TERM_KEYS), z.string().max(30));
+const termsSchema = z.partialRecord(z.enum(TERM_KEYS), z.string().max(30));
 
 export async function updateTerms(terms: z.input<typeof termsSchema>): Promise<ActionResult<null>> {
   const parsed = termsSchema.safeParse(terms);

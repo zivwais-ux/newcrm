@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DEAL_STAGES, type StageDef } from "@/types/domain";
 import { STAGE_LABELS } from "@/components/business/labels";
+import type { FieldDef } from "@/lib/fields";
 
 /** The stages every organization starts with (used until its own are loaded). */
 export const DEFAULT_STAGES: StageDef[] = DEAL_STAGES.map((key, position) => ({
@@ -31,3 +32,15 @@ export const isOpenStage = (key: string, stages: StageDef[]) => (stages.find((s)
 
 /** Stage keys are ascii: "s_" + a short random id for stages the business adds. */
 export const newStageKey = () => `s_${Math.random().toString(36).slice(2, 10)}`;
+
+/** All active custom field definitions of the organization, grouped later by entity. */
+export async function loadFields(supabase: SupabaseClient, orgId: string): Promise<FieldDef[]> {
+  const { data, error } = await supabase
+    .from("field_definitions")
+    .select("id, entity, key, label, type, options, position, show_in_list")
+    .eq("organization_id", orgId)
+    .eq("archived", false)
+    .order("position");
+  if (error) return [];
+  return (data ?? []) as FieldDef[];
+}

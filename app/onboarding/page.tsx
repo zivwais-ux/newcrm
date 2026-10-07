@@ -22,7 +22,7 @@ export default async function OnboardingPage() {
           <ModuleRail index={1} title="הקמת מסך העבודה" />
           <ModuleBody className="flex justify-center px-5 py-8 sm:px-10 sm:py-10">
             <OnboardingFlow
-              initialStep={org ? "data" : "business"}
+              initialStep={org ? "words" : "business"}
               defaultName={profile?.full_name ?? ""}
               businessType={org?.business_type ?? null}
             />
