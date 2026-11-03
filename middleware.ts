@@ -6,5 +6,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // api/agents is the Python agent function: it checks the caller's token itself and must not be redirected to login.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/agents|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };
