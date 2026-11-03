@@ -3,13 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Modular studio: stone neutrals, one indigo accent, a darker "table" the modules sit on. */
+/* Soft, alive studio: stone neutrals, one indigo accent, rounded white blocks floating on a warm table. */
 :root {
-  --radius: 2px;
+  --radius: 14px;
   --background: #f3f2ef;
   --table: #efeeea;
   --module: #ffffff;
-  --rail: #fbfaf8;
+  --rail: #faf9f7;
   --line: #c9c6c0;
   --foreground: #18181b;
   --surface: #ffffff;
@@ -34,7 +34,7 @@
   --warning: #b45309;
   --warning-soft: #fffbeb;
   --destructive: #dc2626;
-  --border: #dcdad6;
+  --border: #e4e2dd;
   --border-strong: #c9c6c0;
   --input: #d6d3cf;
   --ring: #a1a1aa;
@@ -87,21 +87,23 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  /* Near-square everywhere: every radius step resolves to the same 2px. */
-  --radius-xs: var(--radius);
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
+  /* Rounded scale: modules/cards 14px (lg), buttons/inputs 10px (md), chips/badges 8px (sm). */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
   --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
-  --radius-2xl: var(--radius);
-  --radius-3xl: var(--radius);
-  --shadow-xs: 0 1px 0 rgb(68 60 48 / 0.06);
-  --shadow-sm: 0 1px 0 rgb(68 60 48 / 0.06), 0 2px 4px -1px rgb(68 60 48 / 0.06);
-  --shadow-md: 0 1px 0 rgb(68 60 48 / 0.06), 0 6px 14px -4px rgb(68 60 48 / 0.12);
-  --shadow-lg: 0 2px 4px rgb(68 60 48 / 0.05), 0 14px 32px -8px rgb(68 60 48 / 0.18);
-  --shadow-xl: 0 4px 10px rgb(68 60 48 / 0.06), 0 28px 60px -12px rgb(68 60 48 / 0.24);
-  /* A module lifted off the table: a crisp offset edge, like a physical block. */
-  --shadow-block: 0 1px 0 rgb(68 60 48 / 0.08), 3px 3px 0 -1px rgb(68 60 48 / 0.07);
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+  /* Soft, warm, multi-layer shadows: no hard offset edges. */
+  --shadow-xs: 0 1px 2px rgb(41 37 36 / 0.05);
+  --shadow-sm: 0 1px 2px rgb(41 37 36 / 0.05), 0 2px 6px -2px rgb(41 37 36 / 0.06);
+  --shadow-md: 0 1px 2px rgb(41 37 36 / 0.05), 0 6px 16px -6px rgb(41 37 36 / 0.12);
+  --shadow-lg: 0 2px 4px rgb(41 37 36 / 0.04), 0 14px 32px -10px rgb(41 37 36 / 0.16);
+  --shadow-xl: 0 4px 10px rgb(41 37 36 / 0.05), 0 28px 60px -16px rgb(41 37 36 / 0.22);
+  /* A module floating above the table, and the same module lifted on hover. */
+  --shadow-block: 0 0 0 1px rgb(41 37 36 / 0.015), 0 1px 2px rgb(41 37 36 / 0.04), 0 4px 12px -4px rgb(41 37 36 / 0.06), 0 12px 28px -14px rgb(41 37 36 / 0.08);
+  --shadow-lift: 0 0 0 1px rgb(41 37 36 / 0.02), 0 2px 4px rgb(41 37 36 / 0.04), 0 10px 22px -8px rgb(41 37 36 / 0.1), 0 24px 44px -18px rgb(79 70 229 / 0.12);
 }
 
 @layer base {
@@ -148,15 +150,37 @@
   .flip-rtl:where([dir="rtl"] *, [dir="rtl"]) {
     transform: scaleX(-1);
   }
+  /* The table: a soft warm dot grid under a very faint indigo glow at the top. */
   .dot-grid {
-    background-image: radial-gradient(circle, rgb(68 60 48 / 0.16) 1px, transparent 1.2px);
-    background-size: 20px 20px;
+    background-image:
+      radial-gradient(ellipse 70% 360px at 50% 0, rgb(79 70 229 / 0.07), transparent 70%),
+      radial-gradient(circle, rgb(68 60 48 / 0.1) 1px, transparent 1.3px);
+    background-size: 100% 100%, 22px 22px;
+    background-repeat: no-repeat, repeat;
   }
-  /* Numbers: mono, tabular, slightly tight. */
+  /* A block that floats: soft shadow, lifts 2px on hover. */
+  .float-block {
+    box-shadow: var(--shadow-block);
+    transition:
+      box-shadow 200ms ease-out,
+      transform 200ms ease-out,
+      border-color 200ms ease-out;
+  }
+  .float-block:hover {
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .float-block,
+    .float-block:hover {
+      transform: none;
+      transition: box-shadow 200ms ease-out;
+    }
+  }
+  /* Numbers: same family as the text, tabular digits so columns line up, slightly tight. */
   .num {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.015em;
   }
   /* Fine paper grain over the table so it doesn't read as flat digital grey. */
   .grain {
@@ -169,8 +193,34 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    opacity: 0.35;
+    border-radius: inherit;
+    opacity: 0.25;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .27 0 0 0 0 .24 0 0 0 0 .19 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  /* Blocks fade and rise in on first render. Uses `translate` so hover/drag `transform` stays free. */
+  .block-enter {
+    animation: block-enter 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  @keyframes block-enter {
+    from {
+      opacity: 0;
+      translate: 0 10px;
+    }
+  }
+  /* Children rise in one after another (pages with a few modules). */
+  .stagger > * {
+    animation: block-enter 480ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .stagger > :nth-child(2) { animation-delay: 50ms; }
+  .stagger > :nth-child(3) { animation-delay: 100ms; }
+  .stagger > :nth-child(4) { animation-delay: 150ms; }
+  .stagger > :nth-child(5) { animation-delay: 200ms; }
+  .stagger > :nth-child(n + 6) { animation-delay: 250ms; }
+  @media (prefers-reduced-motion: reduce) {
+    .block-enter,
+    .stagger > * {
+      animation: none;
+    }
   }
   /* Data flowing along a connection line between modules. */
   .flow-dash {
@@ -185,6 +235,150 @@
   @media (prefers-reduced-motion: reduce) {
     .flow-dash {
       animation: none;
+    }
+  }
+}
+
+/*
+ * Agent avatars: each agent's tile carries one calm loop about its job (components/agents/agent-avatar.tsx).
+ * Transforms/opacity/dash offsets only; `data-working` speeds the loop up; reduced motion shows a still frame.
+ */
+@layer components {
+  .av {
+    --av-speed: 1;
+  }
+  .av[data-working] {
+    --av-speed: 0.4;
+  }
+  .av * {
+    transform-box: fill-box;
+    animation-duration: calc(var(--av-dur, 3s) * var(--av-speed));
+    animation-delay: calc(var(--av-delay, 0s) * var(--av-speed));
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-in-out;
+  }
+  /* Revenue: bars rising, a coin landing on the stack. */
+  .av-bar {
+    --av-dur: 2.8s;
+    transform-origin: 50% 100%;
+    animation-name: av-rise;
+  }
+  .av-coin {
+    --av-dur: 2.8s;
+    transform-origin: 50% 50%;
+    animation-name: av-coin;
+  }
+  /* Customers: a shield breathing, a heartbeat running across it. */
+  .av-breathe {
+    --av-dur: 3.2s;
+    transform-origin: 50% 50%;
+    animation-name: av-breathe;
+  }
+  .av-pulse {
+    --av-dur: 2.4s;
+    stroke-dasharray: 34 34;
+    animation-name: av-pulse;
+    animation-timing-function: linear;
+  }
+  /* Sales: a dot travels the pipeline into the target; the rings answer. */
+  .av-shot {
+    --av-dur: 2.6s;
+    animation-name: av-shot;
+  }
+  .av-ring {
+    --av-dur: 2.6s;
+    transform-origin: 50% 50%;
+    animation-name: av-ring;
+  }
+  /* Chief: the checklist ticks itself off, one line after another. */
+  .av-tick {
+    --av-dur: 4s;
+    stroke-dasharray: 12;
+    animation-timing-function: ease-out;
+  }
+  .av-tick-1 { animation-name: av-tick-1; }
+  .av-tick-2 { animation-name: av-tick-2; }
+  .av-tick-3 { animation-name: av-tick-3; }
+  /* Brain: neurons lighting up, signals flowing between them. */
+  .av-node {
+    --av-dur: 2.4s;
+    transform-origin: 50% 50%;
+    animation-name: av-node;
+  }
+  .av-link {
+    --av-dur: 1.6s;
+    stroke-dasharray: 2 3;
+    animation-name: av-link;
+    animation-timing-function: linear;
+  }
+  .av-halo {
+    --av-dur: 3s;
+    transform-origin: 50% 50%;
+    animation-name: av-halo;
+  }
+  .av-d1 { --av-delay: 0.3s; }
+  .av-d2 { --av-delay: 0.6s; }
+  .av-d3 { --av-delay: 0.9s; }
+  .av-d4 { --av-delay: 1.2s; }
+
+  @keyframes av-rise {
+    0%, 100% { transform: scaleY(0.6); }
+    50% { transform: scaleY(1); }
+  }
+  @keyframes av-coin {
+    0% { transform: translateY(-6px); opacity: 0; }
+    30% { transform: translateY(0); opacity: 1; }
+    75% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(0); opacity: 0; }
+  }
+  @keyframes av-breathe {
+    0%, 100% { transform: scale(0.96); }
+    50% { transform: scale(1.04); }
+  }
+  @keyframes av-pulse {
+    from { stroke-dashoffset: 34; }
+    to { stroke-dashoffset: -34; }
+  }
+  @keyframes av-shot {
+    0% { transform: translateX(0); opacity: 0; }
+    15% { opacity: 1; }
+    55% { transform: translateX(17px); opacity: 1; }
+    70%, 100% { transform: translateX(17px); opacity: 0; }
+  }
+  @keyframes av-ring {
+    0%, 50%, 100% { transform: scale(1); opacity: 0.55; }
+    62% { transform: scale(1.12); opacity: 1; }
+  }
+  @keyframes av-tick-1 {
+    0% { stroke-dashoffset: 12; opacity: 1; }
+    12%, 82% { stroke-dashoffset: 0; opacity: 1; }
+    92%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes av-tick-2 {
+    0%, 20% { stroke-dashoffset: 12; opacity: 1; }
+    32%, 82% { stroke-dashoffset: 0; opacity: 1; }
+    92%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes av-tick-3 {
+    0%, 40% { stroke-dashoffset: 12; opacity: 1; }
+    52%, 82% { stroke-dashoffset: 0; opacity: 1; }
+    92%, 100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes av-node {
+    0%, 100% { transform: scale(0.85); opacity: 0.45; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+  @keyframes av-link {
+    to { stroke-dashoffset: -10; }
+  }
+  @keyframes av-halo {
+    0%, 100% { transform: scale(0.8); opacity: 0.12; }
+    50% { transform: scale(1.15); opacity: 0.3; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .av * {
+      animation: none !important;
     }
   }
 }

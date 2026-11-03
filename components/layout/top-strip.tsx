@@ -25,7 +25,7 @@ const NO_NOTIFICATIONS: NotificationRow[] = [];
 export function TopStrip() {
   const { user, org, notifications } = useWorkspace();
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto grid h-14 max-w-[1600px] grid-cols-[auto_1fr_auto] items-center gap-3 px-3 sm:px-5">
         <Link href="/home" className="flex min-w-0 items-center gap-2.5" aria-label="למסך העבודה">
           <Logo withText={false} />
@@ -42,7 +42,7 @@ export function TopStrip() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="grid size-9 shrink-0 place-items-center bg-foreground text-[11px] font-semibold text-background transition-transform active:translate-y-px cursor-pointer"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-brand to-[#6d64f0] text-[11px] font-semibold text-white shadow-[0_4px_12px_-4px_rgb(79_70_229/0.55)] ring-2 ring-module transition-transform active:scale-95 cursor-pointer"
                 aria-label="החשבון שלי"
               >
                 {initials(user.name || user.email)}

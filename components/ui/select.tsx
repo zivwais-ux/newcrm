@@ -18,7 +18,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        "flex w-full items-center justify-between gap-2 rounded-sm border border-input bg-module px-3 text-sm whitespace-nowrap transition-[border-color,box-shadow] hover:border-border-strong focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/15 data-[state=open]:border-brand data-[state=open]:ring-2 data-[state=open]:ring-brand/15 disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:truncate cursor-pointer",
+        "flex w-full items-center justify-between gap-2 rounded-md border border-input bg-module shadow-xs px-3 text-sm whitespace-nowrap transition-[border-color,box-shadow] hover:border-border-strong focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/15 data-[state=open]:border-brand data-[state=open]:ring-2 data-[state=open]:ring-brand/15 disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:truncate cursor-pointer",
         size === "sm" ? "h-8 text-[13px]" : "h-9",
         className,
       )}
@@ -43,7 +43,7 @@ function SelectContent({
       <SelectPrimitive.Content
         position={position}
         className={cn(
-          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-sm border border-border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0",
+          "relative z-50 max-h-80 min-w-[8rem] overflow-hidden rounded-[12px] border border-border/80 bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]",
           position === "popper" && "w-full min-w-[var(--radix-select-trigger-width)] data-[side=bottom]:translate-y-1",
           className,
         )}

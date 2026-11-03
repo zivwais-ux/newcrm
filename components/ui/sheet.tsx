@@ -17,13 +17,13 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & { side?: "right" | "left" }) {
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/20 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+      <SheetPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/15 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
       <SheetPrimitive.Content
         className={cn(
-          "fixed inset-y-0 z-50 flex h-full w-full flex-col gap-0 border-border bg-module shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out sm:max-w-md",
+          "fixed inset-y-0 z-50 flex h-full w-full flex-col gap-0 overflow-hidden border-border bg-module shadow-xl duration-300 ease-out data-[state=open]:animate-in data-[state=closed]:animate-out sm:max-w-md",
           side === "right"
-            ? "end-0 border-s ltr:data-[state=closed]:slide-out-to-right ltr:data-[state=open]:slide-in-from-right rtl:data-[state=closed]:slide-out-to-left rtl:data-[state=open]:slide-in-from-left"
-            : "start-0 border-e ltr:data-[state=closed]:slide-out-to-left ltr:data-[state=open]:slide-in-from-left rtl:data-[state=closed]:slide-out-to-right rtl:data-[state=open]:slide-in-from-right",
+            ? "end-0 border-s sm:rounded-s-2xl ltr:data-[state=closed]:slide-out-to-right ltr:data-[state=open]:slide-in-from-right rtl:data-[state=closed]:slide-out-to-left rtl:data-[state=open]:slide-in-from-left"
+            : "start-0 border-e sm:rounded-e-2xl ltr:data-[state=closed]:slide-out-to-left ltr:data-[state=open]:slide-in-from-left rtl:data-[state=closed]:slide-out-to-right rtl:data-[state=open]:slide-in-from-right",
           className,
         )}
         {...props}
@@ -39,13 +39,13 @@ function SheetContent({
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex flex-col gap-1 border-b border-border bg-rail px-6 py-4 pe-12", className)} {...props} />;
+  return <div className={cn("flex flex-col gap-1 border-b border-border/60 px-6 py-5 pe-12", className)} {...props} />;
 }
 function SheetBody({ className, ...props }: React.ComponentProps<"div">) {
   return <div className={cn("flex-1 overflow-y-auto px-6 py-5", className)} {...props} />;
 }
 function SheetFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("flex justify-end gap-2 border-t border-border bg-rail px-6 py-3.5", className)} {...props} />;
+  return <div className={cn("flex justify-end gap-2 border-t border-border/60 bg-rail px-6 py-3.5", className)} {...props} />;
 }
 function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Title>) {
   return <SheetPrimitive.Title className={cn("text-[15px] font-semibold tracking-tight", className)} {...props} />;

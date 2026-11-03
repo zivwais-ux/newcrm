@@ -65,7 +65,7 @@ function WordsStep({ value, onChange }: { value: Partial<Record<TermKey, string>
                     onChange({ ...value, [g.singular]: one, [g.plural]: many });
                   }}
                   className={cn(
-                    "border px-3 py-1.5 text-[13.5px] transition-colors cursor-pointer",
+                    "rounded-full border px-3.5 py-1.5 text-[13.5px] transition-colors cursor-pointer",
                     !isCustom && current === one ? "border-brand bg-brand text-white" : "border-border bg-module hover:border-brand/50",
                   )}
                 >
@@ -77,7 +77,7 @@ function WordsStep({ value, onChange }: { value: Partial<Record<TermKey, string>
                 aria-pressed={isCustom}
                 onClick={() => setCustom((c) => ({ ...c, [g.singular]: true }))}
                 className={cn(
-                  "border border-dashed px-3 py-1.5 text-[13.5px] cursor-pointer",
+                  "rounded-full border border-dashed px-3.5 py-1.5 text-[13.5px] cursor-pointer",
                   isCustom ? "border-brand text-brand" : "border-border-strong text-muted-foreground hover:border-brand/50",
                 )}
               >

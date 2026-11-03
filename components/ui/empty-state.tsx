@@ -21,8 +21,8 @@ export function EmptyState({
       {icon && (
         <span
           className={cn(
-            "grid place-items-center rounded-sm border border-brand/15 bg-brand-soft text-brand",
-            compact ? "size-9 [&_svg]:size-[18px]" : "size-11 [&_svg]:size-5",
+            "grid place-items-center border border-brand/10 bg-brand-soft text-brand shadow-[0_6px_16px_-8px_rgb(79_70_229/0.35)]",
+            compact ? "size-10 rounded-[12px] [&_svg]:size-[18px]" : "size-12 rounded-[14px] [&_svg]:size-5",
           )}
         >
           {icon}

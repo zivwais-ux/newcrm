@@ -7,6 +7,7 @@ import { PageContainer, PageHeader } from "@/components/layout/page";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CountUp } from "@/components/ui/count-up";
 import { Module, ModuleRail } from "@/components/ui/module";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate, formatNumber } from "@/lib/utils";
@@ -69,10 +70,12 @@ export default async function DataPage() {
       <div className="space-y-6">
         <Module>
           <ModuleRail index={1} icon={<Database />} title="מה יש במערכת" />
-          <div className="grid grid-cols-2 gap-px bg-border sm:grid-cols-4 lg:grid-cols-7">
+          <div className="grid grid-cols-2 gap-px overflow-hidden rounded-b-[inherit] bg-border/60 sm:grid-cols-4 lg:grid-cols-7">
             {ENTITY_LINKS.map((e) => (
               <Link key={e.key} href={e.href} className="group bg-module p-4 transition-colors hover:bg-rail">
-                <p className="num text-2xl font-medium">{formatNumber(counts[e.key])}</p>
+                <p className="num text-2xl font-semibold tracking-tight">
+                  <CountUp text={formatNumber(counts[e.key])} />
+                </p>
                 <p className="text-xs text-muted-foreground transition-colors group-hover:text-foreground">{e.label}</p>
               </Link>
             ))}
@@ -82,10 +85,10 @@ export default async function DataPage() {
 
         <Module>
           <ModuleRail index={2} icon={<SquaresFour />} title="אפשר להעלות נתונים מ…" />
-          <div className="grid gap-px bg-border sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-px overflow-hidden rounded-b-[inherit] bg-border/60 sm:grid-cols-2 lg:grid-cols-5">
             {WAYS.map((w) => (
               <Link key={w.title} href="/data/import" className="group flex items-start gap-3 bg-module p-4 transition-colors hover:bg-rail">
-                <span className="grid size-8 shrink-0 place-items-center rounded-sm border border-brand/15 bg-brand-soft text-brand">
+                <span className="grid size-8 shrink-0 place-items-center rounded-md border border-brand/10 bg-brand-soft text-brand">
                   <w.icon className="size-4" />
                 </span>
                 <span>

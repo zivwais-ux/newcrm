@@ -10,8 +10,8 @@ export default function Loading() {
         <Skeleton className="h-4 w-80 max-w-full" />
       </div>
       <Module>
-        <div className="flex min-h-11 items-center gap-2.5 border-b border-border bg-rail px-3.5">
-          <Skeleton className="size-4" />
+        <div className="flex min-h-12 items-center gap-2.5 border-b border-border/60 px-4">
+          <Skeleton className="size-7" />
           <Skeleton className="h-3.5 w-28" />
           <Skeleton className="ms-auto h-7 w-40" />
         </div>

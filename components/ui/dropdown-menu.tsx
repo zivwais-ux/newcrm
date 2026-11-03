@@ -12,7 +12,7 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const contentClass =
-  "z-50 min-w-40 overflow-hidden rounded-sm border border-border bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]";
+  "z-50 min-w-40 overflow-hidden rounded-[12px] border border-border/80 bg-popover p-1 text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.98]";
 
 function DropdownMenuContent({
   className,

@@ -37,7 +37,7 @@ import {
 /** How the part reads right now — the same words the list and the canvas show. */
 function ReadsAs({ text }: { text: string }) {
   return (
-    <div className="border-s-2 border-brand bg-rail px-3.5 py-2.5 text-[13.5px] leading-relaxed text-foreground">
+    <div className="rounded-e-md border-s-2 border-brand bg-rail px-3.5 py-2.5 text-[13.5px] leading-relaxed text-foreground">
       <span className="text-muted-foreground">כך זה נקרא: </span>
       <Tokenized text={fillEmpty(text)} />
     </div>
@@ -170,7 +170,7 @@ export function TriggerEditor({ trigger, onChange, readOnly }: { trigger: Trigge
               )}
             </Sentence>
             {trigger.anchor === "custom_date" && dateFields.length === 0 && (
-              <div className="border border-dashed border-border-strong bg-rail px-3.5 py-3 text-[13px] leading-relaxed">
+              <div className="rounded-md border border-dashed border-border-strong bg-rail px-3.5 py-3 text-[13px] leading-relaxed">
                 עוד אין ל{terms.customers} שדה תאריך (כמו יום הולדת).{" "}
                 <Link href="/settings" className="font-medium text-brand underline-offset-4 hover:underline">
                   הוסף שדה בהגדרות

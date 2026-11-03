@@ -70,7 +70,7 @@ export function FlowsStudio({ flows, runs, canManage }: { flows: AutomationRow[]
         <h2 id="flows-heading" className="sr-only">
           הזרימות שלי
         </h2>
-        <div className="dot-grid grain border border-border bg-table p-3 sm:p-5">
+        <div className="dot-grid grain rounded-2xl border border-border/70 bg-table p-3 sm:p-5">
           {flows.length ? (
             <ul className="space-y-3">
               {flows.map((f, i) => (
@@ -330,7 +330,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
               </Select>
             </label>
           ) : (
-            <p className="mt-auto border border-dashed border-border-strong bg-rail px-3 py-2 text-[13px] leading-relaxed">
+            <p className="mt-auto rounded-md border border-dashed border-border-strong bg-rail px-3 py-2 text-[13px] leading-relaxed">
               צריך שדה תאריך ל{terms.customers}, כמו יום הולדת.{" "}
               <Link href="/settings" className="font-medium text-brand underline-offset-4 hover:underline">
                 הוסף שדה בהגדרות
@@ -338,7 +338,7 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
             </p>
           ))}
       </div>
-      <div className="flex items-center gap-2 border-t border-border bg-rail px-4 py-2.5">
+      <div className="flex items-center gap-2 rounded-b-[inherit] border-t border-border/60 bg-rail px-4 py-2.5">
         <Button variant="brand" size="sm" onClick={enable} disabled={pending || blocked}>
           {pending ? <CircleNotch className="animate-spin" /> : <Lightning />}
           הפעל

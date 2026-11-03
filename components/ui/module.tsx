@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
 /**
- * The one surface of the app: a block sitting on the table.
- * Square (2px), hairline border, a crisp offset edge instead of a soft card shadow.
+ * The one surface of the app: a block floating above the table.
+ * Rounded (14px), low-contrast hairline, a soft multi-layer shadow that deepens as it lifts on hover.
  */
 export function Module({ className, ...props }: React.ComponentProps<"section">) {
-  return <section className={cn("relative border border-border bg-module shadow-block", className)} {...props} />;
+  return <section className={cn("float-block relative rounded-lg border border-border/80 bg-module", className)} {...props} />;
 }
 
 /**
@@ -31,13 +31,13 @@ export function ModuleRail({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={cn("flex min-h-11 items-center gap-2.5 border-b border-border bg-rail px-3.5", className)}>
+    <div className={cn("flex min-h-12 items-center gap-2.5 rounded-t-[inherit] border-b border-border/60 px-4", className)}>
       {index !== undefined && (
         <span className="num w-5 shrink-0 text-[11px] font-medium text-muted-foreground" aria-hidden>
           {typeof index === "number" ? String(index).padStart(2, "0") : index}
         </span>
       )}
-      {icon && <span className="grid size-5 shrink-0 place-items-center text-brand [&_svg]:size-[18px]">{icon}</span>}
+      {icon && <span className="grid size-7 shrink-0 place-items-center rounded-sm bg-brand-soft text-brand [&_svg]:size-4">{icon}</span>}
       {children}
       {title && <h2 className="min-w-0 truncate text-[14px] font-semibold tracking-tight">{title}</h2>}
       {meta && <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>}
@@ -69,13 +69,13 @@ export function LiveDot({ state = "live", label }: { state?: "live" | "filtered"
 
 /**
  * Wrap a child that still draws its own frame (border, radius, shadow — e.g. a legacy table wrapper)
- * so it sits flush inside a module instead of reading as a card inside a card.
+ * so it sits flush inside a module instead of reading as a card inside a card. It follows the module's bottom corners.
  */
 export function ModuleFlush({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "[&>div.overflow-hidden.border]:rounded-none [&>div.overflow-hidden.border]:border-0 [&>div.overflow-hidden.border]:shadow-none [&>div>div.overflow-hidden.border]:rounded-none [&>div>div.overflow-hidden.border]:border-0 [&>div>div.overflow-hidden.border]:shadow-none",
+        "rounded-b-[inherit] [&>div.overflow-hidden.border]:rounded-[inherit] [&>div.overflow-hidden.border]:border-0 [&>div.overflow-hidden.border]:shadow-none [&>div>div.overflow-hidden.border]:rounded-[inherit] [&>div>div.overflow-hidden.border]:border-0 [&>div>div.overflow-hidden.border]:shadow-none [&>div]:rounded-[inherit]",
         className,
       )}
       {...props}
@@ -85,5 +85,5 @@ export function ModuleFlush({ className, ...props }: React.ComponentProps<"div">
 
 /** Bottom strip of a module: pagination, totals, a footnote. */
 export function ModuleFooter({ className, ...props }: React.ComponentProps<"div">) {
-  return <div className={cn("border-t border-border bg-rail px-3.5 py-2 text-xs text-muted-foreground", className)} {...props} />;
+  return <div className={cn("rounded-b-[inherit] border-t border-border/60 bg-rail px-4 py-2 text-xs text-muted-foreground", className)} {...props} />;
 }

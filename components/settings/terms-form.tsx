@@ -90,7 +90,7 @@ export function TermsForm({ canManage }: { canManage: boolean }) {
         })}
       </ol>
 
-      <div className="border border-dashed border-border bg-muted/30 px-3 py-2.5 text-[13px]">
+      <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2.5 text-[13px]">
         <span className="text-muted-foreground">כך זה ייראה: </span>
         <span className="font-medium">
           + {shown.appointment} חדש · {shown.customers} שחזרו

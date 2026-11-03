@@ -56,7 +56,7 @@ function CanvasDropZone({ children, active, empty }: { children: React.ReactNode
     <div
       ref={setNodeRef}
       className={cn(
-        "dot-grid grain relative min-h-[calc(100dvh-15rem)] border border-border bg-table p-3 transition-colors sm:p-5",
+        "dot-grid grain relative min-h-[calc(100dvh-15rem)] rounded-2xl border border-border/70 bg-table p-3 transition-colors sm:p-5",
         active && "border-dashed border-brand/60",
         active && isOver && empty && "bg-brand-soft/40",
       )}
@@ -472,12 +472,14 @@ export function HomeBuilder({
             aria-hidden={!paletteSheet}
             inert={!paletteSheet}
             className={cn(
-              "fixed inset-x-0 bottom-0 z-50 flex h-[min(64dvh,600px)] flex-col border-t border-border-strong bg-background shadow-xl transition-transform duration-300 ease-out motion-reduce:transition-none",
+              "fixed inset-x-0 bottom-0 z-50 flex h-[min(64dvh,600px)] flex-col overflow-hidden rounded-t-2xl border-t border-border bg-background shadow-xl transition-transform duration-300 ease-out motion-reduce:transition-none",
               !paletteSheet ? "translate-y-full" : paletteType ? "translate-y-[calc(100%-3rem)]" : "translate-y-0",
             )}
           >
-            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-rail px-4 sm:px-6">
-              <SquaresFour className="size-[18px] text-brand" />
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border/60 bg-module px-4 sm:px-6">
+              <span className="grid size-7 place-items-center rounded-sm bg-brand-soft text-brand">
+                <SquaresFour className="size-4" />
+              </span>
               <h2 className="text-[14px] font-semibold">{paletteType ? "שחרר את המודול על השולחן" : "מגירת המודולים"}</h2>
               {!paletteType && <span className="hidden text-xs text-muted-foreground sm:inline">גרור מודול לשולחן, או לחץ על + שבפינה שלו</span>}
               <Button variant="ghost" size="icon-sm" className="ms-auto" onClick={() => setPaletteSheet(false)} aria-label="סגור את המגירה">
@@ -560,20 +562,20 @@ function EmptyCanvas({
     <div className="relative min-h-[calc(100dvh-17rem)]">
       <div className="pointer-events-none grid grid-cols-12 gap-4 opacity-70 lg:gap-5" aria-hidden>
         {GHOSTS.map((span, i) => (
-          <div key={i} className={cn("col-span-12 h-40 border border-dashed border-border-strong", span, i > 1 && "hidden lg:block")}>
+          <div key={i} className={cn("col-span-12 h-40 rounded-lg border border-dashed border-border-strong", span, i > 1 && "hidden lg:block")}>
             <div className="flex h-9 items-center gap-2 border-b border-dashed border-border-strong px-3">
               <span className="num text-[11px] text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
-              <span className="h-1.5 w-16 bg-border" />
+              <span className="h-1.5 w-16 rounded-full bg-border" />
             </div>
           </div>
         ))}
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center p-4">
-        <div className="w-full max-w-md border border-border bg-module p-6 text-center shadow-xl sm:p-8">
+        <div className="block-enter w-full max-w-md rounded-2xl border border-border/80 bg-module p-6 text-center shadow-xl sm:p-8">
           {editable ? (
             <>
-              <span className="mx-auto grid size-12 place-items-center bg-brand text-white">
+              <span className="mx-auto grid size-12 place-items-center rounded-[14px] bg-brand text-white shadow-[0_8px_20px_-8px_rgb(79_70_229/0.6)]">
                 <Plus className="size-6" weight="bold" />
               </span>
               <h2 className="mt-4 text-xl font-bold tracking-tight">השולחן שלך ריק. בוא נבנה אותו.</h2>
@@ -608,7 +610,7 @@ function EmptyCanvas({
             </>
           ) : (
             <>
-              <span className="mx-auto grid size-12 place-items-center bg-brand-soft text-brand">
+              <span className="mx-auto grid size-12 place-items-center rounded-[14px] bg-brand-soft text-brand">
                 <SquaresFour className="size-6" />
               </span>
               <h2 className="mt-4 text-base font-semibold">השולחן עדיין ריק</h2>

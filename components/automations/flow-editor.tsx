@@ -42,10 +42,10 @@ const MAX_ACTIONS = 6;
 type Tone = "trigger" | "condition" | "wait" | "action";
 
 const TONE_TILE: Record<Tone, string> = {
-  trigger: "bg-brand text-white",
-  condition: "border border-foreground/60 bg-module text-foreground",
-  wait: "border border-dashed border-muted-foreground/60 bg-module text-muted-foreground",
-  action: "border border-brand/30 bg-brand-soft text-brand",
+  trigger: "rounded-sm bg-brand text-white",
+  condition: "rounded-sm border border-foreground/60 bg-module text-foreground",
+  wait: "rounded-sm border border-dashed border-muted-foreground/60 bg-module text-muted-foreground",
+  action: "rounded-sm border border-brand/30 bg-brand-soft text-brand",
 };
 
 const PANEL_TEXT: Record<Tone, { title: string; description: string }> = {
@@ -362,7 +362,7 @@ export function FlowEditor({
       )}
 
       {/* The canvas */}
-      <div className="dot-grid grain relative border border-border bg-table">
+      <div className="dot-grid grain relative rounded-2xl border border-border/70 bg-table">
         {!readOnly && <p className="px-4 pt-3.5 text-[13px] text-muted-foreground sm:px-6">לחץ על כל חלק כדי לשנות אותו.</p>}
         <div className="overflow-x-auto">
           <ol className="flex flex-col items-stretch p-4 sm:p-6 md:w-max md:min-w-full md:flex-row md:items-center md:p-8" aria-label="חלקי הזרימה">
@@ -500,7 +500,7 @@ function FlowNode({
   issue: string | null;
   onOpen: () => void;
 }) {
-  const port = cn("absolute z-[1] size-[9px] border bg-module", live ? "border-brand bg-brand" : "border-border-strong");
+  const port = cn("absolute z-[1] size-[10px] rounded-full border-2 bg-module", live ? "border-brand bg-brand" : "border-border-strong");
   return (
     <Module
       role="button"
@@ -514,7 +514,7 @@ function FlowNode({
         }
       }}
       className={cn(
-        "group w-full shrink-0 cursor-pointer text-start transition-[border-color,box-shadow,transform] duration-150 hover:border-border-strong active:translate-y-px md:w-56 xl:w-64",
+        "group w-full shrink-0 cursor-pointer text-start transition-[border-color,box-shadow,transform] duration-150 hover:border-border-strong active:scale-[0.99] md:w-56 xl:w-64",
         selected && "border-brand ring-2 ring-brand/15 hover:border-brand",
         issue && !selected && "border-warning/60",
       )}
@@ -535,7 +535,7 @@ function FlowNode({
         )}
       </div>
       {issue && (
-        <div className="flex items-center gap-1.5 border-t border-border bg-warning-soft px-3.5 py-1.5 text-xs font-medium text-warning">
+        <div className="flex items-center gap-1.5 rounded-b-[inherit] border-t border-border/60 bg-warning-soft px-3.5 py-1.5 text-xs font-medium text-warning">
           <WarningCircle className="size-3.5 shrink-0" />
           {issue}
         </div>
@@ -609,7 +609,7 @@ function PreviewLine({ preview }: { preview: { result?: PreviewResult; error?: s
   const more = r.total > names.length;
   const list = names.length ? `: ${names.join(", ")}${more ? "…" : ""}` : "";
   return (
-    <div className="flex items-start gap-2 border border-border bg-rail px-3 py-2.5 text-[13.5px] leading-relaxed">
+    <div className="flex items-start gap-2 rounded-md border border-border bg-rail px-3 py-2.5 text-[13.5px] leading-relaxed">
       <Flask className="mt-0.5 size-4 shrink-0 text-brand" />
       <p>
         {r.total === 0 ? (

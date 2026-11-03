@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Stat } from "@/components/business/stat";
+import { GrowBar } from "@/components/ui/chart";
 import { CalendarCheck, Repeat, UploadSimple } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,9 +52,8 @@ export function RepeatCustomersView({ data, currency }: ViewProps<RepeatData>) {
         <Stat label="קנו פעם אחת" value={formatNumber(stats.first_time)} />
       </div>
       <div>
-        <div className="flex h-2 overflow-hidden rounded-sm bg-muted" role="img" aria-label={`${Math.round(repeatShare)}% ${t.customers} חוזרים`}>
-          <div className="h-full bg-chart-1" style={{ width: `${repeatShare}%` }} />
-          <div className="h-full w-0.5 bg-surface" />
+        <div role="img" aria-label={`${Math.round(repeatShare)}% ${t.customers} חוזרים`}>
+          <GrowBar value={repeatShare} className="h-2" />
         </div>
         <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
           <span>

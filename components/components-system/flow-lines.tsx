@@ -47,7 +47,7 @@ export function FlowLines({
     };
     // Half the grid gap: lines travel in the gutters between modules, never across them.
     const half = (parseFloat(getComputedStyle(container).columnGap) || 20) / 2;
-    const R = 6;
+    const R = 12;
 
     /** Orthogonal route: out into the source gutter, along the row gap above the target, into its gutter, then in. */
     const route = (a: { x: number; y: number }, b: { x: number; y: number; top: number }) => {
@@ -118,12 +118,15 @@ export function FlowLines({
     container.querySelectorAll("[data-module]").forEach((el) => ro.observe(el));
     window.addEventListener("resize", schedule);
     // Fonts and lazy bodies change module heights after the first paint.
+    // Modules also rise in on first render (up to ~1.1s with the stagger): measure again once they settle.
     const t = setTimeout(schedule, 600);
+    const settled = setTimeout(schedule, 1300);
     return () => {
       cancelAnimationFrame(frame);
       ro.disconnect();
       window.removeEventListener("resize", schedule);
       clearTimeout(t);
+      clearTimeout(settled);
     };
   }, [container, items, measure]);
 
@@ -142,7 +145,7 @@ export function FlowLines({
         .sort((x, y) => Number(x.active) - Number(y.active))
         .map((l) => (
           <g key={l.key}>
-            <path d={l.d} fill="none" stroke={l.active ? "var(--brand)" : "var(--line)"} strokeWidth={l.active ? 1.5 : 1} className={l.active ? "flow-dash" : undefined} />
+            <path d={l.d} fill="none" stroke={l.active ? "var(--brand)" : "var(--line)"} strokeOpacity={l.active ? 0.9 : 0.7} strokeWidth={l.active ? 1.75 : 1.25} strokeLinecap="round" className={l.active ? "flow-dash" : undefined} />
             {l.active && (
               <text x={l.mid.x} y={l.mid.y - 4} textAnchor="middle" className="fill-brand text-[10px] font-semibold">
                 {l.label}

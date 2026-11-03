@@ -1,5 +1,7 @@
 import type { BusinessType, DataCounts, EntityName } from "@/types/domain";
 import { SIZE_TO_WIDTH, WIDTHS, type ComponentConfig, type ComponentDefinition, type ComponentWidth } from "./types";
+import type { AgentKey } from "@/lib/agents/validate";
+import { PERSONAS, personaModuleName } from "@/lib/agents/personas";
 
 const MANAGERS = { manage: ["owner", "admin"] } as ComponentDefinition["permissions"];
 
@@ -403,7 +405,7 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
   },
   {
     id: "company-brain",
-    name: "המוח של העסק",
+    name: personaModuleName("brain"),
     description: "שאל כל דבר על העסק בעברית רגילה וקבל תשובה עם המספרים והשמות",
     category: "agents",
     requiredEntities: [],
@@ -418,19 +420,20 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     permissions: MANAGERS,
     consumes: [],
     emits: [],
-    emptyState: { title: "עדיין אין על מה לענות", description: "העלה את נתוני העסק, והמוח יענה לך לפיהם." },
+    emptyState: { title: "עדיין אין על מה לענות", description: "העלה את נתוני העסק, ונובה תענה לך לפיהם." },
   },
-  agentDefinition("agent-revenue", "אנליסט הכנסות", "עוקב אחרי הכסף שנכנס ומוצא הזדמנויות"),
-  agentDefinition("agent-customers", "שומר לקוחות", "מוצא לקוחות שהתרחקו או עומדים לעזוב, ואומר למי לחזור"),
-  agentDefinition("agent-sales", "מאמן מכירות", "בודק את העסקאות הפתוחות ואומר מה יקדם כל אחת"),
-  agentDefinition("agent-chief", "ראש מטה", "קורא את מה שכל הסוכנים מצאו ובוחר את 3 הדברים החשובים היום"),
+  agentDefinition("agent-revenue", "revenue", "עוקבת אחרי הכסף שנכנס ומוצאת הזדמנויות"),
+  agentDefinition("agent-customers", "customers", "מוצא לקוחות שהתרחקו או עומדים לעזוב, ואומר למי לחזור"),
+  agentDefinition("agent-sales", "sales", "בודק את העסקאות הפתוחות ואומר מה יקדם כל אחת"),
+  agentDefinition("agent-chief", "chief", "קוראת את מה שכל הסוכנים מצאו ובוחרת את 3 הדברים החשובים היום"),
 ];
 
 /** The four agent modules share one loader and one view; only the agent changes. */
-function agentDefinition(id: string, name: string, description: string): ComponentDefinition {
+function agentDefinition(id: string, agent: AgentKey, description: string): ComponentDefinition {
+  const persona = PERSONAS[agent];
   return {
     id,
-    name,
+    name: personaModuleName(agent),
     description,
     category: "agents",
     requiredEntities: [],
@@ -446,7 +449,7 @@ function agentDefinition(id: string, name: string, description: string): Compone
     permissions: MANAGERS,
     consumes: [],
     emits: [],
-    emptyState: { title: "הסוכן עוד לא רץ", description },
+    emptyState: { title: `${persona.name} עוד לא ${persona.ran}`, description },
   };
 }
 

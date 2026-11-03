@@ -91,8 +91,8 @@ export function ListRow({ children, className }: { children: React.ReactNode; cl
   return (
     <div
       className={cn(
-        "relative -mx-2 flex items-center gap-3 border-t border-border px-2 py-2.5 transition-colors first:border-t-0 hover:bg-muted/50",
-        "before:absolute before:inset-y-1.5 before:start-0 before:w-[2px] before:bg-brand before:opacity-0 before:transition-opacity hover:before:opacity-100",
+        "relative -mx-2 flex items-center gap-3 rounded-md border-t border-border/60 px-2 py-2.5 transition-colors duration-200 first:border-t-0 hover:border-transparent hover:bg-muted/60 [&:hover+*]:border-transparent",
+        "before:absolute before:inset-y-2 before:start-0 before:w-[3px] before:rounded-full before:bg-brand before:opacity-0 before:transition-opacity hover:before:opacity-100",
         className,
       )}
     >

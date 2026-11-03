@@ -226,7 +226,7 @@ export function CommandBar() {
         onClick={() => setOpen(true)}
         type="button"
         aria-label="שורת פקודה: חיפוש או פעולה"
-        className="group flex h-9 w-full max-w-xl items-center gap-2.5 border border-border bg-module px-3 text-[13.5px] text-muted-foreground shadow-xs transition-colors hover:border-border-strong cursor-pointer"
+        className="group flex h-10 w-full max-w-xl items-center gap-2.5 rounded-full border border-border/80 bg-module px-4 text-[13.5px] text-muted-foreground shadow-xs transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-sm cursor-pointer"
       >
         <MagnifyingGlass className="size-4 shrink-0 transition-colors group-hover:text-brand" />
         <span className="min-w-0 flex-1 truncate text-start">
@@ -235,7 +235,7 @@ export function CommandBar() {
             נסה: &quot;{EXAMPLES[hint]}&quot;
           </span>
         </span>
-        <kbd dir="ltr" className="num hidden border border-border bg-rail px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline">
+        <kbd dir="ltr" className="num hidden rounded-xs border border-border bg-rail px-1.5 py-0.5 text-[11px] text-muted-foreground sm:inline">
           ⌘K
         </kbd>
       </button>
@@ -248,7 +248,7 @@ export function CommandBar() {
               {hasIntent && (
                 <CommandGroup heading="פעולה">
                   <CommandItem value="__intent" onSelect={() => run(cmd)} disabled={running} className="gap-3 py-3">
-                    <span className="grid size-8 shrink-0 place-items-center bg-brand">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-md bg-brand">
                       <Icon className="size-4 text-white" />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[14px]">

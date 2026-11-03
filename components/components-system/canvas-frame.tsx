@@ -136,11 +136,10 @@ export function CanvasFrame({
         setNodeRef(el);
         frameRef.current = el;
       }}
-      style={{ transform: CSS.Translate.toString(transform), transition, animationDelay: `${Math.min(index, 12) * 45}ms` }}
+      style={{ transform: CSS.Translate.toString(transform), transition, animationDelay: `${Math.min(index, 12) * 55}ms` }}
       className={cn(
-        "group/frame relative col-span-12 flex min-w-0 flex-col border border-border bg-module shadow-block transition-[box-shadow,border-color] duration-200",
-        "animate-in fade-in-0 slide-in-from-bottom-2 fill-mode-both duration-500 motion-reduce:animate-none",
-        "hover:border-border-strong",
+        "group/frame float-block block-enter relative col-span-12 flex min-w-0 flex-col rounded-lg border border-border/80 bg-module",
+        "hover:border-border",
         SPAN[w],
         h === "tall" && "lg:min-h-[34rem]",
         isDragging && "z-10 border-brand/50 opacity-70 shadow-xl",
@@ -157,7 +156,7 @@ export function CanvasFrame({
           data-port="in"
           aria-hidden
           className={cn(
-            "absolute top-[21px] -start-[5px] z-[1] hidden size-[9px] border bg-module lg:block",
+            "absolute top-[19px] -start-[5px] z-[1] hidden size-[10px] rounded-full border-2 bg-module lg:block",
             filtered ? "border-brand bg-brand" : "border-border-strong",
           )}
         />
@@ -167,13 +166,13 @@ export function CanvasFrame({
           data-port="out"
           aria-hidden
           className={cn(
-            "absolute top-[21px] -end-[5px] z-[1] hidden size-[9px] border bg-module lg:block",
+            "absolute top-[19px] -end-[5px] z-[1] hidden size-[10px] rounded-full border-2 bg-module lg:block",
             activeFilters.some((f) => outs.includes(f)) ? "border-brand bg-brand" : "border-border-strong",
           )}
         />
       )}
 
-      <header className="flex h-11 shrink-0 items-center gap-2 border-b border-border bg-rail ps-2 pe-1.5">
+      <header className="flex h-12 shrink-0 items-center gap-2 rounded-t-[inherit] border-b border-border/60 ps-2 pe-2">
         {editable && !item.pending ? (
           <button
             ref={setActivatorNodeRef}
@@ -190,7 +189,11 @@ export function CanvasFrame({
         <span className="num w-5 shrink-0 text-[11px] font-medium text-muted-foreground" aria-hidden>
           {String(index).padStart(2, "0")}
         </span>
-        {Icon && <Icon className="size-[18px] shrink-0 text-brand" />}
+        {Icon && (
+          <span className="grid size-7 shrink-0 place-items-center rounded-sm bg-brand-soft text-brand">
+            <Icon className="size-4" />
+          </span>
+        )}
         <h2 className="min-w-0 flex-1 truncate text-[14px] font-semibold tracking-tight">{item.name}</h2>
         {unlinked.length > 0 ? (
           <Tooltip>
@@ -204,7 +207,13 @@ export function CanvasFrame({
           </Tooltip>
         ) : (
           !item.pending && (
-            <span className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-muted-foreground" title={filtered ? "מסונן" : "מתעדכן לבד"}>
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px]",
+                filtered ? "bg-brand-soft text-brand" : "bg-positive-soft text-positive",
+              )}
+              title={filtered ? "מסונן" : "מתעדכן לבד"}
+            >
               <span className={cn("size-1.5 rounded-full", filtered ? "bg-brand" : "bg-positive")} />
               <span className="hidden sm:inline">{filtered ? "מסונן" : "חי"}</span>
             </span>
@@ -280,11 +289,11 @@ export function CanvasFrame({
           aria-label={`שנה רוחב של ${item.name}`}
           title="גרור כדי לשנות רוחב"
         >
-          <span className="h-12 w-[3px] bg-brand" />
+          <span className="h-12 w-[4px] rounded-full bg-brand" />
         </div>
       )}
       {liveW && (
-        <span className="num pointer-events-none absolute -top-3 start-1/2 z-[3] -translate-x-1/2 bg-brand px-2 py-0.5 text-[11px] font-medium text-white shadow-sm rtl:translate-x-1/2">
+        <span className="num pointer-events-none absolute -top-3 start-1/2 z-[3] -translate-x-1/2 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-medium text-white shadow-sm rtl:translate-x-1/2">
           {WIDTH_LABELS[liveW]}
         </span>
       )}

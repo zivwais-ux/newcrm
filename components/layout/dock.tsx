@@ -87,7 +87,7 @@ function DockLink({
       aria-current={active ? "page" : undefined}
       aria-label={badge > 0 && badgeLabel ? `${label}, ${badgeLabel}` : undefined}
       className={cn(
-        "relative flex h-14 w-14 flex-col items-center justify-center gap-1 text-[10.5px] transition-colors active:translate-y-px sm:w-16",
+        "relative isolate flex h-14 w-[52px] flex-col items-center justify-center gap-1 rounded-xl text-[10.5px] transition-colors active:scale-95 sm:w-16",
         active ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
       )}
     >
@@ -95,7 +95,7 @@ function DockLink({
         <motion.span
           layoutId="dock-active"
           transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 500, damping: 38 }}
-          className="absolute inset-x-3 top-0 h-[2px] bg-brand"
+          className="absolute inset-x-1.5 inset-y-1 -z-[1] rounded-[12px] bg-brand-soft"
         />
       )}
       <span className="relative">
@@ -103,7 +103,7 @@ function DockLink({
         {badge > 0 && (
           <span
             aria-hidden
-            className="num absolute -top-1 -end-2 grid h-4 min-w-4 place-items-center rounded-sm bg-brand px-1 text-[10px] leading-none font-medium text-white"
+            className="num absolute -top-1 -end-2 grid h-4 min-w-4 place-items-center rounded-full bg-brand ring-2 ring-module px-1 text-[10px] leading-none font-medium text-white"
           >
             {badge > 99 ? "99+" : formatNumber(badge)}
           </span>
@@ -129,7 +129,7 @@ export function Dock() {
       aria-label="ניווט ראשי"
       className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] pointer-events-none"
     >
-      <div className="pointer-events-auto flex items-center border border-border bg-module/92 px-1 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-module/80">
+      <div className="pointer-events-auto isolate flex items-center rounded-[22px] border border-border/80 bg-module/92 p-1 shadow-xl backdrop-blur-md supports-[backdrop-filter]:bg-module/80">
         {MAIN.map((i) => (
           <DockLink
             key={i.href}
@@ -147,7 +147,7 @@ export function Dock() {
             <button
               type="button"
               aria-label="הוסף חדש"
-              className="mx-1 grid size-11 place-items-center bg-brand text-white shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_6px_16px_-6px_rgb(79_70_229/0.7)] transition-transform hover:bg-brand/90 active:translate-y-px cursor-pointer"
+              className="mx-1 grid size-11 place-items-center rounded-[14px] bg-brand text-white shadow-[0_1px_0_rgb(255_255_255/0.15)_inset,0_6px_16px_-6px_rgb(79_70_229/0.7)] transition-transform hover:bg-brand/90 active:translate-y-px cursor-pointer"
             >
               <Plus className="size-5" weight="bold" />
             </button>
@@ -204,11 +204,11 @@ export function Dock() {
             <button
               type="button"
               className={cn(
-                "relative flex h-14 w-14 flex-col items-center justify-center gap-1 text-[10.5px] transition-colors cursor-pointer sm:w-16",
+                "relative isolate flex h-14 w-[52px] flex-col items-center justify-center gap-1 rounded-xl text-[10.5px] transition-colors cursor-pointer sm:w-16",
                 moreActive ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {moreActive && <span className="absolute inset-x-3 top-0 h-[2px] bg-brand" />}
+              {moreActive && <span className="absolute inset-x-1.5 inset-y-1 -z-[1] rounded-[12px] bg-brand-soft" />}
               <DotsThree className={cn("size-[22px]", moreActive && "text-brand")} weight="bold" />
               עוד
             </button>

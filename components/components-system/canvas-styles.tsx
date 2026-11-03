@@ -1,6 +1,6 @@
 /**
  * Small keyframes used only by the canvas (hint arrow, marching drop border).
- * Kept local so globals.css stays untouched; React 19 hoists and dedupes it.
+ * Kept local to the canvas; React 19 hoists and dedupes it.
  */
 export function CanvasStyles() {
   return (

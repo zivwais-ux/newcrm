@@ -15,6 +15,7 @@ import { useStageLabel } from "@/components/layout/workspace-provider";
 import type { SpotlightData, SpotlightResult } from "@/lib/components/spotlight";
 import type { RecordEntity } from "@/lib/actions/records";
 import { Ltr } from "@/components/ui/ltr";
+import { countUpNode } from "@/components/business/stat";
 import { CUSTOMER_STATUS_LABELS, label } from "@/components/business/labels";
 import { formatCurrency, formatDate, formatNumber, plural } from "@/lib/utils";
 
@@ -213,9 +214,9 @@ function SpotlightSheet({ data, currency, onClose: close }: { data: SpotlightDat
 
 function StatTile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border bg-muted/30 px-4 py-3">
-      <p className="truncate text-[12px] text-muted-foreground">{label}</p>
-      <p className="mt-1 truncate text-xl font-semibold tracking-tight num">{value}</p>
+    <div className="min-w-0 rounded-lg border border-border/80 bg-rail px-4 py-3">
+      <p className="truncate text-[12px] font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 truncate text-xl font-semibold tracking-tight num">{countUpNode(value)}</p>
       {hint && <p className="mt-0.5 truncate text-[12px] text-muted-foreground">{hint}</p>}
     </div>
   );

@@ -90,10 +90,10 @@ export function FilterBar({ filters }: { filters?: WorkspaceFilters }) {
         </SelectContent>
       </Select>
       {chips.map((k) => (
-        <span key={k} className="inline-flex h-8 items-center gap-1.5 border border-brand bg-brand-soft pe-1 ps-2.5 text-xs font-medium text-brand">
+        <span key={k} className="inline-flex h-8 items-center gap-1.5 rounded-full border border-brand/30 bg-brand-soft pe-1 ps-3 text-xs font-medium text-brand animate-in fade-in-0 zoom-in-95 duration-200">
           <span className="size-1.5 rounded-full bg-brand" />
           {filterLabel(k, f[k] as string, stages)}
-          <button onClick={() => setParams({ [k]: null })} className="grid size-6 place-items-center hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
+          <button onClick={() => setParams({ [k]: null })} className="grid size-6 place-items-center rounded-full hover:bg-brand/10 cursor-pointer" aria-label={`נקה סינון לפי ${FILTER_NAMES[k]}`}>
             <X className="size-3" weight="bold" />
           </button>
         </span>

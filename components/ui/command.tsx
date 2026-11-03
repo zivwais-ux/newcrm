@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {
   return (
     <CommandPrimitive
-      className={cn("flex h-full w-full flex-col overflow-hidden rounded-sm bg-popover text-popover-foreground", className)}
+      className={cn("flex h-full w-full flex-col overflow-hidden rounded-[inherit] bg-popover text-popover-foreground", className)}
       {...props}
     />
   );
@@ -16,7 +16,7 @@ function Command({ className, ...props }: React.ComponentProps<typeof CommandPri
 
 function CommandInput({ className, ...props }: React.ComponentProps<typeof CommandPrimitive.Input>) {
   return (
-    <div className="flex h-12 items-center gap-2.5 border-b border-border bg-rail px-4">
+    <div className="flex h-12 items-center gap-2.5 border-b border-border/60 px-4">
       <MagnifyingGlass className="size-4 shrink-0 text-muted-foreground" />
       <CommandPrimitive.Input
         className={cn("flex h-10 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground", className)}

@@ -62,13 +62,13 @@ const SHAPES: Record<string, Shape> = {
 function Schematic({ type }: { type: string }) {
   const shape = SHAPES[type] ?? "list";
   return (
-    <div className="relative h-[72px] overflow-hidden border-b border-border bg-rail px-3 py-2.5" aria-hidden>
+    <div className="relative h-[72px] overflow-hidden rounded-t-[inherit] border-b border-border/60 bg-gradient-to-b from-brand-soft/60 to-rail px-3 py-2.5" aria-hidden>
       {shape === "chart" && (
         <>
-          <div className="h-2.5 w-14 bg-foreground/80" />
-          <div className="mt-1.5 h-1.5 w-8 bg-border-strong" />
+          <div className="h-2.5 w-14 rounded-full bg-foreground/80" />
+          <div className="mt-1.5 h-1.5 w-8 rounded-full bg-border-strong" />
           <svg viewBox="0 0 120 30" preserveAspectRatio="none" className="absolute inset-x-3 bottom-2 h-7 w-[calc(100%-1.5rem)]">
-            <polyline points="0,24 18,20 34,22 52,13 70,16 88,8 104,10 120,3" fill="none" stroke="var(--brand)" strokeWidth="1.5" />
+            <polyline points="0,24 18,20 34,22 52,13 70,16 88,8 104,10 120,3" fill="none" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </>
       )}
@@ -76,8 +76,8 @@ function Schematic({ type }: { type: string }) {
         <div className="space-y-2 pt-0.5">
           {[0.8, 0.6, 0.7].map((w, i) => (
             <div key={i} className="flex items-center gap-2">
-              <span className="size-2 shrink-0 bg-brand/70" />
-              <span className="h-1.5 bg-border-strong" style={{ width: `${w * 100}%` }} />
+              <span className="size-2 shrink-0 rounded-full bg-brand/70" />
+              <span className="h-1.5 rounded-full bg-border-strong" style={{ width: `${w * 100}%` }} />
             </div>
           ))}
         </div>
@@ -85,9 +85,9 @@ function Schematic({ type }: { type: string }) {
       {shape === "board" && (
         <div className="grid h-full grid-cols-4 gap-1.5">
           {[3, 2, 2, 1].map((n, c) => (
-            <div key={c} className="space-y-1 border-t-2 border-brand/60 pt-1">
+            <div key={c} className="space-y-1 rounded-t-[2px] border-t-2 border-brand/60 pt-1">
               {Array.from({ length: n }, (_, i) => (
-                <div key={i} className="h-2.5 border border-border bg-module" />
+                <div key={i} className="h-2.5 rounded-[3px] border border-border bg-module" />
               ))}
             </div>
           ))}
@@ -95,9 +95,9 @@ function Schematic({ type }: { type: string }) {
       )}
       {shape === "chat" && (
         <div className="space-y-1.5 pt-0.5">
-          <div className="ms-auto h-3 w-1/2 bg-brand/70" />
-          <div className="h-3 w-3/4 border border-border bg-module" />
-          <div className="h-3 w-2/5 border border-border bg-module" />
+          <div className="ms-auto h-3 w-1/2 rounded-full bg-brand/70" />
+          <div className="h-3 w-3/4 rounded-full border border-border bg-module" />
+          <div className="h-3 w-2/5 rounded-full border border-border bg-module" />
         </div>
       )}
       {shape === "agenda" && (
@@ -105,7 +105,7 @@ function Schematic({ type }: { type: string }) {
           {["09", "11", "14"].map((h) => (
             <div key={h} className="flex items-center gap-2">
               <span className="num text-[9px] text-muted-foreground">{h}:00</span>
-              <span className="h-2.5 flex-1 border-s-2 border-brand bg-brand-soft" />
+              <span className="h-2.5 flex-1 rounded-e-[3px] border-s-2 border-brand bg-brand-soft" />
             </div>
           ))}
         </div>
@@ -142,8 +142,8 @@ export function PaletteCard({
       {...(overlay ? {} : listeners)}
       {...(overlay ? {} : attributes)}
       className={cn(
-        "group relative flex flex-col border border-border bg-module text-start shadow-xs transition-[box-shadow,border-color,transform] duration-150",
-        !disabled && "cursor-grab hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-block active:cursor-grabbing",
+        "group relative flex flex-col rounded-lg border border-border/80 bg-module text-start shadow-xs transition-[box-shadow,border-color,transform] duration-200 ease-out",
+        !disabled && "cursor-grab hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-lift active:cursor-grabbing",
         entry.installedId && "opacity-60 shadow-none",
         isDragging && "opacity-30",
         overlay && "w-64 -rotate-2 cursor-grabbing border-brand shadow-xl",
@@ -152,7 +152,9 @@ export function PaletteCard({
     >
       <Schematic type={entry.id} />
       <div className="flex items-start gap-2 p-3">
-        <Icon className="mt-0.5 size-[18px] shrink-0 text-brand" />
+        <span className="grid size-7 shrink-0 place-items-center rounded-sm bg-brand-soft text-brand">
+          <Icon className="size-4" />
+        </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[14px] font-semibold leading-tight">{entry.name}</span>
           <span className="mt-1 line-clamp-2 block text-[12px] leading-snug text-muted-foreground">{entry.description}</span>
@@ -181,7 +183,7 @@ export function PaletteCard({
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={onAdd}
-            className="grid size-6 place-items-center border border-border bg-module text-muted-foreground opacity-0 transition-opacity hover:border-brand hover:text-brand group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
+            className="grid size-6 place-items-center rounded-xs border border-border bg-module text-muted-foreground opacity-0 transition-opacity hover:border-brand hover:text-brand group-hover:opacity-100 focus-visible:opacity-100 cursor-pointer"
             aria-label={`הוסף את ${entry.name} לשולחן`}
             title="הוסף לשולחן"
           >
@@ -191,7 +193,7 @@ export function PaletteCard({
         </span>
       )}
       {entry.recommended && !entry.installedId && !overlay && (
-        <span className="absolute -top-px start-3 bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">מומלץ</span>
+        <span className="absolute -top-2 start-3 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">מומלץ</span>
       )}
     </div>
   );
@@ -226,8 +228,8 @@ function HelpPanel({ entries, checklist }: { entries: PaletteEntry[]; checklist:
             {doneCount}/{steps.length}
           </span>
         </div>
-        <div className="mb-3 h-1 bg-muted">
-          <div className="h-full bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
+        <div className="mb-3 h-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
         </div>
         <ul className="space-y-2">
           {steps.map((s) => (
@@ -372,7 +374,7 @@ export function ComponentPalette({
         ) : (
           <>
             {!canManage && (
-              <p className="mb-3 bg-muted px-3 py-2 text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את השולחן.</p>
+              <p className="mb-3 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">רק בעלים ומנהלים יכולים לשנות את השולחן.</p>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
               {shown.map((e) => (

@@ -34,7 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Toaster
           dir="rtl"
           position="bottom-left"
-          toastOptions={{ classNames: { toast: "!rounded-sm !border-border !text-sm !font-sans !shadow-lg" } }}
+          toastOptions={{ classNames: { toast: "!rounded-lg !border-border !text-sm !font-sans !shadow-lg" } }}
         />
       </body>
     </html>

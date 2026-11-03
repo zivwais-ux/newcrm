@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AgentActionButton } from "@/components/agents/agent-action-button";
+import { AgentAvatar } from "@/components/agents/agent-avatar";
 import { askBrain } from "@/lib/actions/agents";
 import type { BrainAnswer } from "@/lib/agents/validate";
 import { cn } from "@/lib/utils";
@@ -67,7 +68,7 @@ function SourceChip({ source }: { source: BrainAnswer["sources"][number] }) {
       <span className="truncate">{source.label}</span>
     </>
   );
-  const base = "inline-flex max-w-full items-center gap-1 rounded-sm border border-border px-1.5 py-0.5 text-[11px]";
+  const base = "inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-module px-2 py-0.5 text-[11px]";
   return href ? (
     <Link href={href} className={cn(base, "text-foreground transition-colors hover:border-brand/40 hover:text-brand")}>
       {body}
@@ -79,7 +80,9 @@ function SourceChip({ source }: { source: BrainAnswer["sources"][number] }) {
 
 function AnswerBubble({ answer }: { answer: BrainAnswer }) {
   return (
-    <div className="border border-border bg-module px-3.5 py-3">
+    <div className="flex items-start gap-2.5">
+      <AgentAvatar agent="brain" size="sm" className="mt-0.5" />
+      <div className="min-w-0 flex-1 rounded-lg rounded-ss-sm border border-border/80 bg-module px-3.5 py-3 shadow-xs">
       <p className="text-[14px] leading-relaxed whitespace-pre-line">{answer.answer}</p>
       {answer.confidence === "low" && (
         <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -102,6 +105,7 @@ function AnswerBubble({ answer }: { answer: BrainAnswer }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -109,7 +113,7 @@ function AnswerBubble({ answer }: { answer: BrainAnswer }) {
 function GuideSection({ icon: Icon, title, children }: { icon: React.ElementType; title: string; children: React.ReactNode }) {
   return (
     <section className="flex gap-3">
-      <span className="grid size-8 shrink-0 place-items-center rounded-sm border border-brand/15 bg-brand-soft text-brand">
+      <span className="grid size-8 shrink-0 place-items-center rounded-md border border-brand/10 bg-brand-soft text-brand">
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1 pt-1">
@@ -123,24 +127,27 @@ function GuideSection({ icon: Icon, title, children }: { icon: React.ElementType
 function BrainGuide({ open, onOpenChange, onAsk }: { open: boolean; onOpenChange: (open: boolean) => void; onAsk: (q: string) => void }) {
   const sources = [
     { label: "נתוני העסק", note: "לקוחות, עסקאות, מכירות ומשימות", connected: true },
-    { label: "תובנות הסוכנים", note: "מה שהסוכנים מצאו בריצה האחרונה", connected: true },
+    { label: "תובנות הסוכנים", note: "מה שנועה, אורי, תום ושירה מצאו בריצה האחרונה", connected: true },
     { label: "מייל", note: "לא מחובר עדיין. בקרוב", connected: false },
   ];
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
-        <SheetHeader>
-          <SheetTitle>איך המוח של העסק עובד</SheetTitle>
-          <SheetDescription>שאלה בעברית רגילה, תשובה עם המספרים והשמות.</SheetDescription>
+        <SheetHeader className="flex-row items-center gap-3">
+          <AgentAvatar agent="brain" />
+          <div className="min-w-0 space-y-0.5">
+            <SheetTitle>נובה · המוח של העסק</SheetTitle>
+            <SheetDescription>שאלה בעברית רגילה, תשובה עם המספרים והשמות.</SheetDescription>
+          </div>
         </SheetHeader>
         <SheetBody className="space-y-6">
-          <GuideSection icon={Brain} title="מה זה">
-            המוח של העסק מכיר את כל מה שיש במערכת: לקוחות, עסקאות, מכירות ומשימות, וגם את מה שהסוכנים מצאו. שואלים אותו בעברית רגילה, והוא עונה עם
-            המספרים והשמות.
+          <GuideSection icon={Brain} title="מי זאת נובה">
+            נובה היא המוח של העסק. היא מכירה את כל מה שיש במערכת: לקוחות, עסקאות, מכירות ומשימות, וגם את מה שהסוכנים מצאו. שואלים אותה בעברית רגילה,
+            והיא עונה עם המספרים והשמות.
           </GuideSection>
 
-          <GuideSection icon={Lightbulb} title="מה הוא יודע">
-            <ul className="mt-1 divide-y divide-border border border-border">
+          <GuideSection icon={Lightbulb} title="נובה יודעת…">
+            <ul className="mt-1 divide-y divide-border overflow-hidden rounded-lg border border-border">
               {sources.map((s) => (
                 <li key={s.label} className="flex items-center gap-2.5 px-3 py-2">
                   {s.connected ? <Check className="size-4 shrink-0 text-positive" /> : <Clock className="size-4 shrink-0 text-muted-foreground" />}
@@ -168,7 +175,7 @@ function BrainGuide({ open, onOpenChange, onAsk }: { open: boolean; onOpenChange
                         key={q}
                         type="button"
                         onClick={() => onAsk(q)}
-                        className="cursor-pointer rounded-sm border border-border bg-module px-2.5 py-1 text-start text-xs text-foreground transition-colors hover:border-brand/40 hover:text-brand"
+                        className="cursor-pointer rounded-full border border-border bg-module px-3 py-1 text-start text-xs text-foreground transition-colors hover:border-brand/40 hover:bg-brand-soft hover:text-brand"
                       >
                         {q}
                       </button>
@@ -180,8 +187,8 @@ function BrainGuide({ open, onOpenChange, onAsk }: { open: boolean; onOpenChange
             <p className="mt-2">אפשר גם לשאול על לקוח לפי שם, למשל: &quot;מה קורה עם דנה כהן?&quot;</p>
           </GuideSection>
 
-          <GuideSection icon={HandPalm} title="מה הוא לא עושה">
-            לא שולח הודעות ולא משנה כלום בלי שתאשר. לא ממציא: כשאין לו מידע הוא אומר.
+          <GuideSection icon={HandPalm} title="מה נובה לא עושה">
+            לא שולחת הודעות ולא משנה כלום בלי שתאשר. לא ממציאה: כשאין לה מידע היא אומרת.
           </GuideSection>
 
           <GuideSection icon={LockSimple} title="פרטיות">
@@ -264,8 +271,16 @@ export function CompanyBrainView() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="min-w-0 text-[13px] text-muted-foreground">שאל בעברית רגילה. התשובה מגיעה עם המספרים והשמות מהעסק שלך.</p>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex min-w-0 flex-1 basis-[16rem] items-center gap-3">
+          <AgentAvatar agent="brain" working={thinking} />
+          <div className="min-w-0">
+            <p className="truncate text-[14px] leading-tight font-semibold tracking-tight">
+              נובה <span className="font-normal text-muted-foreground">· המוח של העסק</span>
+            </p>
+            <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">שאל בעברית רגילה. נובה עונה עם המספרים והשמות מהעסק שלך.</p>
+          </div>
+        </div>
+        <div className="ms-auto flex shrink-0 items-center gap-1">
           {turns.length > 0 && (
             <Button size="xs" variant="ghost" className="text-muted-foreground" onClick={() => setTurns([])} disabled={thinking}>
               שיחה חדשה
@@ -283,14 +298,14 @@ export function CompanyBrainView() {
           {turns.map((t) =>
             t.role === "user" ? (
               <div key={t.id} className="flex justify-start">
-                <p className="max-w-[85%] border border-border bg-rail px-3 py-2 text-[14px] leading-relaxed whitespace-pre-line" dir="auto">
+                <p className="max-w-[85%] rounded-lg rounded-se-sm bg-brand px-3.5 py-2 text-[14px] leading-relaxed whitespace-pre-line text-white shadow-[0_4px_12px_-6px_rgb(79_70_229/0.55)]" dir="auto">
                   {t.text}
                 </p>
               </div>
             ) : t.role === "assistant" ? (
               <AnswerBubble key={t.id} answer={t.answer} />
             ) : (
-              <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 border border-negative/25 bg-negative-soft px-3 py-2">
+              <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-negative/20 bg-negative-soft px-3 py-2">
                 <p className="text-[13px] text-negative">{t.text}</p>
                 <Button size="xs" variant="outline" onClick={() => ask(t.question)} disabled={thinking}>
                   נסה שוב
@@ -299,10 +314,12 @@ export function CompanyBrainView() {
             ),
           )}
           {thinking && (
-            <p role="status" className="flex items-center gap-2 border border-border bg-module px-3.5 py-3 text-[13px] text-muted-foreground">
-              <CircleNotch className="size-4 shrink-0 animate-spin text-brand" />
-              חושב על זה… בודק את הנתונים של העסק
-            </p>
+            <div role="status" className="flex items-center gap-2.5">
+              <AgentAvatar agent="brain" size="sm" working />
+              <p className="rounded-lg rounded-ss-sm border border-border/80 bg-module px-3.5 py-2.5 text-[13px] text-muted-foreground shadow-xs">
+                <span className="font-medium text-brand">נובה חושבת…</span> בודקת את הנתונים של העסק
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -312,19 +329,19 @@ export function CompanyBrainView() {
           e.preventDefault();
           void ask(q);
         }}
-        className="flex items-center gap-2 border border-border-strong bg-module py-1.5 pe-1.5 ps-3.5 focus-within:ring-2 focus-within:ring-brand/30"
+        className="flex items-center gap-2 rounded-xl border border-border-strong/80 bg-module py-1.5 pe-1.5 ps-3.5 shadow-sm transition-[border-color,box-shadow] duration-200 focus-within:border-brand/50 focus-within:ring-4 focus-within:ring-brand/10"
       >
         <Brain className="size-5 shrink-0 text-brand" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="שאל כל דבר על העסק שלך…"
+          placeholder="שאל את נובה כל דבר על העסק שלך…"
           dir="auto"
           maxLength={1000}
-          aria-label="שאלה למוח של העסק"
+          aria-label="שאלה לנובה, המוח של העסק"
           className="h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
         />
-        <Button type="submit" size="icon" variant="brand" disabled={thinking || q.trim().length < 2} aria-label="שאל">
+        <Button type="submit" size="icon" variant="brand" className="rounded-[10px]" disabled={thinking || q.trim().length < 2} aria-label="שאל">
           {thinking ? <CircleNotch className="animate-spin" /> : <ArrowUp />}
         </Button>
       </form>
@@ -337,7 +354,7 @@ export function CompanyBrainView() {
               type="button"
               onClick={() => ask(p)}
               disabled={thinking}
-              className="cursor-pointer rounded-sm border border-border bg-module px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground disabled:opacity-50"
+              className="cursor-pointer rounded-full border border-border bg-module px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:bg-brand-soft hover:text-brand disabled:opacity-50"
             >
               {p}
             </button>

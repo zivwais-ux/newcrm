@@ -3,12 +3,14 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useReducedMotion } from "motion/react";
 import { ChartBar, CircleNotch } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Stat } from "@/components/business/stat";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Ltr } from "@/components/ui/ltr";
+import { CHART_AXIS, CHART_CURSOR, CHART_GRID, ChartTooltipCard, GrowBar, chartAnimation, chartGradient } from "@/components/ui/chart";
 import { formatCurrency, formatMonth, pctChange, plural } from "@/lib/utils";
 import { RANGE_PRESETS, type CompareOption } from "@/lib/analytics/dates";
 import type { RevenueData } from "@/lib/components/loaders";
@@ -42,6 +44,7 @@ function monthHref(iso: string, service: string | null) {
 export function RevenueView({ data, config, instanceId, currency }: ViewProps<RevenueData>) {
   const { update, pending } = useConfigUpdater(instanceId);
   const router = useRouter();
+  const reduce = useReducedMotion();
   const { toggle } = useWorkspaceFilters();
   const { summary, monthly, byService } = data;
   const change = pctChange(summary.total, summary.compare_total);
@@ -131,36 +134,17 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     if (point) router.push(monthHref(point.month, data.service));
                   }}
                 >
-                  <defs>
-                    <linearGradient id="rev-fill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.14} />
-                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="0" />
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={monthLabel}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    minTickGap={24}
-                  />
-                  <YAxis
-                    orientation="right"
-                    tickFormatter={(v) => formatCurrency(v, currency, true)}
-                    tickLine={false}
-                    axisLine={false}
-                    width={56}
-                    tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                  />
+                  {chartGradient("rev-fill")}
+                  <CartesianGrid {...CHART_GRID} />
+                  <XAxis dataKey="month" tickFormatter={monthLabel} {...CHART_AXIS} minTickGap={24} />
+                  <YAxis orientation="right" tickFormatter={(v) => formatCurrency(v, currency, true)} {...CHART_AXIS} width={56} />
                   <Tooltip
-                    cursor={{ stroke: "var(--ring)", strokeWidth: 1 }}
+                    cursor={CHART_CURSOR}
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const p = payload[0].payload as RevenueData["monthly"][number];
                       return (
-                        <div dir="rtl" className="rounded-lg border bg-popover px-3 py-2 text-xs shadow-md">
+                        <ChartTooltipCard>
                           <p className="font-medium">{formatMonth(p.month.slice(0, 7) + "-01", true)}</p>
                           <p className="mt-1 text-sm font-semibold num">
                             <Ltr>{formatCurrency(p.revenue, currency)}</Ltr>
@@ -169,7 +153,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                             {plural(p.tx_count, "מכירה", "מכירות", "מכירה אחת")} · {plural(p.customers, "לקוח", "לקוחות")}
                           </p>
                           <p className="mt-1 text-muted-foreground">לחץ לרשימת המכירות</p>
-                        </div>
+                        </ChartTooltipCard>
                       );
                     }}
                   />
@@ -177,9 +161,11 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                     type="monotone"
                     dataKey="revenue"
                     stroke="var(--chart-1)"
-                    strokeWidth={2}
+                    strokeWidth={2.25}
+                    strokeLinecap="round"
                     fill="url(#rev-fill)"
-                    activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--surface)" }}
+                    activeDot={{ r: 5, strokeWidth: 2.5, stroke: "var(--surface)", fill: "var(--chart-1)" }}
+                    {...chartAnimation(reduce)}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -198,9 +184,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                         <span className="truncate">{s.name}</span>
                         <Ltr className="shrink-0 num">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
-                      <div className="h-1.5 rounded-sm bg-muted">
-                        <div className="h-full rounded-sm bg-muted-foreground/40" style={{ width: `${Math.max(2, Math.min(100, (s.revenue / maxService) * 100))}%` }} />
-                      </div>
+                      <GrowBar value={Math.max(2, (s.revenue / maxService) * 100)} barClassName="bg-none bg-muted-foreground/40" />
                     </li>
                   );
                 return (
@@ -216,9 +200,7 @@ export function RevenueView({ data, config, instanceId, currency }: ViewProps<Re
                         <span className={cn("truncate", selected && "font-medium text-brand")}>{s.name}</span>
                         <Ltr className="shrink-0 num text-muted-foreground">{formatCurrency(s.revenue, currency, true)}</Ltr>
                       </div>
-                      <div className="h-1.5 rounded-sm bg-muted">
-                        <div className="h-full rounded-sm bg-chart-1 transition-opacity group-hover:opacity-80" style={{ width: `${Math.max(2, (s.revenue / maxService) * 100)}%` }} />
-                      </div>
+                      <GrowBar value={Math.max(2, (s.revenue / maxService) * 100)} barClassName="transition-opacity group-hover:opacity-80" />
                     </button>
                   </li>
                 );

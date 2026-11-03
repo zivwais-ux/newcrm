@@ -126,7 +126,7 @@ export function FieldsForm({ initial, canManage }: { initial: FieldDef[]; canMan
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-1 border border-border bg-muted/50 p-1 text-[13px]" role="tablist" aria-label="סוג הרשומה">
+      <div className="flex flex-wrap gap-1 rounded-md border border-border bg-muted/50 p-1 text-[13px]" role="tablist" aria-label="סוג הרשומה">
         {VALUE_ENTITIES.map((e) => {
           const active = e === entity;
           return (
@@ -168,7 +168,7 @@ export function FieldsForm({ initial, canManage }: { initial: FieldDef[]; canMan
           </SortableContext>
         </DndContext>
       ) : (
-        <div className="border border-dashed border-border px-4 py-6 text-center">
+        <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center">
           <p className="text-sm font-medium">עוד אין שדות משלך ל{entityLabel(entity, terms)}</p>
           <p className="mt-1 text-[13px] text-muted-foreground">למשל יום הולדת, מספר רכב או איך הגיע אליך. השדות יופיעו בטופס ובכרטיס.</p>
         </div>
