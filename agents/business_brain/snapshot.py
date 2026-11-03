@@ -274,11 +274,20 @@ class Snapshot:
         q = (text or "").strip().lower()
         if not q:
             return []
-        out = [{"type": "customer", "id": c["id"], "name": c.get("name"), "status": c.get("status")}
-               for c in self.customers if q in (c.get("name") or "").lower() or q in (c.get("company") or "").lower()]
-        out += [{"type": "deal", "id": d["id"], "name": d.get("name"), "stage": self._stage(d.get("stage", "")).get("label")}
-                for d in self.deals if q in (d.get("name") or "").lower()]
-        return out[:limit]
+        # Whole phrase first, then any meaningful word ("לקוח 103" also finds "103").
+        stop = {"לקוח", "לקוחה", "לקוחות", "עסקה", "עסקאות", "של", "את"}
+        words = [w for w in q.split() if len(w) >= 2 and w not in stop]
+
+        def score(name: str) -> int:
+            n = (name or "").lower()
+            return 2 if q in n else (1 if words and any(w in n for w in words) else 0)
+
+        out = [(score(c.get("name") or "") or score(c.get("company") or ""),
+                {"type": "customer", "id": c["id"], "name": c.get("name"), "status": c.get("status")}) for c in self.customers]
+        out += [(score(d.get("name") or ""),
+                 {"type": "deal", "id": d["id"], "name": d.get("name"), "stage": self._stage(d.get("stage", "")).get("label")})
+                for d in self.deals]
+        return [r for sc, r in sorted(out, key=lambda x: -x[0]) if sc > 0][:limit]
 
     def customer_360(self, customer_id: str) -> dict[str, Any] | None:
         c = next((c for c in self.customers if c["id"] == customer_id), None)

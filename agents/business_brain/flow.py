@@ -132,7 +132,13 @@ async def ask(snapshot: dict[str, Any], question: str, history: list[dict[str, s
     s = Snapshot.from_dict(snapshot)
     agent = brain(s, build_tools(s))
     convo = "".join(f"{'בעל העסק' if h.get('role') == 'user' else 'אתה'}: {h.get('content', '')[:800]}\n" for h in (history or [])[-6:])
-    prompt = (f"שיחה עד עכשיו:\n{convo}\n" if convo else "") + f"השאלה של בעל העסק: {question}\nהשתמש בכלים, ואז ענה."
+    basics = {"overview": s.overview(), "revenue_30_days": s.revenue_summary(30), "customers": s.customer_stats(),
+              "pipeline": s.pipeline_summary(), "stuck_deals_14_days": {k: v for k, v in s.stuck_deals(14, 3).items()}}
+    prompt = (
+        f"תמונת מצב בסיסית (מחושבת מהנתונים, אפשר לצטט):\n{json.dumps(basics, ensure_ascii=False, default=str)}\n\n"
+        + (f"שיחה עד עכשיו:\n{convo}\n" if convo else "")
+        + f"השאלה של בעל העסק: {question}\nלפרטים נוספים השתמש בכלים, ואז ענה."
+    )
     usage = Usage()
     out = await agent.kickoff_async(prompt, response_format=BrainAnswer)
     usage.add(out.usage_metrics or {})

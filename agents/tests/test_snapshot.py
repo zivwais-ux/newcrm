@@ -75,6 +75,8 @@ def test_known_ids_and_lookup():
     s = snap()
     assert {"c1", "d1"} <= s.known_ids()
     assert s.search_records("דנ")[0]["id"] == "c1"
+    assert s.search_records("לקוחה רונית")[0]["id"] == "c3"
+    assert s.search_records("פרויקט א")[0]["id"] == "d1"
     assert s.customer_360("c1")["revenue"] == 200
     assert s.customer_360("nope") is None
 
