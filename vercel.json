@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/agents/index.py": {
+      "maxDuration": 300,
+      "memory": 1024,
+      "excludeFiles": "{node_modules/**,.next/**,app/**,components/**,lib/**,public/**,supabase/**,e2e/**,test/**,docs/**,samples/**,scripts/**,types/**,agents/tests/**}"
+    }
+  }
+}

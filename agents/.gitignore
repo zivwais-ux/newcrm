@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# Local run outputs may hold real business data — never commit them.
+*.json
+.crewai/
