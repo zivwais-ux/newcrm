@@ -1,7 +1,7 @@
 import type { BusinessType, EntityName, MemberRole } from "@/types/domain";
 export type { EntityName };
 
-export type ComponentCategory = "customers" | "sales" | "finance" | "operations" | "ai";
+export type ComponentCategory = "customers" | "sales" | "finance" | "operations" | "ai" | "agents";
 export type ComponentSize = "sm" | "md" | "lg";
 
 export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
@@ -10,6 +10,7 @@ export const CATEGORY_LABELS: Record<ComponentCategory, string> = {
   finance: "כסף והכנסות",
   operations: "יום-יום",
   ai: "עזרה חכמה",
+  agents: "סוכנים",
 };
 
 export const SIZE_LABELS: Record<ComponentSize, string> = { sm: "קטן", md: "בינוני", lg: "רחב" };

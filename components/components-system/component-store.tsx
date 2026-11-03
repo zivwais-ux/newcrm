@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Brain,
   ChartLineUp,
   Check,
   CircleNotch,
+  Coins,
+  Compass,
   Crosshair,
   Handshake,
   ListChecks,
@@ -18,8 +21,10 @@ import {
   ShieldWarning,
   Sparkle,
   SunHorizon,
+  Target,
   TrendDown,
   UploadSimple,
+  UserCircleCheck,
   Users,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +48,11 @@ export const COMPONENT_ICONS: Record<string, React.ElementType> = {
   tasks: ListChecks,
   today: SunHorizon,
   outbox: PaperPlaneTilt,
+  "company-brain": Brain,
+  "agent-revenue": Coins,
+  "agent-customers": UserCircleCheck,
+  "agent-sales": Target,
+  "agent-chief": Compass,
 };
 
 const ENTITY_COUNT_LABELS: Record<string, string> = {

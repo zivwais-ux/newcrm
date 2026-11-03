@@ -401,7 +401,54 @@ export const COMPONENT_REGISTRY: ComponentDefinition[] = [
     emptyState: { title: "אין הודעות שמחכות", description: "כשזרימה מכינה הודעת WhatsApp, היא מחכה כאן ללחיצה אחת שלך." },
     href: "/automations",
   },
+  {
+    id: "company-brain",
+    name: "המוח של העסק",
+    description: "שאל כל דבר על העסק בעברית רגילה וקבל תשובה עם המספרים והשמות",
+    category: "agents",
+    requiredEntities: [],
+    recommendedFor: ["service", "sales", "both"],
+    defaultSize: "lg",
+    visualization: "תיבת שאלה גדולה, שאלות לדוגמה ותשובות עם מקורות",
+    configFields: [],
+    actions: [
+      { id: "ask", label: "שאל שאלה" },
+      { id: "approve", label: "אשר פעולה מוצעת" },
+    ],
+    permissions: MANAGERS,
+    consumes: [],
+    emits: [],
+    emptyState: { title: "עדיין אין על מה לענות", description: "העלה את נתוני העסק, והמוח יענה לך לפיהם." },
+  },
+  agentDefinition("agent-revenue", "אנליסט הכנסות", "עוקב אחרי הכסף שנכנס ומוצא הזדמנויות"),
+  agentDefinition("agent-customers", "שומר לקוחות", "מוצא לקוחות שהתרחקו או עומדים לעזוב, ואומר למי לחזור"),
+  agentDefinition("agent-sales", "מאמן מכירות", "בודק את העסקאות הפתוחות ואומר מה יקדם כל אחת"),
+  agentDefinition("agent-chief", "ראש מטה", "קורא את מה שכל הסוכנים מצאו ובוחר את 3 הדברים החשובים היום"),
 ];
+
+/** The four agent modules share one loader and one view; only the agent changes. */
+function agentDefinition(id: string, name: string, description: string): ComponentDefinition {
+  return {
+    id,
+    name,
+    description,
+    category: "agents",
+    requiredEntities: [],
+    recommendedFor: ["service", "sales", "both"],
+    defaultSize: "md",
+    visualization: "כרטיסי ממצאים, לכל אחד מספרים וכפתורי פעולה",
+    configFields: [],
+    actions: [
+      { id: "run", label: "הרץ עכשיו" },
+      { id: "approve", label: "אשר פעולה מוצעת" },
+      { id: "dismiss", label: "דלג על ממצא" },
+    ],
+    permissions: MANAGERS,
+    consumes: [],
+    emits: [],
+    emptyState: { title: "הסוכן עוד לא רץ", description },
+  };
+}
 
 export const REGISTRY_BY_ID = new Map(COMPONENT_REGISTRY.map((c) => [c.id, c]));
 

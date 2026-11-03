@@ -19,6 +19,7 @@ import {
 } from "@/lib/analytics/queries";
 import type { Activity, Deal, Task } from "@/types/domain";
 import type { OutboxRow } from "@/lib/actions/automations";
+import type { AgentAction, AgentKey, Insight } from "@/lib/agents/validate";
 import { loadStages } from "@/lib/stages";
 import { EMPTY_FILTERS, type WorkspaceFilters } from "./filters";
 import type { ComponentConfig } from "./types";
@@ -534,6 +535,86 @@ async function aiAnalyst(ctx: LoaderContext) {
 }
 export type AIAnalystData = Awaited<ReturnType<typeof aiAnalyst>>;
 
+/** A team run still "running" after this long never closed (the request died); show it as failed. */
+const AGENT_RUN_STALE_MS = 6 * 60_000;
+
+/**
+ * One agent's open findings from the latest run that produced rows for it, plus the
+ * business's latest team run (so the module can show "working" or "failed").
+ */
+function agentLoader(agent: AgentKey) {
+  return async (ctx: LoaderContext) => {
+    const { supabase, org } = ctx;
+    const [latest, run] = await Promise.all([
+      supabase
+        .from("agent_insights")
+        .select("run_id, created_at")
+        .eq("organization_id", org.id)
+        .eq("agent", agent)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from("agent_runs")
+        .select("status, created_at, finished_at")
+        .eq("organization_id", org.id)
+        .eq("kind", "team")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (latest.error) throw latest.error;
+    if (run.error) throw run.error;
+
+    let insights: AgentInsightRow[] = [];
+    if (latest.data) {
+      const { data, error } = await supabase
+        .from("agent_insights")
+        .select("id, headline, detail, severity, evidence, actions, created_at")
+        .eq("organization_id", org.id)
+        .eq("agent", agent)
+        .eq("run_id", latest.data.run_id)
+        .eq("status", "new")
+        .order("position");
+      if (error) throw error;
+      insights = (data ?? []).map((r) => ({
+        id: r.id as string,
+        headline: r.headline as string,
+        detail: (r.detail as string | null) ?? null,
+        severity: r.severity as Insight["severity"],
+        evidence: Array.isArray(r.evidence) ? (r.evidence as Insight["evidence"]) : [],
+        actions: Array.isArray(r.actions) ? (r.actions as AgentAction[]) : [],
+      }));
+    }
+
+    const r = run.data;
+    const stale = r?.status === "running" && Date.now() - new Date(r.created_at as string).getTime() > AGENT_RUN_STALE_MS;
+    return {
+      agent,
+      insights,
+      /** When this agent's findings were written (null = it never produced any). */
+      updatedAt: (latest.data?.created_at as string | undefined) ?? null,
+      lastRun: r
+        ? {
+            status: (stale ? "failed" : r.status) as "running" | "done" | "failed",
+            created_at: r.created_at as string,
+            finished_at: (r.finished_at as string | null) ?? null,
+          }
+        : null,
+    };
+  };
+}
+export interface AgentInsightRow extends Insight {
+  id: string;
+}
+export type AgentData = Awaited<ReturnType<ReturnType<typeof agentLoader>>>;
+
+/** The Brain needs nothing up front: every answer is asked for on demand. */
+async function companyBrain() {
+  return {};
+}
+export type CompanyBrainData = Awaited<ReturnType<typeof companyBrain>>;
+
 /** Loader registry — keyed by Component id (see lib/components/registry.ts). */
 export const COMPONENT_LOADERS: Record<string, Loader> = {
   "customer-hub": customerHub,
@@ -548,4 +629,9 @@ export const COMPONENT_LOADERS: Record<string, Loader> = {
   tasks,
   today,
   outbox,
+  "company-brain": companyBrain,
+  "agent-revenue": agentLoader("revenue"),
+  "agent-customers": agentLoader("customers"),
+  "agent-sales": agentLoader("sales"),
+  "agent-chief": agentLoader("chief"),
 };

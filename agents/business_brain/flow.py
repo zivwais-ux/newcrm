@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from typing import Any
+from typing import Any, ClassVar
 
 from crewai.flow.flow import Flow, listen, start
 from pydantic import BaseModel, Field
@@ -72,6 +72,9 @@ class TeamState(BaseModel):
 class TeamFlow(Flow[TeamState]):
     """gather → three specialists in parallel → chief of staff."""
 
+    # Each run starts from the snapshot; no long-term memory (and no vector store to ship).
+    _skip_auto_memory: ClassVar[bool] = True
+
     @start()
     def gather(self) -> Snapshot:
         return Snapshot.from_dict(self.state.snapshot)
@@ -115,7 +118,7 @@ class TeamFlow(Flow[TeamState]):
 
 async def run_team(snapshot: dict[str, Any], model: str = "gpt-4.1-mini") -> dict[str, Any]:
     t0 = time.monotonic()
-    flow = TeamFlow()
+    flow = TeamFlow(suppress_flow_events=True)
     await flow.kickoff_async(inputs={"snapshot": snapshot})
     st = flow.state
     return {

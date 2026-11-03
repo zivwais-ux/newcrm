@@ -21,8 +21,9 @@ def _day(value: Any) -> date | None:
         return None
 
 
-def _money(n: float) -> float:
-    return round(float(n or 0), 2)
+def _money(n: float) -> float | int:
+    v = round(float(n or 0), 2)
+    return int(v) if v.is_integer() else v  # 22, not 22.0
 
 
 @dataclass

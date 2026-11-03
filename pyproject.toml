@@ -11,10 +11,13 @@ dependencies = [
 ]
 
 [tool.uv]
-# CrewAI pulls in vector stores and a Kubernetes client that the team never uses. Leaving them out
+# CrewAI pulls in vector stores, PDF parsing and a Kubernetes client that the team never uses. Leaving them out
 # keeps the function well under Vercel's size limit (an impossible marker drops a dependency).
 override-dependencies = [
   "kubernetes; sys_platform == 'never'",
   "onnxruntime; sys_platform == 'never'",
   "grpcio; sys_platform == 'never'",
+  "lancedb; sys_platform == 'never'",
+  "pyarrow; sys_platform == 'never'",
+  "pdfplumber; sys_platform == 'never'",
 ]
